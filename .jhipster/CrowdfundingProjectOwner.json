@@ -1,0 +1,28 @@
+{
+  "annotations": {
+    "changelogDate": "20241004143921"
+  },
+  "applications": "*",
+  "fields": [
+    {
+      "fieldName": "name",
+      "fieldType": "String",
+      "fieldValidateRules": ["required"]
+    },
+    {
+      "fieldName": "imageUrl",
+      "fieldType": "String"
+    }
+  ],
+  "name": "CrowdfundingProjectOwner",
+  "relationships": [
+    {
+      "otherEntityName": "crowdfundingProject",
+      "otherEntityRelationshipName": "owner",
+      "relationshipName": "project",
+      "relationshipSide": "left",
+      "relationshipType": "one-to-many"
+    }
+  ],
+  "searchEngine": "no"
+}

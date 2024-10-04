@@ -1,0 +1,34 @@
+entity CrowdfundingProjectOwner {
+  name String required,
+  imageUrl String
+}
+
+entity CrowdfundingProject {
+  title String required,
+  requestedAmount BigDecimal required,
+  collectedAmount BigDecimal required,
+  currency String required,
+  imageUrl String,
+  risk Integer required,
+  projectStartDate Instant required,
+  projectEndDate Instant required,
+  numberOfBackers Integer required,
+  summary String,
+  description TextBlob,
+  expectedProfit BigDecimal required,
+  minimumInvestment BigDecimal required,
+  projectVideoUrl String
+}
+
+entity ProjectReward {
+  name String required,
+  imageUrl String,
+  description String
+}
+
+relationship OneToMany {
+  CrowdfundingProjectOwner{project} to CrowdfundingProject{owner},
+  CrowdfundingProject{reward} to ProjectReward,
+}
+
+paginate CrowdfundingProject with infinite-scroll

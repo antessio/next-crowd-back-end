@@ -1,0 +1,27 @@
+{
+  "nextCrowdBackEndApp": {
+    "projectReward": {
+      "home": {
+        "title": "Project Rewards",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Project Reward",
+        "createOrEditLabel": "Create or edit a Project Reward",
+        "notFound": "No Project Rewards found"
+      },
+      "created": "A new Project Reward is created with identifier {{ param }}",
+      "updated": "A Project Reward is updated with identifier {{ param }}",
+      "deleted": "A Project Reward is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Project Reward {{ id }}?"
+      },
+      "detail": {
+        "title": "Project Reward"
+      },
+      "id": "ID",
+      "name": "Name",
+      "imageUrl": "Image Url",
+      "description": "Description",
+      "crowdfundingProject": "Crowdfunding Project"
+    }
+  }
+}

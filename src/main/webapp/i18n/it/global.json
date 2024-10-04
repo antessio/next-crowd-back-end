@@ -7,7 +7,10 @@
       "jhipster-needle-menu-add-element": "JHipster will add additional menu entries here (do not translate!)",
       "entities": {
         "main": "Entità",
-        "jhipster-needle-menu-add-entry": "JHipster will add additional entities here (do not translate!)"
+        "jhipster-needle-menu-add-entry": "JHipster will add additional entities here (do not translate!)",
+        "crowdfundingProjectOwner": "Crowdfunding Project Owner",
+        "crowdfundingProject": "Crowdfunding Project",
+        "projectReward": "Project Reward"
       },
       "account": {
         "main": "Utente",
