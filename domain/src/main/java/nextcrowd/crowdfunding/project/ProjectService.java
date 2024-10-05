@@ -1,0 +1,67 @@
+package nextcrowd.crowdfunding.project;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
+import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
+import nextcrowd.crowdfunding.project.event.CrowdfundingProjectSubmittedEvent;
+import nextcrowd.crowdfunding.project.exception.ValidationException;
+import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
+import nextcrowd.crowdfunding.project.model.ProjectId;
+import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
+import nextcrowd.crowdfunding.project.port.EventPublisher;
+import nextcrowd.crowdfunding.project.service.ProjectValidationService;
+
+public class ProjectService {
+
+    private final ProjectValidationService validationService;
+    private final CrowdfundingProjectRepository crowdfundingProjectRepository;
+    private final EventPublisher eventPublisher;
+
+    public ProjectService(
+            ProjectValidationService validationService,
+            CrowdfundingProjectRepository crowdfundingProjectRepository,
+            EventPublisher eventPublisher) {
+        this.validationService = validationService;
+        this.crowdfundingProjectRepository = crowdfundingProjectRepository;
+        this.eventPublisher = eventPublisher;
+    }
+
+    public ProjectId submitProject(SubmitCrowdfundingProjectCommand projectCreationCommand) {
+        List<ProjectValidationService.ValidationFailure> failedValidations = validationService.validateProjectSubmission(projectCreationCommand);
+        if (!failedValidations.isEmpty()) {
+            throw new ValidationException(
+                    failedValidations.stream().map(ProjectValidationService.ValidationFailure::reason)
+                                     .collect(Collectors.joining("\n")));
+        }
+        CrowdfundingProject project = CrowdfundingProject.builder()
+                                                         .id(generateId())
+                                                         .owner(projectCreationCommand.getOwner())
+                                                         .projectStartDate(projectCreationCommand.getProjectStartDate())
+                                                         .projectEndDate(projectCreationCommand.getProjectEndDate())
+                                                         .projectVideoUrl(projectCreationCommand.getProjectVideoUrl())
+                                                         .requestedAmount(BigDecimal.valueOf(projectCreationCommand.getRequestedAmount()))
+                                                         .currency(projectCreationCommand.getCurrency())
+                                                         .description(projectCreationCommand.getDescription())
+                                                         .title(projectCreationCommand.getTitle())
+                                                         .longDescription(projectCreationCommand.getLongDescription())
+                                                         .rewards(projectCreationCommand.getRewards())
+                                                         .build();
+        crowdfundingProjectRepository.save(project);
+        eventPublisher.publish(CrowdfundingProjectSubmittedEvent.builder()
+                                                                .projectOwner(project.getOwner())
+                                                                .projectId(project.getId())
+                                                                .build());
+
+        return project.getId();
+    }
+
+    private ProjectId generateId() {
+        return new ProjectId(UUID.randomUUID().toString());
+    }
+
+}
