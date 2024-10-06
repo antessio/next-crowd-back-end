@@ -7,8 +7,11 @@ import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
+import nextcrowd.crowdfunding.project.event.CrowdfundingProjectApprovedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectSubmittedEvent;
+import nextcrowd.crowdfunding.project.exception.ProjectApprovalException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.ProjectId;
@@ -62,6 +65,33 @@ public class ProjectService {
 
     private ProjectId generateId() {
         return new ProjectId(UUID.randomUUID().toString());
+    }
+
+    public void approve(ProjectId projectId, ApproveCrowdfundingProjectCommand command) {
+        CrowdfundingProject project = crowdfundingProjectRepository.findById(projectId)
+                                                                   .orElseThrow(() -> new ProjectApprovalException(ProjectApprovalException.Reason.PROJECT_NOT_FOUND));
+        if (project.getStatus() == CrowdfundingProject.Status.APPROVED) {
+            return;
+        }
+        if (project.getStatus() != CrowdfundingProject.Status.SUBMITTED) {
+            throw new ProjectApprovalException(ProjectApprovalException.Reason.INVALID_PROJECT_STATUS);
+        }
+        List<ProjectValidationService.ValidationFailure> failedValidations = validationService.validateProjectApproval(command);
+        if (!failedValidations.isEmpty()) {
+            throw new ProjectApprovalException(
+                    failedValidations.stream().map(ProjectValidationService.ValidationFailure::reason)
+                                     .collect(Collectors.joining("\n")),
+                    ProjectApprovalException.Reason.INVALID_COMMAND);
+        }
+
+        CrowdfundingProject approved = project.approve(command.getRisk(), command.getExpectedProfit(), command.getMinimumInvestment());
+        crowdfundingProjectRepository.save(approved);
+        eventPublisher.publish(CrowdfundingProjectApprovedEvent.builder()
+                                                               .projectId(approved.getId())
+                                                               .minimumInvestment(approved.getMinimumInvestment())
+                                                               .risk(approved.getRisk())
+                                                               .expectedProfit(approved.getExpectedProfit())
+                                                               .build());
     }
 
 }
