@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectApprovedEvent;
+import nextcrowd.crowdfunding.project.event.CrowdfundingProjectRejectedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectSubmittedEvent;
 import nextcrowd.crowdfunding.project.exception.ProjectApprovalException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
@@ -63,10 +64,6 @@ public class ProjectService {
         return project.getId();
     }
 
-    private ProjectId generateId() {
-        return new ProjectId(UUID.randomUUID().toString());
-    }
-
     public void approve(ProjectId projectId, ApproveCrowdfundingProjectCommand command) {
         CrowdfundingProject project = crowdfundingProjectRepository.findById(projectId)
                                                                    .orElseThrow(() -> new ProjectApprovalException(ProjectApprovalException.Reason.PROJECT_NOT_FOUND));
@@ -92,6 +89,27 @@ public class ProjectService {
                                                                .risk(approved.getRisk())
                                                                .expectedProfit(approved.getExpectedProfit())
                                                                .build());
+    }
+
+    public void reject(ProjectId projectId){
+        CrowdfundingProject project = crowdfundingProjectRepository.findById(projectId)
+                                                                   .orElseThrow(() -> new ProjectApprovalException(ProjectApprovalException.Reason.PROJECT_NOT_FOUND));
+        if (project.getStatus() == CrowdfundingProject.Status.REJECTED) {
+            return;
+        }
+        if (project.getStatus() != CrowdfundingProject.Status.SUBMITTED) {
+            throw new ProjectApprovalException(ProjectApprovalException.Reason.INVALID_PROJECT_STATUS);
+        }
+        CrowdfundingProject rejected = project.reject();
+        crowdfundingProjectRepository.save(rejected);
+        eventPublisher.publish(CrowdfundingProjectRejectedEvent.builder()
+                                                               .projectId(rejected.getId())
+                                                               .build());
+
+    }
+
+    private ProjectId generateId() {
+        return new ProjectId(UUID.randomUUID().toString());
     }
 
 }

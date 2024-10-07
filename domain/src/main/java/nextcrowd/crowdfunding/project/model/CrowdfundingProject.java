@@ -40,6 +40,12 @@ public class CrowdfundingProject {
 
     }
 
+    public CrowdfundingProject reject() {
+        return this.toBuilder()
+                .status(Status.REJECTED)
+                .build();
+    }
+
 
     public enum Status {
         SUBMITTED,

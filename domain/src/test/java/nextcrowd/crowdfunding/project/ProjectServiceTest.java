@@ -29,6 +29,7 @@ import org.mockito.Mockito;
 import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectApprovedEvent;
+import nextcrowd.crowdfunding.project.event.CrowdfundingProjectRejectedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectSubmittedEvent;
 import nextcrowd.crowdfunding.project.exception.ProjectApprovalException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
@@ -220,10 +221,110 @@ class ProjectServiceTest {
 
     }
 
+    @Nested
+    @DisplayName("project rejection")
+    class ProjectRejectionTest {
+
+        @Test
+        void shouldFailIfProjectNotFound() {
+            // given
+            ProjectId projectId = randomProjectId();
+            when(crowdfundingProjectRepository.findById(projectId)).thenReturn(Optional.empty());
+            // when
+            assertThatExceptionOfType(ProjectApprovalException.class)
+                    .isThrownBy(() -> projectService.reject(projectId))
+                    .matches(e -> e.getReason() == ProjectApprovalException.Reason.PROJECT_NOT_FOUND);
+
+        }
+
+        @Test
+        void shouldFailIfProjectNotSubmitted() {
+            // given
+            ProjectId projectId = randomProjectId();
+            when(crowdfundingProjectRepository.findById(projectId))
+                    .thenReturn(Optional.of(buildProjectIssued(projectId)));
+
+            // when
+            assertThatExceptionOfType(ProjectApprovalException.class)
+                    .isThrownBy(() -> projectService.reject(projectId))
+                    .matches(e -> e.getReason() == ProjectApprovalException.Reason.INVALID_PROJECT_STATUS);
+        }
+
+        @Test
+        void shouldRejectAndPublishEvent() {
+            // given
+            ProjectId projectId = randomProjectId();
+            when(crowdfundingProjectRepository.findById(projectId))
+                    .thenReturn(Optional.of(buildProjectSubmitted(projectId)));
+
+            // when
+            projectService.reject(projectId);
+
+            // then
+            ArgumentCaptor<CrowdfundingProject> captor = ArgumentCaptor.forClass(CrowdfundingProject.class);
+            verify(crowdfundingProjectRepository).save(captor.capture());
+            assertThat(captor.getValue())
+                    .matches(p -> p.getStatus() == CrowdfundingProject.Status.REJECTED);
+            verify(eventPublisher).publish(CrowdfundingProjectRejectedEvent.builder()
+                                                                           .projectId(projectId)
+                                                                           .build());
+
+
+        }
+
+        @Test
+        void shouldDoNothingIfRejected() {
+            // given
+            ProjectId projectId = randomProjectId();
+            when(crowdfundingProjectRepository.findById(projectId))
+                    .thenReturn(Optional.of(buildProjectRejected(projectId)));
+
+            // when
+            projectService.reject(projectId);
+
+            // then
+            verify(crowdfundingProjectRepository, times(0)).save(any());
+            verifyNoInteractions(eventPublisher);
+        }
+
+    }
+
     private static CrowdfundingProject buildProjectSubmitted(ProjectId projectId) {
         return CrowdfundingProject.builder()
                                   .id(projectId)
                                   .status(CrowdfundingProject.Status.SUBMITTED)
+                                  .projectStartDate(Instant.now().plus(1, ChronoUnit.DAYS))
+                                  .projectEndDate(Instant.now().plus(60, ChronoUnit.DAYS))
+                                  .projectVideoUrl("videoUrl")
+                                  .owner(ProjectOwner.builder()
+                                                     .name("ownerName")
+                                                     .imageUrl("ownerImageUrl")
+                                                     .id("ownerId")
+                                                     .build())
+                                  .title("projectTitle")
+                                  .currency("EUR")
+                                  .requestedAmount(new BigDecimal(300_000))
+                                  .description("aShortDescription")
+                                  .longDescription("aLongDescription")
+                                  .imageUrl("projectImageUrl")
+                                  .rewards(List.of(
+                                          ProjectReward.builder()
+                                                       .description("aRewardDescription1")
+                                                       .imageUrl("rewardImageUrl1")
+                                                       .name("rewardName1")
+                                                       .build(),
+                                          ProjectReward.builder()
+                                                       .description("aRewardDescription2")
+                                                       .imageUrl("rewardImageUrl2")
+                                                       .name("rewardName2")
+                                                       .build()))
+                                  .build();
+    }
+
+    private static CrowdfundingProject buildProjectRejected(ProjectId projectId) {
+        return CrowdfundingProject.builder()
+                                  .id(projectId)
+                                  .status(CrowdfundingProject.Status.REJECTED)
                                   .projectStartDate(Instant.now().plus(1, ChronoUnit.DAYS))
                                   .projectEndDate(Instant.now().plus(60, ChronoUnit.DAYS))
                                   .projectVideoUrl("videoUrl")
@@ -286,6 +387,7 @@ class ProjectServiceTest {
                                                        .build()))
                                   .build();
     }
+
     private static CrowdfundingProject buildProjectIssued(ProjectId projectId) {
         return CrowdfundingProject.builder()
                                   .id(projectId)
