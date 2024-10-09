@@ -3,8 +3,12 @@ package nextcrowd.crowdfunding.project.model;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import lombok.Builder;
 import lombok.Value;
@@ -31,7 +35,7 @@ public class CrowdfundingProject {
     private int risk;
     private BigDecimal expectedProfit;
     private BigDecimal minimumInvestment;
-    private List<BakerId> bakers;
+    private List<Investment> investments;
 
     public CrowdfundingProject approve(int risk, BigDecimal expectedProfit, BigDecimal minimumInvestment) {
         return this.toBuilder()
@@ -45,25 +49,32 @@ public class CrowdfundingProject {
 
     public CrowdfundingProject reject() {
         return this.toBuilder()
-                .status(Status.REJECTED)
-                .build();
+                   .status(Status.REJECTED)
+                   .build();
     }
 
-    public CrowdfundingProject addBaker(BakerId bakerId, BigDecimal amount) {
-        List<BakerId> newBakers = Optional.ofNullable(this.bakers)
-                .map(ArrayList::new)
-                .orElseGet(ArrayList::new);
-        newBakers.add(bakerId);
+    public CrowdfundingProject addBaker(Investment investment) {
+
+        Map<BakerId, Investment> investmentsByBaker = Optional.ofNullable(this.getInvestments())
+                                                              .map(investmentList -> investmentList
+                                                                      .stream()
+                                                                      .collect(Collectors.toMap(Investment::getBakerId, Function.identity())))
+                                                              .orElseGet(HashMap::new);
+        Investment investmentToAdd = Optional.ofNullable(investmentsByBaker.get(investment.getBakerId()))
+                                             .map(i -> i.add(investment.getAmount()))
+                                             .orElse(investment);
+
+        investmentsByBaker.put(investmentToAdd.getBakerId(), investmentToAdd);
         return this.toBuilder()
-                .bakers(newBakers)
-                .collectedAmount(this.collectedAmount.add(amount))
-                .build();
+                   .investments(new ArrayList<>(investmentsByBaker.values()))
+                   .collectedAmount(this.collectedAmount.add(investment.getAmount()))
+                   .build();
     }
 
     public CrowdfundingProject issue() {
         return this.toBuilder()
-                .status(Status.ISSUED)
-                .build();
+                   .status(Status.ISSUED)
+                   .build();
     }
 
 

@@ -16,6 +16,7 @@ import nextcrowd.crowdfunding.project.event.CrowdfundingProjectSubmittedEvent;
 import nextcrowd.crowdfunding.project.exception.ProjectApprovalException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
+import nextcrowd.crowdfunding.project.model.Investment;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
 import nextcrowd.crowdfunding.project.port.EventPublisher;
@@ -113,7 +114,9 @@ public class ProjectService {
         CrowdfundingProject project = crowdfundingProjectRepository.findById(projectId)
                                                                    .orElseThrow(() -> new ProjectApprovalException(ProjectApprovalException.Reason.PROJECT_NOT_FOUND));
         checkStatus(project, CrowdfundingProject.Status.APPROVED);
-        CrowdfundingProject updatedProject = project.addBaker(command.getBakerId(), command.getAmount());
+        CrowdfundingProject updatedProject = project.addBaker(Investment.builder()
+                                                                        .bakerId(command.getBakerId())
+                                                                        .amount(command.getAmount()).build());
         crowdfundingProjectRepository.save(updatedProject);
         eventPublisher.publish(CrowdfundingProjectContributionAddedEvent.builder()
                                                                         .amount(command.getAmount())

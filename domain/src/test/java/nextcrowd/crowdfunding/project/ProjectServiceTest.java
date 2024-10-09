@@ -37,6 +37,7 @@ import nextcrowd.crowdfunding.project.exception.ProjectApprovalException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
 import nextcrowd.crowdfunding.project.model.BakerId;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
+import nextcrowd.crowdfunding.project.model.Investment;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
 import nextcrowd.crowdfunding.project.model.ProjectReward;
@@ -212,7 +213,7 @@ class ProjectServiceTest {
             // given
             ProjectId projectId = randomProjectId();
             when(crowdfundingProjectRepository.findById(projectId))
-                    .thenReturn(Optional.of(buildProjectApproved(projectId, new BigDecimal(0))));
+                    .thenReturn(Optional.of(buildProjectApproved(projectId, new BigDecimal(0), Collections.emptyList())));
             ApproveCrowdfundingProjectCommand command = ApproveCrowdfundingProjectCommand.builder()
                                                                                          .risk(3)
                                                                                          .expectedProfit(new BigDecimal("10.00"))
@@ -340,11 +341,11 @@ class ProjectServiceTest {
         }
 
         @Test
-        @DisplayName("should reject and publish event")
-        void shouldRejectAndPublishEvent() {
+        @DisplayName("should invest in project")
+        void shouldInvestInProject() {
             // given
             ProjectId projectId = randomProjectId();
-            CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0));
+            CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0), Collections.emptyList());
             when(crowdfundingProjectRepository.findById(projectId))
                     .thenReturn(Optional.of(approvedProject));
             AddContributionCommand command = AddContributionCommand.builder()
@@ -359,7 +360,10 @@ class ProjectServiceTest {
             ArgumentCaptor<CrowdfundingProject> captor = ArgumentCaptor.forClass(CrowdfundingProject.class);
             verify(crowdfundingProjectRepository).save(captor.capture());
             assertThat(captor.getValue())
-                    .matches(p -> p.getBakers()!=null && p.getBakers().contains(command.getBakerId()))
+                    .matches(p -> p.getInvestments() != null && p.getInvestments()
+                                                                 .stream()
+                                                                 .anyMatch(i -> i.getAmount().equals(command.getAmount()) && i.getBakerId()
+                                                                                                                              .equals(command.getBakerId())))
                     .matches(p -> p.getCollectedAmount().equals(approvedProject.getCollectedAmount().add(command.getAmount())));
             verify(eventPublisher).publish(CrowdfundingProjectContributionAddedEvent.builder()
                                                                                     .projectId(projectId)
@@ -369,6 +373,46 @@ class ProjectServiceTest {
 
 
         }
+
+        @Test
+        @DisplayName("should invest in project twice")
+        void shouldInvestInProjectTwice() {
+            // given
+            ProjectId projectId = randomProjectId();
+            AddContributionCommand command = AddContributionCommand.builder()
+                                                                   .amount(new BigDecimal(300))
+                                                                   .bakerId(new BakerId("bakerId"))
+                                                                   .build();
+            Investment previousInvestment = Investment.builder()
+                                                      .amount(new BigDecimal(1000))
+                                                      .bakerId(command.getBakerId())
+                                                      .build();
+            CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0), List.of(previousInvestment));
+            when(crowdfundingProjectRepository.findById(projectId))
+                    .thenReturn(Optional.of(approvedProject));
+
+            // when
+            projectService.addContribution(projectId, command);
+
+            // then
+            ArgumentCaptor<CrowdfundingProject> captor = ArgumentCaptor.forClass(CrowdfundingProject.class);
+            verify(crowdfundingProjectRepository).save(captor.capture());
+            assertThat(captor.getValue())
+                    .matches(p -> p.getInvestments() != null && p.getInvestments()
+                                                                 .stream()
+                                                                 .anyMatch(i -> i.getAmount().equals(command.getAmount().add(previousInvestment.getAmount()))
+                                                                                && i.getBakerId()
+                                                                                    .equals(command.getBakerId())))
+                    .matches(p -> p.getCollectedAmount().equals(approvedProject.getCollectedAmount().add(command.getAmount())));
+            verify(eventPublisher).publish(CrowdfundingProjectContributionAddedEvent.builder()
+                                                                                    .projectId(projectId)
+                                                                                    .amount(command.getAmount())
+                                                                                    .bakerId(command.getBakerId())
+                                                                                    .build());
+
+
+        }
+
 
     }
 
@@ -410,7 +454,7 @@ class ProjectServiceTest {
         void shouldRejectAndPublishEvent() {
             // given
             ProjectId projectId = randomProjectId();
-            CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0));
+            CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0), Collections.emptyList());
             when(crowdfundingProjectRepository.findById(projectId))
                     .thenReturn(Optional.of(approvedProject));
 
@@ -493,7 +537,7 @@ class ProjectServiceTest {
                                   .build();
     }
 
-    private static CrowdfundingProject buildProjectApproved(ProjectId projectId, BigDecimal collectedAmount) {
+    private static CrowdfundingProject buildProjectApproved(ProjectId projectId, BigDecimal collectedAmount, List<Investment> investments) {
         return CrowdfundingProject.builder()
                                   .id(projectId)
                                   .status(CrowdfundingProject.Status.APPROVED)
@@ -526,6 +570,7 @@ class ProjectServiceTest {
                                                        .imageUrl("rewardImageUrl2")
                                                        .name("rewardName2")
                                                        .build()))
+                                  .investments(investments)
                                   .build();
     }
 
