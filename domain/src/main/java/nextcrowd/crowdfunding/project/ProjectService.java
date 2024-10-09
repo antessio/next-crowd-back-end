@@ -7,9 +7,11 @@ import java.util.UUID;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+import nextcrowd.crowdfunding.project.command.AddContributionCommand;
 import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectApprovedEvent;
+import nextcrowd.crowdfunding.project.event.CrowdfundingProjectContributionAddedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectRejectedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectSubmittedEvent;
 import nextcrowd.crowdfunding.project.exception.ProjectApprovalException;
@@ -91,7 +93,7 @@ public class ProjectService {
                                                                .build());
     }
 
-    public void reject(ProjectId projectId){
+    public void reject(ProjectId projectId) {
         CrowdfundingProject project = crowdfundingProjectRepository.findById(projectId)
                                                                    .orElseThrow(() -> new ProjectApprovalException(ProjectApprovalException.Reason.PROJECT_NOT_FOUND));
         if (project.getStatus() == CrowdfundingProject.Status.REJECTED) {
@@ -110,6 +112,21 @@ public class ProjectService {
 
     private ProjectId generateId() {
         return new ProjectId(UUID.randomUUID().toString());
+    }
+
+    public void addContribution(ProjectId projectId, AddContributionCommand command) {
+        CrowdfundingProject project = crowdfundingProjectRepository.findById(projectId)
+                                                                   .orElseThrow(() -> new ProjectApprovalException(ProjectApprovalException.Reason.PROJECT_NOT_FOUND));
+        if (project.getStatus() != CrowdfundingProject.Status.APPROVED) {
+            throw new ProjectApprovalException(ProjectApprovalException.Reason.INVALID_PROJECT_STATUS);
+        }
+        CrowdfundingProject updatedProject = project.addBaker(command.getBakerId(), command.getAmount());
+        crowdfundingProjectRepository.save(updatedProject);
+        eventPublisher.publish(CrowdfundingProjectContributionAddedEvent.builder()
+                                                                        .amount(command.getAmount())
+                                                                        .bakerId(command.getBakerId())
+                                                                        .projectId(project.getId())
+                                                                        .build());
     }
 
 }

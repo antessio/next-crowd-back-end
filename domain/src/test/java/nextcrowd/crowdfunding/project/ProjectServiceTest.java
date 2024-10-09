@@ -8,7 +8,6 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -26,13 +25,16 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
+import nextcrowd.crowdfunding.project.command.AddContributionCommand;
 import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectApprovedEvent;
+import nextcrowd.crowdfunding.project.event.CrowdfundingProjectContributionAddedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectRejectedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectSubmittedEvent;
 import nextcrowd.crowdfunding.project.exception.ProjectApprovalException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
+import nextcrowd.crowdfunding.project.model.BakerId;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
@@ -92,7 +94,6 @@ class ProjectServiceTest {
             SubmitCrowdfundingProjectCommand projectCreationCommand = buildSubmitCommand(now, projectOwner);
             when(validationService.validateProjectSubmission(projectCreationCommand)).thenReturn(Collections.emptyList());
             when(crowdfundingProjectRepository.save(argThat(p -> p.getId() != null))).thenAnswer(returnsFirstArg());
-            // id generation service?
 
             // when
             ProjectId projectId = projectService.submitProject(projectCreationCommand);
@@ -115,6 +116,7 @@ class ProjectServiceTest {
     class ProjectApprovalTest {
 
         @Test
+        @DisplayName("should fail if project not found")
         void shouldFailIfProjectNotFound() {
             // given
             ProjectId projectId = randomProjectId();
@@ -132,6 +134,7 @@ class ProjectServiceTest {
         }
 
         @Test
+        @DisplayName("should fail if project not submitted")
         void shouldFailIfProjectNotSubmitted() {
             // given
             ProjectId projectId = randomProjectId();
@@ -149,6 +152,7 @@ class ProjectServiceTest {
         }
 
         @Test
+        @DisplayName("should fail if command is not valid")
         void shouldFailInvalidCommand() {
             // given
             ProjectId projectId = randomProjectId();
@@ -167,6 +171,7 @@ class ProjectServiceTest {
         }
 
         @Test
+        @DisplayName("should approve project, fill missing info and publish event")
         void shouldApproveWithMissingInfoAndPublishEvent() {
             // given
             ProjectId projectId = randomProjectId();
@@ -201,11 +206,12 @@ class ProjectServiceTest {
         }
 
         @Test
+        @DisplayName("should do nothing if already approved")
         void shouldDoNothingIfApproved() {
             // given
             ProjectId projectId = randomProjectId();
             when(crowdfundingProjectRepository.findById(projectId))
-                    .thenReturn(Optional.of(buildProjectApproved(projectId)));
+                    .thenReturn(Optional.of(buildProjectApproved(projectId, new BigDecimal(0))));
             ApproveCrowdfundingProjectCommand command = ApproveCrowdfundingProjectCommand.builder()
                                                                                          .risk(3)
                                                                                          .expectedProfit(new BigDecimal("10.00"))
@@ -226,6 +232,7 @@ class ProjectServiceTest {
     class ProjectRejectionTest {
 
         @Test
+        @DisplayName("should fail if project not found")
         void shouldFailIfProjectNotFound() {
             // given
             ProjectId projectId = randomProjectId();
@@ -238,6 +245,7 @@ class ProjectServiceTest {
         }
 
         @Test
+        @DisplayName("should fail if project not submitted")
         void shouldFailIfProjectNotSubmitted() {
             // given
             ProjectId projectId = randomProjectId();
@@ -251,6 +259,7 @@ class ProjectServiceTest {
         }
 
         @Test
+        @DisplayName("should reject and publish event")
         void shouldRejectAndPublishEvent() {
             // given
             ProjectId projectId = randomProjectId();
@@ -273,6 +282,7 @@ class ProjectServiceTest {
         }
 
         @Test
+        @DisplayName("should do nothing if already rejected")
         void shouldDoNothingIfRejected() {
             // given
             ProjectId projectId = randomProjectId();
@@ -285,6 +295,78 @@ class ProjectServiceTest {
             // then
             verify(crowdfundingProjectRepository, times(0)).save(any());
             verifyNoInteractions(eventPublisher);
+        }
+
+    }
+
+    @Nested
+    @DisplayName("project contribution")
+    class ProjectContributionTest {
+
+        @Test
+        @DisplayName("should fail if project not found")
+        void shouldFailIfProjectNotFound() {
+            // given
+            ProjectId projectId = randomProjectId();
+            when(crowdfundingProjectRepository.findById(projectId)).thenReturn(Optional.empty());
+            // when
+            AddContributionCommand command = AddContributionCommand.builder()
+                                                                   .amount(new BigDecimal(300))
+                                                                   .bakerId(new BakerId("contributorId"))
+                                                                   .build();
+            assertThatExceptionOfType(ProjectApprovalException.class)
+                    .isThrownBy(() -> projectService.addContribution(projectId, command))
+                    .matches(e -> e.getReason() == ProjectApprovalException.Reason.PROJECT_NOT_FOUND);
+
+        }
+
+        @Test
+        @DisplayName("should fail if project not submitted")
+        void shouldFailIfProjectNotSubmitted() {
+            // given
+            ProjectId projectId = randomProjectId();
+            when(crowdfundingProjectRepository.findById(projectId))
+                    .thenReturn(Optional.of(buildProjectIssued(projectId)));
+
+            // when
+            AddContributionCommand command = AddContributionCommand.builder()
+                                                                   .amount(new BigDecimal(300))
+                                                                   .bakerId(new BakerId("contributorId"))
+                                                                   .build();
+            assertThatExceptionOfType(ProjectApprovalException.class)
+                    .isThrownBy(() -> projectService.addContribution(projectId, command))
+                    .matches(e -> e.getReason() == ProjectApprovalException.Reason.INVALID_PROJECT_STATUS);
+        }
+
+        @Test
+        @DisplayName("should reject and publish event")
+        void shouldRejectAndPublishEvent() {
+            // given
+            ProjectId projectId = randomProjectId();
+            CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0));
+            when(crowdfundingProjectRepository.findById(projectId))
+                    .thenReturn(Optional.of(approvedProject));
+            AddContributionCommand command = AddContributionCommand.builder()
+                                                                   .amount(new BigDecimal(300))
+                                                                   .bakerId(new BakerId("bakerId"))
+                                                                   .build();
+
+            // when
+            projectService.addContribution(projectId, command);
+
+            // then
+            ArgumentCaptor<CrowdfundingProject> captor = ArgumentCaptor.forClass(CrowdfundingProject.class);
+            verify(crowdfundingProjectRepository).save(captor.capture());
+            assertThat(captor.getValue())
+                    .matches(p -> p.getBakers()!=null && p.getBakers().contains(command.getBakerId()))
+                    .matches(p -> p.getCollectedAmount().equals(approvedProject.getCollectedAmount().add(command.getAmount())));
+            verify(eventPublisher).publish(CrowdfundingProjectContributionAddedEvent.builder()
+                                                                                    .projectId(projectId)
+                                                                                    .amount(command.getAmount())
+                                                                                    .bakerId(command.getBakerId())
+                                                                                    .build());
+
+
         }
 
     }
@@ -353,7 +435,7 @@ class ProjectServiceTest {
                                   .build();
     }
 
-    private static CrowdfundingProject buildProjectApproved(ProjectId projectId) {
+    private static CrowdfundingProject buildProjectApproved(ProjectId projectId, BigDecimal collectedAmount) {
         return CrowdfundingProject.builder()
                                   .id(projectId)
                                   .status(CrowdfundingProject.Status.APPROVED)
@@ -371,6 +453,7 @@ class ProjectServiceTest {
                                   .title("projectTitle")
                                   .currency("EUR")
                                   .requestedAmount(new BigDecimal(300_000))
+                                  .collectedAmount(collectedAmount)
                                   .description("aShortDescription")
                                   .longDescription("aLongDescription")
                                   .imageUrl("projectImageUrl")

@@ -2,7 +2,9 @@ package nextcrowd.crowdfunding.project.model;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import lombok.Builder;
 import lombok.Value;
@@ -29,6 +31,7 @@ public class CrowdfundingProject {
     private int risk;
     private BigDecimal expectedProfit;
     private BigDecimal minimumInvestment;
+    private List<BakerId> bakers;
 
     public CrowdfundingProject approve(int risk, BigDecimal expectedProfit, BigDecimal minimumInvestment) {
         return this.toBuilder()
@@ -43,6 +46,17 @@ public class CrowdfundingProject {
     public CrowdfundingProject reject() {
         return this.toBuilder()
                 .status(Status.REJECTED)
+                .build();
+    }
+
+    public CrowdfundingProject addBaker(BakerId bakerId, BigDecimal amount) {
+        List<BakerId> newBakers = Optional.ofNullable(this.bakers)
+                .map(ArrayList::new)
+                .orElseGet(ArrayList::new);
+        newBakers.add(bakerId);
+        return this.toBuilder()
+                .bakers(newBakers)
+                .collectedAmount(this.collectedAmount.add(amount))
                 .build();
     }
 
