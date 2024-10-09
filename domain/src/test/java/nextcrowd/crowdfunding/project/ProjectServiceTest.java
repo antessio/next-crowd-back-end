@@ -30,6 +30,7 @@ import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectApprovedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectContributionAddedEvent;
+import nextcrowd.crowdfunding.project.event.CrowdfundingProjectIssuedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectRejectedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectSubmittedEvent;
 import nextcrowd.crowdfunding.project.exception.ProjectApprovalException;
@@ -321,8 +322,8 @@ class ProjectServiceTest {
         }
 
         @Test
-        @DisplayName("should fail if project not submitted")
-        void shouldFailIfProjectNotSubmitted() {
+        @DisplayName("should fail if project not approved")
+        void shouldFailIfProjectNotApproved() {
             // given
             ProjectId projectId = randomProjectId();
             when(crowdfundingProjectRepository.findById(projectId))
@@ -367,6 +368,63 @@ class ProjectServiceTest {
                                                                                     .build());
 
 
+        }
+
+    }
+
+    @Nested
+    @DisplayName("project issuing")
+    class ProjectIssuingTest {
+
+        @Test
+        @DisplayName("should fail if project not found")
+        void shouldFailIfProjectNotFound() {
+            // given
+            ProjectId projectId = randomProjectId();
+            when(crowdfundingProjectRepository.findById(projectId)).thenReturn(Optional.empty());
+            // when
+            // then
+            assertThatExceptionOfType(ProjectApprovalException.class)
+                    .isThrownBy(() -> projectService.issue(projectId))
+                    .matches(e -> e.getReason() == ProjectApprovalException.Reason.PROJECT_NOT_FOUND);
+
+        }
+
+        @Test
+        @DisplayName("should fail if project not approved")
+        void shouldFailIfProjectNotApproved() {
+            // given
+            ProjectId projectId = randomProjectId();
+            when(crowdfundingProjectRepository.findById(projectId))
+                    .thenReturn(Optional.of(buildProjectSubmitted(projectId)));
+
+            // when
+            // then
+            assertThatExceptionOfType(ProjectApprovalException.class)
+                    .isThrownBy(() -> projectService.issue(projectId))
+                    .matches(e -> e.getReason() == ProjectApprovalException.Reason.INVALID_PROJECT_STATUS);
+        }
+
+        @Test
+        @DisplayName("should issue and publish event")
+        void shouldRejectAndPublishEvent() {
+            // given
+            ProjectId projectId = randomProjectId();
+            CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0));
+            when(crowdfundingProjectRepository.findById(projectId))
+                    .thenReturn(Optional.of(approvedProject));
+
+            // when
+            projectService.issue(projectId);
+
+            // then
+            ArgumentCaptor<CrowdfundingProject> captor = ArgumentCaptor.forClass(CrowdfundingProject.class);
+            verify(crowdfundingProjectRepository).save(captor.capture());
+            assertThat(captor.getValue())
+                    .matches(p -> p.getStatus() == CrowdfundingProject.Status.ISSUED);
+            verify(eventPublisher).publish(CrowdfundingProjectIssuedEvent.builder()
+                                                                         .projectId(projectId)
+                                                                         .build());
         }
 
     }

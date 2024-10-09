@@ -2,9 +2,7 @@ package nextcrowd.crowdfunding.project;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import nextcrowd.crowdfunding.project.command.AddContributionCommand;
@@ -12,6 +10,7 @@ import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectApprovedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectContributionAddedEvent;
+import nextcrowd.crowdfunding.project.event.CrowdfundingProjectIssuedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectRejectedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectSubmittedEvent;
 import nextcrowd.crowdfunding.project.exception.ProjectApprovalException;
@@ -72,9 +71,7 @@ public class ProjectService {
         if (project.getStatus() == CrowdfundingProject.Status.APPROVED) {
             return;
         }
-        if (project.getStatus() != CrowdfundingProject.Status.SUBMITTED) {
-            throw new ProjectApprovalException(ProjectApprovalException.Reason.INVALID_PROJECT_STATUS);
-        }
+        checkStatus(project, CrowdfundingProject.Status.SUBMITTED);
         List<ProjectValidationService.ValidationFailure> failedValidations = validationService.validateProjectApproval(command);
         if (!failedValidations.isEmpty()) {
             throw new ProjectApprovalException(
@@ -99,9 +96,7 @@ public class ProjectService {
         if (project.getStatus() == CrowdfundingProject.Status.REJECTED) {
             return;
         }
-        if (project.getStatus() != CrowdfundingProject.Status.SUBMITTED) {
-            throw new ProjectApprovalException(ProjectApprovalException.Reason.INVALID_PROJECT_STATUS);
-        }
+        checkStatus(project, CrowdfundingProject.Status.SUBMITTED);
         CrowdfundingProject rejected = project.reject();
         crowdfundingProjectRepository.save(rejected);
         eventPublisher.publish(CrowdfundingProjectRejectedEvent.builder()
@@ -117,9 +112,7 @@ public class ProjectService {
     public void addContribution(ProjectId projectId, AddContributionCommand command) {
         CrowdfundingProject project = crowdfundingProjectRepository.findById(projectId)
                                                                    .orElseThrow(() -> new ProjectApprovalException(ProjectApprovalException.Reason.PROJECT_NOT_FOUND));
-        if (project.getStatus() != CrowdfundingProject.Status.APPROVED) {
-            throw new ProjectApprovalException(ProjectApprovalException.Reason.INVALID_PROJECT_STATUS);
-        }
+        checkStatus(project, CrowdfundingProject.Status.APPROVED);
         CrowdfundingProject updatedProject = project.addBaker(command.getBakerId(), command.getAmount());
         crowdfundingProjectRepository.save(updatedProject);
         eventPublisher.publish(CrowdfundingProjectContributionAddedEvent.builder()
@@ -127,6 +120,26 @@ public class ProjectService {
                                                                         .bakerId(command.getBakerId())
                                                                         .projectId(project.getId())
                                                                         .build());
+    }
+
+    public void issue(ProjectId projectId) {
+        CrowdfundingProject project = crowdfundingProjectRepository.findById(projectId)
+                                                                   .orElseThrow(() -> new ProjectApprovalException(ProjectApprovalException.Reason.PROJECT_NOT_FOUND));
+        if (project.getStatus() == CrowdfundingProject.Status.ISSUED) {
+            return;
+        }
+        checkStatus(project, CrowdfundingProject.Status.APPROVED);
+        CrowdfundingProject issuedProject = project.issue();
+        crowdfundingProjectRepository.save(issuedProject);
+        eventPublisher.publish(CrowdfundingProjectIssuedEvent.builder()
+                                                             .projectId(issuedProject.getId())
+                                                             .build());
+    }
+
+    private static void checkStatus(CrowdfundingProject project, CrowdfundingProject.Status targetStatus) {
+        if (project.getStatus() != targetStatus) {
+            throw new ProjectApprovalException(ProjectApprovalException.Reason.INVALID_PROJECT_STATUS);
+        }
     }
 
 }

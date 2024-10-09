@@ -60,6 +60,12 @@ public class CrowdfundingProject {
                 .build();
     }
 
+    public CrowdfundingProject issue() {
+        return this.toBuilder()
+                .status(Status.ISSUED)
+                .build();
+    }
+
 
     public enum Status {
         SUBMITTED,
