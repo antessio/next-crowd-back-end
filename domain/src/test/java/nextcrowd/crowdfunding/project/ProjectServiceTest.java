@@ -27,17 +27,21 @@ import org.mockito.Mockito;
 
 import nextcrowd.crowdfunding.project.command.AddContributionCommand;
 import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
+import nextcrowd.crowdfunding.project.command.ConfirmInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectApprovedEvent;
-import nextcrowd.crowdfunding.project.event.CrowdfundingProjectContributionAddedEvent;
+import nextcrowd.crowdfunding.project.event.CrowdfundingProjectPendingInvestmentAddedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectIssuedEvent;
+import nextcrowd.crowdfunding.project.event.CrowdfundingProjectPendingInvestmentConfirmedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectRejectedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectSubmittedEvent;
-import nextcrowd.crowdfunding.project.exception.ProjectApprovalException;
+import nextcrowd.crowdfunding.project.exception.CrowdfundingProjectException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
+import nextcrowd.crowdfunding.project.model.AcceptedInvestment;
 import nextcrowd.crowdfunding.project.model.BakerId;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.Investment;
+import nextcrowd.crowdfunding.project.model.MoneyTransferId;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
 import nextcrowd.crowdfunding.project.model.ProjectReward;
@@ -129,9 +133,9 @@ class ProjectServiceTest {
                                                                                          .minimumInvestment(new BigDecimal("300.00"))
                                                                                          .build();
             // when
-            assertThatExceptionOfType(ProjectApprovalException.class)
+            assertThatExceptionOfType(CrowdfundingProjectException.class)
                     .isThrownBy(() -> projectService.approve(projectId, command))
-                    .matches(e -> e.getReason() == ProjectApprovalException.Reason.PROJECT_NOT_FOUND);
+                    .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND);
 
         }
 
@@ -148,9 +152,9 @@ class ProjectServiceTest {
                                                                                          .minimumInvestment(new BigDecimal("300.00"))
                                                                                          .build();
             // when
-            assertThatExceptionOfType(ProjectApprovalException.class)
+            assertThatExceptionOfType(CrowdfundingProjectException.class)
                     .isThrownBy(() -> projectService.approve(projectId, command))
-                    .matches(e -> e.getReason() == ProjectApprovalException.Reason.INVALID_PROJECT_STATUS);
+                    .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS);
         }
 
         @Test
@@ -167,9 +171,9 @@ class ProjectServiceTest {
                                                                                          .build();
             when(validationService.validateProjectApproval(command)).thenReturn(buildValidationFailureList());
             // when
-            assertThatExceptionOfType(ProjectApprovalException.class)
+            assertThatExceptionOfType(CrowdfundingProjectException.class)
                     .isThrownBy(() -> projectService.approve(projectId, command))
-                    .matches(e -> e.getReason() == ProjectApprovalException.Reason.INVALID_COMMAND);
+                    .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.INVALID_COMMAND);
         }
 
         @Test
@@ -213,7 +217,7 @@ class ProjectServiceTest {
             // given
             ProjectId projectId = randomProjectId();
             when(crowdfundingProjectRepository.findById(projectId))
-                    .thenReturn(Optional.of(buildProjectApproved(projectId, new BigDecimal(0), Collections.emptyList())));
+                    .thenReturn(Optional.of(buildProjectApproved(projectId, new BigDecimal(0), Collections.emptyList(), List.of())));
             ApproveCrowdfundingProjectCommand command = ApproveCrowdfundingProjectCommand.builder()
                                                                                          .risk(3)
                                                                                          .expectedProfit(new BigDecimal("10.00"))
@@ -240,9 +244,9 @@ class ProjectServiceTest {
             ProjectId projectId = randomProjectId();
             when(crowdfundingProjectRepository.findById(projectId)).thenReturn(Optional.empty());
             // when
-            assertThatExceptionOfType(ProjectApprovalException.class)
+            assertThatExceptionOfType(CrowdfundingProjectException.class)
                     .isThrownBy(() -> projectService.reject(projectId))
-                    .matches(e -> e.getReason() == ProjectApprovalException.Reason.PROJECT_NOT_FOUND);
+                    .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND);
 
         }
 
@@ -255,9 +259,9 @@ class ProjectServiceTest {
                     .thenReturn(Optional.of(buildProjectIssued(projectId)));
 
             // when
-            assertThatExceptionOfType(ProjectApprovalException.class)
+            assertThatExceptionOfType(CrowdfundingProjectException.class)
                     .isThrownBy(() -> projectService.reject(projectId))
-                    .matches(e -> e.getReason() == ProjectApprovalException.Reason.INVALID_PROJECT_STATUS);
+                    .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS);
         }
 
         @Test
@@ -316,9 +320,9 @@ class ProjectServiceTest {
                                                                    .amount(new BigDecimal(300))
                                                                    .bakerId(new BakerId("contributorId"))
                                                                    .build();
-            assertThatExceptionOfType(ProjectApprovalException.class)
+            assertThatExceptionOfType(CrowdfundingProjectException.class)
                     .isThrownBy(() -> projectService.addContribution(projectId, command))
-                    .matches(e -> e.getReason() == ProjectApprovalException.Reason.PROJECT_NOT_FOUND);
+                    .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND);
 
         }
 
@@ -335,9 +339,9 @@ class ProjectServiceTest {
                                                                    .amount(new BigDecimal(300))
                                                                    .bakerId(new BakerId("contributorId"))
                                                                    .build();
-            assertThatExceptionOfType(ProjectApprovalException.class)
+            assertThatExceptionOfType(CrowdfundingProjectException.class)
                     .isThrownBy(() -> projectService.addContribution(projectId, command))
-                    .matches(e -> e.getReason() == ProjectApprovalException.Reason.INVALID_PROJECT_STATUS);
+                    .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS);
         }
 
         @Test
@@ -345,7 +349,7 @@ class ProjectServiceTest {
         void shouldInvestInProject() {
             // given
             ProjectId projectId = randomProjectId();
-            CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0), Collections.emptyList());
+            CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0), Collections.emptyList(), List.of());
             when(crowdfundingProjectRepository.findById(projectId))
                     .thenReturn(Optional.of(approvedProject));
             AddContributionCommand command = AddContributionCommand.builder()
@@ -360,16 +364,15 @@ class ProjectServiceTest {
             ArgumentCaptor<CrowdfundingProject> captor = ArgumentCaptor.forClass(CrowdfundingProject.class);
             verify(crowdfundingProjectRepository).save(captor.capture());
             assertThat(captor.getValue())
-                    .matches(p -> p.getInvestments() != null && p.getInvestments()
-                                                                 .stream()
-                                                                 .anyMatch(i -> i.getAmount().equals(command.getAmount()) && i.getBakerId()
-                                                                                                                              .equals(command.getBakerId())))
-                    .matches(p -> p.getCollectedAmount().equals(approvedProject.getCollectedAmount().add(command.getAmount())));
-            verify(eventPublisher).publish(CrowdfundingProjectContributionAddedEvent.builder()
-                                                                                    .projectId(projectId)
-                                                                                    .amount(command.getAmount())
-                                                                                    .bakerId(command.getBakerId())
-                                                                                    .build());
+                    .matches(p -> p.getPendingInvestments() != null && p.getPendingInvestments()
+                                                                        .stream()
+                                                                        .anyMatch(i -> i.getAmount().equals(command.getAmount()) && i.getBakerId()
+                                                                                                                                     .equals(command.getBakerId())));
+            verify(eventPublisher).publish(CrowdfundingProjectPendingInvestmentAddedEvent.builder()
+                                                                                         .projectId(projectId)
+                                                                                         .amount(command.getAmount())
+                                                                                         .bakerId(command.getBakerId())
+                                                                                         .build());
 
 
         }
@@ -387,7 +390,7 @@ class ProjectServiceTest {
                                                       .amount(new BigDecimal(1000))
                                                       .bakerId(command.getBakerId())
                                                       .build();
-            CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0), List.of(previousInvestment));
+            CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0), List.of(previousInvestment), List.of());
             when(crowdfundingProjectRepository.findById(projectId))
                     .thenReturn(Optional.of(approvedProject));
 
@@ -398,22 +401,152 @@ class ProjectServiceTest {
             ArgumentCaptor<CrowdfundingProject> captor = ArgumentCaptor.forClass(CrowdfundingProject.class);
             verify(crowdfundingProjectRepository).save(captor.capture());
             assertThat(captor.getValue())
-                    .matches(p -> p.getInvestments() != null && p.getInvestments()
-                                                                 .stream()
-                                                                 .anyMatch(i -> i.getAmount().equals(command.getAmount().add(previousInvestment.getAmount()))
-                                                                                && i.getBakerId()
-                                                                                    .equals(command.getBakerId())))
-                    .matches(p -> p.getCollectedAmount().equals(approvedProject.getCollectedAmount().add(command.getAmount())));
-            verify(eventPublisher).publish(CrowdfundingProjectContributionAddedEvent.builder()
-                                                                                    .projectId(projectId)
-                                                                                    .amount(command.getAmount())
-                                                                                    .bakerId(command.getBakerId())
-                                                                                    .build());
+                    .matches(p -> p.getPendingInvestments() != null && p.getPendingInvestments()
+                                                                        .stream()
+                                                                        .anyMatch(i -> i.getAmount()
+                                                                                        .equals(command.getAmount().add(previousInvestment.getAmount()))
+                                                                                       && i.getBakerId()
+                                                                                           .equals(command.getBakerId())));
+            verify(eventPublisher).publish(CrowdfundingProjectPendingInvestmentAddedEvent.builder()
+                                                                                         .projectId(projectId)
+                                                                                         .amount(command.getAmount())
+                                                                                         .bakerId(command.getBakerId())
+                                                                                         .build());
 
 
         }
 
 
+    }
+
+    @Nested
+    @DisplayName("investment confirmation")
+    class InvestmentConfirmation {
+
+        @Test
+        @DisplayName("should fail if project not found")
+        void shouldFailIfProjectNotFound() {
+            // given
+            ProjectId projectId = randomProjectId();
+            BakerId bakerId = randomBakerId();
+            when(crowdfundingProjectRepository.findById(projectId)).thenReturn(Optional.empty());
+            // when
+            ConfirmInvestmentCommand command = ConfirmInvestmentCommand.builder()
+                                                                       .bakerId(bakerId)
+                                                                       .moneyTransferId(randomMoneyTransferId())
+                                                                       .build();
+            assertThatExceptionOfType(CrowdfundingProjectException.class)
+                    .isThrownBy(() -> projectService.confirmInvestment(projectId, command))
+                    .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND);
+
+        }
+
+        @Test
+        @DisplayName("should fail if project not approved")
+        void shouldFailIfProjectNotApproved() {
+            // given
+            ProjectId projectId = randomProjectId();
+            when(crowdfundingProjectRepository.findById(projectId))
+                    .thenReturn(Optional.of(buildProjectIssued(projectId)));
+
+            // when
+            ConfirmInvestmentCommand command = ConfirmInvestmentCommand.builder()
+                                                                       .bakerId(randomBakerId())
+                                                                       .moneyTransferId(randomMoneyTransferId())
+                                                                       .build();
+            assertThatExceptionOfType(CrowdfundingProjectException.class)
+                    .isThrownBy(() -> projectService.confirmInvestment(projectId, command))
+                    .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS);
+        }
+
+        @Test
+        public void shouldFailIfPendingInvestmentMissing() {
+            // given
+            ProjectId projectId = randomProjectId();
+            when(crowdfundingProjectRepository.findById(projectId))
+                    .thenReturn(Optional.of(buildProjectApproved(projectId, new BigDecimal(3000), Collections.emptyList(), List.of())));
+
+            // when
+            ConfirmInvestmentCommand command = ConfirmInvestmentCommand.builder()
+                                                                       .bakerId(randomBakerId())
+                                                                       .moneyTransferId(randomMoneyTransferId())
+                                                                       .build();
+            assertThatExceptionOfType(CrowdfundingProjectException.class)
+                    .isThrownBy(() -> projectService.confirmInvestment(projectId, command))
+                    .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.INVESTMENT_NOT_FOUND);
+        }
+
+        @Test
+        void shouldDoNothingIfAlreadyConfirmed() {
+            // given
+            BakerId bakerId = randomBakerId();
+            ProjectId projectId = randomProjectId();
+            AcceptedInvestment existingInvestment = AcceptedInvestment.builder()
+                                                                      .bakerId(bakerId)
+                                                                      .amount(new BigDecimal(300))
+                                                                      .moneyTransferId(randomMoneyTransferId())
+                                                                      .build();
+            CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0), List.of(), List.of(existingInvestment));
+            when(crowdfundingProjectRepository.findById(projectId))
+                    .thenReturn(Optional.of(approvedProject));
+            ConfirmInvestmentCommand command = ConfirmInvestmentCommand.builder()
+                                                                       .bakerId(bakerId)
+                                                                       .moneyTransferId(randomMoneyTransferId())
+                                                                       .build();
+
+            // when
+            projectService.confirmInvestment(projectId, command);
+
+            // then
+            verify(crowdfundingProjectRepository, times(0)).save(any());
+            verifyNoInteractions(eventPublisher);
+        }
+
+        @Test
+        @DisplayName("should confirm accept the investment after receiving the money")
+        void shouldAcceptInvestment() {
+            // given
+            BakerId bakerId = new BakerId("bakerId");
+            ProjectId projectId = randomProjectId();
+            Investment existingInvestment = Investment.builder()
+                                                      .bakerId(bakerId)
+                                                      .amount(new BigDecimal(300))
+                                                      .build();
+            CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0), List.of(existingInvestment), List.of());
+            when(crowdfundingProjectRepository.findById(projectId))
+                    .thenReturn(Optional.of(approvedProject));
+            ConfirmInvestmentCommand command = ConfirmInvestmentCommand.builder()
+                                                                       .bakerId(bakerId)
+                                                                       .moneyTransferId(randomMoneyTransferId())
+                                                                       .build();
+
+            // when
+            projectService.confirmInvestment(projectId, command);
+
+            // then
+            ArgumentCaptor<CrowdfundingProject> captor = ArgumentCaptor.forClass(CrowdfundingProject.class);
+            verify(crowdfundingProjectRepository).save(captor.capture());
+            assertThat(captor.getValue())
+                    .matches(p -> p.getPendingInvestments() != null && p.getPendingInvestments()
+                                                                        .stream()
+                                                                        .noneMatch(i -> i.equals(existingInvestment)))
+                    .matches(p -> p.getCollectedAmount().equals(approvedProject.getCollectedAmount().add(existingInvestment.getAmount())));
+            verify(eventPublisher).publish(CrowdfundingProjectPendingInvestmentConfirmedEvent.builder()
+                                                                                             .projectId(projectId)
+                                                                                             .amount(existingInvestment.getAmount())
+                                                                                             .bakerId(command.getBakerId())
+                                                                                             .moneyTransferId(command.getMoneyTransferId())
+                                                                                             .build());
+        }
+
+    }
+
+    private static MoneyTransferId randomMoneyTransferId() {
+        return new MoneyTransferId(UUID.randomUUID().toString());
+    }
+
+    private static BakerId randomBakerId() {
+        return new BakerId(UUID.randomUUID().toString());
     }
 
     @Nested
@@ -428,9 +561,9 @@ class ProjectServiceTest {
             when(crowdfundingProjectRepository.findById(projectId)).thenReturn(Optional.empty());
             // when
             // then
-            assertThatExceptionOfType(ProjectApprovalException.class)
+            assertThatExceptionOfType(CrowdfundingProjectException.class)
                     .isThrownBy(() -> projectService.issue(projectId))
-                    .matches(e -> e.getReason() == ProjectApprovalException.Reason.PROJECT_NOT_FOUND);
+                    .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND);
 
         }
 
@@ -444,9 +577,9 @@ class ProjectServiceTest {
 
             // when
             // then
-            assertThatExceptionOfType(ProjectApprovalException.class)
+            assertThatExceptionOfType(CrowdfundingProjectException.class)
                     .isThrownBy(() -> projectService.issue(projectId))
-                    .matches(e -> e.getReason() == ProjectApprovalException.Reason.INVALID_PROJECT_STATUS);
+                    .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS);
         }
 
         @Test
@@ -454,7 +587,7 @@ class ProjectServiceTest {
         void shouldRejectAndPublishEvent() {
             // given
             ProjectId projectId = randomProjectId();
-            CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0), Collections.emptyList());
+            CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0), Collections.emptyList(), List.of());
             when(crowdfundingProjectRepository.findById(projectId))
                     .thenReturn(Optional.of(approvedProject));
 
@@ -537,7 +670,9 @@ class ProjectServiceTest {
                                   .build();
     }
 
-    private static CrowdfundingProject buildProjectApproved(ProjectId projectId, BigDecimal collectedAmount, List<Investment> investments) {
+    private static CrowdfundingProject buildProjectApproved(
+            ProjectId projectId, BigDecimal collectedAmount, List<Investment> investments,
+            List<AcceptedInvestment> acceptedInvestments) {
         return CrowdfundingProject.builder()
                                   .id(projectId)
                                   .status(CrowdfundingProject.Status.APPROVED)
@@ -570,7 +705,8 @@ class ProjectServiceTest {
                                                        .imageUrl("rewardImageUrl2")
                                                        .name("rewardName2")
                                                        .build()))
-                                  .investments(investments)
+                                  .pendingInvestments(investments)
+                                  .acceptedInvestments(acceptedInvestments)
                                   .build();
     }
 

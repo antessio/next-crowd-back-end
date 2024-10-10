@@ -35,7 +35,9 @@ public class CrowdfundingProject {
     private int risk;
     private BigDecimal expectedProfit;
     private BigDecimal minimumInvestment;
-    private List<Investment> investments;
+    private List<Investment> pendingInvestments;
+    private List<AcceptedInvestment> acceptedInvestments;
+    private List<Investment> refusedInvestments;
 
     public CrowdfundingProject approve(int risk, BigDecimal expectedProfit, BigDecimal minimumInvestment) {
         return this.toBuilder()
@@ -55,7 +57,7 @@ public class CrowdfundingProject {
 
     public CrowdfundingProject addBaker(Investment investment) {
 
-        Map<BakerId, Investment> investmentsByBaker = Optional.ofNullable(this.getInvestments())
+        Map<BakerId, Investment> investmentsByBaker = Optional.ofNullable(this.getPendingInvestments())
                                                               .map(investmentList -> investmentList
                                                                       .stream()
                                                                       .collect(Collectors.toMap(Investment::getBakerId, Function.identity())))
@@ -66,9 +68,50 @@ public class CrowdfundingProject {
 
         investmentsByBaker.put(investmentToAdd.getBakerId(), investmentToAdd);
         return this.toBuilder()
-                   .investments(new ArrayList<>(investmentsByBaker.values()))
-                   .collectedAmount(this.collectedAmount.add(investment.getAmount()))
+                   .pendingInvestments(new ArrayList<>(investmentsByBaker.values()))
                    .build();
+    }
+
+    public CrowdfundingProject rejectInvestment(BakerId bakerId) {
+        return this.pendingInvestments
+                .stream()
+                .filter(i -> !i.getBakerId().equals(bakerId))
+                .findFirst()
+                .map(investment -> {
+                    List<Investment> refusedInvestmentsToUpDate = new ArrayList<>(this.getRefusedInvestments());
+                    refusedInvestmentsToUpDate.add(investment);
+                    return this.toBuilder()
+                               .pendingInvestments(this.pendingInvestments.stream().filter(i -> !i.equals(investment)).toList())
+                               .refusedInvestments(refusedInvestmentsToUpDate)
+                               .build();
+
+                }).orElse(this);
+    }
+
+    public CrowdfundingProject acceptInvestment(BakerId bakerId, MoneyTransferId moneyTransferId) {
+        if (hasConfirmedInvestment(bakerId)){
+            return this;
+        }
+        return this.pendingInvestments
+                .stream()
+                .filter(i -> i.getBakerId().equals(bakerId))
+                .findFirst()
+                .map(pendingInvestment -> {
+                    List<AcceptedInvestment> acceptedInvestmentsToUpDate = new ArrayList<>(this.getAcceptedInvestments());
+                    AcceptedInvestment acceptedInvestment = new AcceptedInvestment(pendingInvestment.getBakerId(), pendingInvestment.getAmount(), moneyTransferId);
+                    acceptedInvestmentsToUpDate.add(acceptedInvestment);
+                    return this.toBuilder()
+                               .pendingInvestments(this.pendingInvestments.stream().filter(i -> !i.equals(pendingInvestment)).toList())
+                               .acceptedInvestments(acceptedInvestmentsToUpDate)
+                               .collectedAmount(this.collectedAmount.add(acceptedInvestment.getAmount()))
+                               .build();
+
+                }).orElse(this);
+
+    }
+
+    public boolean hasConfirmedInvestment(BakerId bakerId) {
+        return this.getAcceptedInvestments().stream().anyMatch(i -> i.getBakerId().equals(bakerId));
     }
 
     public CrowdfundingProject issue() {
