@@ -15,12 +15,18 @@ public class ProjectRejectionService {
         this.repository = repository;
     }
 
+    private CrowdfundingProject updateStatusRejected(CrowdfundingProject project) {
+        return project.toBuilder()
+                      .status(CrowdfundingProject.Status.REJECTED)
+                      .build();
+    }
+
     public void reject(CrowdfundingProject project) {
         if (project.getStatus() == CrowdfundingProject.Status.REJECTED) {
             return;
         }
         checkStatus(project);
-        CrowdfundingProject rejected = project.reject();
+        CrowdfundingProject rejected = updateStatusRejected(project);
         repository.save(rejected);
         eventPublisher.publish(CrowdfundingProjectRejectedEvent.builder()
                                                                               .projectId(rejected.getId())

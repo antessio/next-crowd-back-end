@@ -87,14 +87,14 @@ public class ProjectService {
     public void confirmInvestment(ProjectId projectId, ConfirmInvestmentCommand command) {
         CrowdfundingProject project = repository.findById(projectId)
                                                 .orElseThrow(() -> new CrowdfundingProjectException(CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND));
-        projectInvestment.confirmInvestment(projectId, command, project);
+        projectInvestment.confirmInvestment(command, project);
 
     }
 
     public void cancelInvestment(ProjectId projectId, CancelInvestmentCommand command) {
         CrowdfundingProject project = repository.findById(projectId)
                                                 .orElseThrow(() -> new CrowdfundingProjectException(CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND));
-        projectInvestment.cancelInvestment(projectId, command, project);
+        projectInvestment.cancelInvestment(command, project);
     }
 
     public void issue(ProjectId projectId) {
