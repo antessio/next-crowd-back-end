@@ -7,11 +7,13 @@ import java.util.stream.Collectors;
 
 import nextcrowd.crowdfunding.project.command.AddContributionCommand;
 import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
+import nextcrowd.crowdfunding.project.command.CancelInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ConfirmInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectApprovedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectPendingInvestmentAddedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectIssuedEvent;
+import nextcrowd.crowdfunding.project.event.CrowdfundingProjectPendingInvestmentCanceledEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectPendingInvestmentConfirmedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectRejectedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectSubmittedEvent;
@@ -146,6 +148,27 @@ public class ProjectService {
         }
 
     }
+    public void cancelInvestment(ProjectId projectId, CancelInvestmentCommand command) {
+        CrowdfundingProject project = crowdfundingProjectRepository.findById(projectId)
+                                                                   .orElseThrow(() -> new CrowdfundingProjectException(CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND));
+        checkStatus(project, CrowdfundingProject.Status.APPROVED);
+        if (!project.hasCanceledInvestment(command.getBakerId())) {
+            CrowdfundingProject updatedProject = project.rejectInvestment(command.getBakerId());
+            Investment acceptedInvestment = updatedProject.getRefusedInvestments()
+                                                                  .stream()
+                                                                  .filter(i -> i.getBakerId().equals(command.getBakerId()))
+                                                                  .findFirst()
+                                                                  .orElseThrow(() -> new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVESTMENT_NOT_FOUND));
+            crowdfundingProjectRepository.save(updatedProject);
+            eventPublisher.publish(CrowdfundingProjectPendingInvestmentCanceledEvent
+                                           .builder()
+                                           .projectId(projectId)
+                                           .amount(acceptedInvestment.getAmount())
+                                           .bakerId(acceptedInvestment.getBakerId())
+                                           .build());
+        }
+    }
+
     public void issue(ProjectId projectId) {
         CrowdfundingProject project = crowdfundingProjectRepository.findById(projectId)
                                                                    .orElseThrow(() -> new CrowdfundingProjectException(CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND));
@@ -169,7 +192,6 @@ public class ProjectService {
             throw new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS);
         }
     }
-
 
 
 }

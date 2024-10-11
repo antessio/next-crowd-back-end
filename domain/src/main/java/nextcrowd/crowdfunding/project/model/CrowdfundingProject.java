@@ -73,9 +73,12 @@ public class CrowdfundingProject {
     }
 
     public CrowdfundingProject rejectInvestment(BakerId bakerId) {
+        if (hasCanceledInvestment(bakerId)){
+            return this;
+        }
         return this.pendingInvestments
                 .stream()
-                .filter(i -> !i.getBakerId().equals(bakerId))
+                .filter(i -> i.getBakerId().equals(bakerId))
                 .findFirst()
                 .map(investment -> {
                     List<Investment> refusedInvestmentsToUpDate = new ArrayList<>(this.getRefusedInvestments());
@@ -87,6 +90,8 @@ public class CrowdfundingProject {
 
                 }).orElse(this);
     }
+
+
 
     public CrowdfundingProject acceptInvestment(BakerId bakerId, MoneyTransferId moneyTransferId) {
         if (hasConfirmedInvestment(bakerId)){
@@ -112,6 +117,9 @@ public class CrowdfundingProject {
 
     public boolean hasConfirmedInvestment(BakerId bakerId) {
         return this.getAcceptedInvestments().stream().anyMatch(i -> i.getBakerId().equals(bakerId));
+    }
+    public boolean hasCanceledInvestment(BakerId bakerId) {
+        return this.getRefusedInvestments().stream().anyMatch(i -> i.getBakerId().equals(bakerId));
     }
 
     public CrowdfundingProject issue() {

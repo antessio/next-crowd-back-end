@@ -38,5 +38,12 @@ public class CrowdfundingProjectException extends RuntimeException {
         this.reason = reason;
     }
 
+    @Override
+    public String toString() {
+        return "CrowdfundingProjectException{" +
+               "reason=" + reason +
+               '}';
+    }
+
 }
 
