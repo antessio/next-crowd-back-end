@@ -8,7 +8,7 @@ import nextcrowd.crowdfunding.project.model.BakerId;
 
 @Value
 @Builder
-public class AddContributionCommand {
+public class AddInvestmentCommand {
     private BakerId bakerId;
     private BigDecimal amount;
 

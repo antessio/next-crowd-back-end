@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
-import nextcrowd.crowdfunding.project.command.AddContributionCommand;
+import nextcrowd.crowdfunding.project.command.AddInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.CancelInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ConfirmInvestmentCommand;
@@ -318,12 +318,12 @@ class ProjectServiceTest {
             ProjectId projectId = randomProjectId();
             when(crowdfundingProjectRepository.findById(projectId)).thenReturn(Optional.empty());
             // when
-            AddContributionCommand command = AddContributionCommand.builder()
-                                                                   .amount(new BigDecimal(300))
-                                                                   .bakerId(new BakerId("contributorId"))
-                                                                   .build();
+            AddInvestmentCommand command = AddInvestmentCommand.builder()
+                                                               .amount(new BigDecimal(300))
+                                                               .bakerId(new BakerId("contributorId"))
+                                                               .build();
             assertThatExceptionOfType(CrowdfundingProjectException.class)
-                    .isThrownBy(() -> projectService.addContribution(projectId, command))
+                    .isThrownBy(() -> projectService.addInvestment(projectId, command))
                     .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND);
 
         }
@@ -337,12 +337,12 @@ class ProjectServiceTest {
                     .thenReturn(Optional.of(buildProjectIssued(projectId)));
 
             // when
-            AddContributionCommand command = AddContributionCommand.builder()
-                                                                   .amount(new BigDecimal(300))
-                                                                   .bakerId(new BakerId("contributorId"))
-                                                                   .build();
+            AddInvestmentCommand command = AddInvestmentCommand.builder()
+                                                               .amount(new BigDecimal(300))
+                                                               .bakerId(new BakerId("contributorId"))
+                                                               .build();
             assertThatExceptionOfType(CrowdfundingProjectException.class)
-                    .isThrownBy(() -> projectService.addContribution(projectId, command))
+                    .isThrownBy(() -> projectService.addInvestment(projectId, command))
                     .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS);
         }
 
@@ -354,13 +354,13 @@ class ProjectServiceTest {
             CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0), Collections.emptyList(), List.of(), List.of());
             when(crowdfundingProjectRepository.findById(projectId))
                     .thenReturn(Optional.of(approvedProject));
-            AddContributionCommand command = AddContributionCommand.builder()
-                                                                   .amount(new BigDecimal(300))
-                                                                   .bakerId(new BakerId("bakerId"))
-                                                                   .build();
+            AddInvestmentCommand command = AddInvestmentCommand.builder()
+                                                               .amount(new BigDecimal(300))
+                                                               .bakerId(new BakerId("bakerId"))
+                                                               .build();
 
             // when
-            projectService.addContribution(projectId, command);
+            projectService.addInvestment(projectId, command);
 
             // then
             ArgumentCaptor<CrowdfundingProject> captor = ArgumentCaptor.forClass(CrowdfundingProject.class);
@@ -384,10 +384,10 @@ class ProjectServiceTest {
         void shouldInvestInProjectTwice() {
             // given
             ProjectId projectId = randomProjectId();
-            AddContributionCommand command = AddContributionCommand.builder()
-                                                                   .amount(new BigDecimal(300))
-                                                                   .bakerId(new BakerId("bakerId"))
-                                                                   .build();
+            AddInvestmentCommand command = AddInvestmentCommand.builder()
+                                                               .amount(new BigDecimal(300))
+                                                               .bakerId(new BakerId("bakerId"))
+                                                               .build();
             Investment previousInvestment = Investment.builder()
                                                       .amount(new BigDecimal(1000))
                                                       .bakerId(command.getBakerId())
@@ -397,7 +397,7 @@ class ProjectServiceTest {
                     .thenReturn(Optional.of(approvedProject));
 
             // when
-            projectService.addContribution(projectId, command);
+            projectService.addInvestment(projectId, command);
 
             // then
             ArgumentCaptor<CrowdfundingProject> captor = ArgumentCaptor.forClass(CrowdfundingProject.class);
