@@ -1,0 +1,56 @@
+@startuml Project Lifecycle
+participant "Web app" as wa
+box CrowdfundingCore #LightSkyBlue
+    participant "Api Gateway" as ag
+    participant "Projects" as p
+    participant "Escrow" as e
+    participant "Loan" as l
+    database "Database" as db
+    participant "Back Office" as bo
+end box
+queue "Message Broker" as mb
+
+participant "CMS" as cms
+wa -[#Red]> ag: create project
+ag -> p: create project
+activate p
+    p->db: insert
+    db -> p: ok
+    p -> ag: ok
+deactivate p
+ag -> wa: in progress
+...
+bo -[#Red]> p: approve project
+activate p
+    p -> db: update project
+    db -> p: ok
+    p --> cms: publish project\n(async)
+deactivate p
+...
+bo -[#Red]> p: update project data
+activate p
+p -> db: update
+db -> p: ok
+p --> cms: (async) publish
+deactivate p
+...
+bo-[#Red]>p: add backer
+activate p
+p-> db: add to pending investors
+db -> p: ok
+p -> bo: escrow deposit link
+deactivate p
+...
+e-->p: escrow deposit received
+activate p
+p -> db: add to confirmed investors
+db -> p: ok
+deactivate p
+...
+bo -[#Red]>p: issue project loan
+activate p
+    p -> db: update project
+    p --> mb: project issued
+    mb --> l: project issued
+deactivate p
+@enduml

@@ -1,0 +1,78 @@
+@startuml Project Lifecycle
+
+actor Admin as a
+box CrowdfundingCore #LightSkyBlue
+    participant "Back Office" as bo
+    participant "Projects" as p
+    participant "Loan" as l
+    database "Database" as db
+end box
+queue "Message Broker" as mb
+participant "Payment System" as pym
+actor Debtor as d
+actor Lender as lnd
+a -[#Red]> bo: issue project
+activate bo
+bo -> p: issue project
+activate p
+  p --> mb: Project Issued
+deactivate p
+bo -> a: ok
+deactivate bo
+mb --> l: Project Issued
+activate l
+l -> db: create loan
+l --> mb: Loan created
+deactivate l
+mb --> l: Loan created
+activate l
+l -> l: schedule charges
+l -> db: save charges
+db -> l: ok
+deactivate l
+...
+== On each schedule ==
+->l: perform charge
+activate l
+l -> db: store charge
+l --> mb: charge created
+deactivate l
+
+mb --> l: charge created
+activate l
+l -> pym: create charge
+pym -> l: ok
+l -> d: send charge
+deactivate l
+
+alt good payer
+  d -> pym: pay charge
+  pym --> l: charge paid
+  activate l
+  l -> l: calculate interest payment
+  l -> db: store interest payments
+  loop interest payments
+  l --> mb: interest payment created
+  end
+  deactivate l
+  mb --> l: interest payment created
+  activate l
+  l -> pym: transfer money
+  deactivate l
+  pym --> l: transfer completed
+  activate l
+  l -> db: interest paid
+  l --> mb: interest paid
+  deactivate l
+  mb --> l: interest paid
+  activate l
+  l -> lnd: notify
+  deactivate l
+
+else bad payer
+->l: 3 charges pending
+activate l
+  l -> l: start debit recovery
+deactivate l
+end
+@enduml
