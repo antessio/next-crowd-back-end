@@ -13,5 +13,6 @@ public class LoanCreationCommand {
 
     private DebtorId debtorId;
     private List<Investment> investments;
+    private int durationInMonths;
 
 }

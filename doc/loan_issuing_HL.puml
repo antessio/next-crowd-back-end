@@ -1,0 +1,32 @@
+@startuml
+
+actor "Project Owner" as po
+box "Next crowd" #LightSkyBlue
+participant "Next Crowd " as wa
+participant "Next Crowd Backoffice" as bo
+end box
+actor "Admin" as a
+
+== Project submission ==
+
+po -> wa: submit project
+activate wa
+    wa -> bo: create project
+    wa -> po: project submitted
+deactivate wa
+
+== Admin validates project ==
+a -> bo: get submitted projects
+activate bo
+    bo -> a: projects
+    a -> a: validate projects
+    alt missing info?
+        a -> po: gather missing info
+
+        a -> bo: submit missing info
+    end
+    a -> bo: publish project
+    bo -> a: publishing in progress
+deactivate bo
+    a --> po: notify project published
+@enduml

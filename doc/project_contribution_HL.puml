@@ -1,0 +1,40 @@
+@startuml
+
+actor "Project Baker" as b
+box "Next crowd" #LightSkyBlue
+participant "Next Crowd" as wa
+participant "Next Crowd Backoffice" as bo
+end box
+participant "Payment System" as opp
+actor "Admin" as a
+
+b -> wa: find project
+activate wa
+wa -> b: projects
+b -> wa: contribute
+wa -> bo: create contribution
+wa ->b: in progress
+deactivate wa
+
+== Admin Approve contribution ==
+
+a -> bo: get project contribution
+activate bo
+bo -> a:
+a -> bo: approve contribution
+bo -> bo: create payment escrow
+bo -> a: payment escrow link
+deactivate bo
+a -> b: send link to contribute
+
+== Baker send money ==
+b -> opp: send money
+opp --> bo: money received
+activate bo
+bo -> bo: update project bakers
+bo --> b: contribution accepted
+deactivate bo
+
+
+
+@enduml
