@@ -9,7 +9,7 @@ import java.util.Set;
 import nextcrowd.crowdfunding.web.rest.TestUtil;
 import org.junit.jupiter.api.Test;
 
-class CrowdfundingProjectOwnerTest {
+class ProjectOwnerTest {
 
     @Test
     void equalsVerifier() throws Exception {
