@@ -6,6 +6,7 @@ import java.util.List;
 
 import nextcrowd.crowdfunding.loan.command.LoanCreationCommand;
 import nextcrowd.crowdfunding.loan.event.ChargeCreatedEvent;
+import nextcrowd.crowdfunding.loan.event.ChargePaidEvent;
 import nextcrowd.crowdfunding.loan.exception.LoanException;
 import nextcrowd.crowdfunding.loan.model.Charge;
 import nextcrowd.crowdfunding.loan.model.Loan;
@@ -14,6 +15,7 @@ import nextcrowd.crowdfunding.loan.port.ChargeRepository;
 import nextcrowd.crowdfunding.loan.port.EventPublisher;
 import nextcrowd.crowdfunding.loan.port.LoanRepository;
 import nextcrowd.crowdfunding.loan.port.PaymentService;
+import nextcrowd.crowdfunding.loan.port.PaymentServiceChargeId;
 import nextcrowd.crowdfunding.loan.service.ChargePaymentService;
 import nextcrowd.crowdfunding.loan.service.ChargeService;
 import nextcrowd.crowdfunding.loan.service.LoanCreationService;
@@ -35,9 +37,9 @@ public class LoanService {
         this.loanRepository = loanRepository;
         this.chargeRepository = chargeRepository;
         this.loanCreationService = new LoanCreationService(loanRepository, eventPublisher);
-        this.chargeService = new ChargeService(clock);
+        this.chargeService = new ChargeService(clock, chargeRepository, eventPublisher);
         this.eventPublisher = eventPublisher;
-        this.chargePaymentService = new ChargePaymentService(paymentService);
+        this.chargePaymentService = new ChargePaymentService(paymentService, chargeRepository);
     }
 
     public Loan createLoan(LoanCreationCommand command) {
@@ -63,9 +65,15 @@ public class LoanService {
 
     public void performCharges(LocalDate targetDate) {
         chargeRepository.findByDueDateBefore(targetDate)
-                        .filter(c -> c.getPaymentServiceChargeId() == null)
-                        .map(chargePaymentService::createExternalCharge)
-                        .forEach(chargeRepository::save);
+                        .forEach(chargePaymentService::createExternalCharge);
+    }
+
+    public void chargeExecuted(PaymentServiceChargeId paymentServiceChargeId) {
+        Charge charge = chargeRepository.findByPaymentServiceChargeId(paymentServiceChargeId)
+                                        .orElseThrow(() -> new LoanException(LoanException.Reason.CHARGE_NOT_FOUND));
+        chargeService.markAsPaid(charge);
+
+
     }
 
 }

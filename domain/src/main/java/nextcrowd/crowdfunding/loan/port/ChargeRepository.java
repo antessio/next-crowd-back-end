@@ -18,4 +18,6 @@ public interface ChargeRepository {
 
     Stream<Charge> findByDueDateBefore(LocalDate targetDate);
 
+    Optional<Charge> findByPaymentServiceChargeId(PaymentServiceChargeId paymentServiceChargeId);
+
 }

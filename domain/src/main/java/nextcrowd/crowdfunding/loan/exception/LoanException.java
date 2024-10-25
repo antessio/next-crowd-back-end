@@ -8,7 +8,9 @@ public class LoanException extends RuntimeException {
     public enum Reason{
         LOAN_NOT_FOUND,
         INVALID_COMMAND,
-        INVALID_LOAN_STATUS
+        INVALID_LOAN_STATUS,
+        CHARGE_NOT_FOUND,
+        INVALID_CHARGE_STATUS
     }
 
     private Reason reason;

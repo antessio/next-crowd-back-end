@@ -29,6 +29,7 @@ import org.mockito.ArgumentCaptor;
 
 import nextcrowd.crowdfunding.loan.command.LoanCreationCommand;
 import nextcrowd.crowdfunding.loan.event.ChargeCreatedEvent;
+import nextcrowd.crowdfunding.loan.event.ChargePaidEvent;
 import nextcrowd.crowdfunding.loan.event.LoanCreatedEvent;
 import nextcrowd.crowdfunding.loan.exception.LoanException;
 import nextcrowd.crowdfunding.loan.model.Charge;
@@ -263,6 +264,103 @@ class LoanServiceTest {
             verify(chargeRepository, times(0)).save(any());
         }
 
+
+    }
+
+
+    @Nested
+    @DisplayName("charge payment received")
+    class ChargePaymentReceived {
+
+        @DisplayName("charge successful")
+        @Test
+        public void shouldMarkChargeAsSuccessful() {
+            // given
+            PaymentServiceChargeId paymentServiceChargeId = getRandomPaymentServiceChargeId();
+            ChargeId chargeId = randomChargeId();
+            when(chargeRepository.findByPaymentServiceChargeId(paymentServiceChargeId))
+                    .thenReturn(Optional.of(Charge.builder()
+                                                  .loanId(randomLoanId())
+                                                  .id(chargeId)
+                                                  .dueDate(LocalDate.now().minusDays(1))
+                                                  .status(Charge.ChargeStatus.PENDING)
+                                                  .amount(new BigDecimal("30.00"))
+                                                  .paymentServiceChargeId(paymentServiceChargeId)
+                                                  .build()));
+
+            // when
+            loanService.chargeExecuted(paymentServiceChargeId);
+
+            // then
+            ArgumentCaptor<Charge> chargeArgumentCaptor = ArgumentCaptor.forClass(Charge.class);
+            verify(chargeRepository).save(chargeArgumentCaptor.capture());
+            assertThat(chargeArgumentCaptor.getValue())
+                    .matches(c -> c.getStatus() == Charge.ChargeStatus.PAID);
+            verify(eventPublisher).publish(ChargePaidEvent.builder()
+                                                          .id(chargeId)
+                                                          .build());
+        }
+
+        @DisplayName("charge not found")
+        @Test
+        public void shouldFailIfChargeNotFound() {
+            // given
+            PaymentServiceChargeId paymentServiceChargeId = getRandomPaymentServiceChargeId();
+            when(chargeRepository.findByPaymentServiceChargeId(paymentServiceChargeId))
+                    .thenReturn(Optional.empty());
+
+            // when
+            // then
+            assertThatExceptionOfType(LoanException.class)
+                    .isThrownBy(() -> loanService.chargeExecuted(paymentServiceChargeId))
+                    .matches(e -> e.getReason() == LoanException.Reason.CHARGE_NOT_FOUND);
+
+            verify(chargeRepository, times(0)).save(any());
+        }
+
+        @DisplayName("charge not pending")
+        @Test
+        public void shouldDoNothingfChargeNotPending() {
+            // given
+            PaymentServiceChargeId paymentServiceChargeId = getRandomPaymentServiceChargeId();
+            when(chargeRepository.findByPaymentServiceChargeId(paymentServiceChargeId))
+                    .thenReturn(Optional.of(Charge.builder()
+                                                  .loanId(randomLoanId())
+                                                  .id(randomChargeId())
+                                                  .dueDate(LocalDate.now().minusDays(1))
+                                                  .status(Charge.ChargeStatus.PAID)
+                                                  .amount(new BigDecimal("30.00"))
+                                                  .paymentServiceChargeId(paymentServiceChargeId)
+                                                  .build()));
+
+            // when
+            loanService.chargeExecuted(paymentServiceChargeId);
+
+            // then
+            verify(chargeRepository, times(0)).save(any());
+
+        }
+
+        @DisplayName("charge missing payment service charge id")
+        @Test
+        public void shouldFailIfChargeMissingPaymentServiceChargeId() {
+            // given
+            PaymentServiceChargeId paymentServiceChargeId = getRandomPaymentServiceChargeId();
+            when(chargeRepository.findByPaymentServiceChargeId(paymentServiceChargeId))
+                    .thenReturn(Optional.of(Charge.builder()
+                                                  .loanId(randomLoanId())
+                                                  .id(randomChargeId())
+                                                  .dueDate(LocalDate.now().minusDays(1))
+                                                  .status(Charge.ChargeStatus.PENDING)
+                                                  .amount(new BigDecimal("30.00"))
+                                                  .build()));
+
+            // when
+            // then
+            assertThatExceptionOfType(IllegalStateException.class)
+                    .isThrownBy(() ->
+                                        loanService.chargeExecuted(paymentServiceChargeId));
+        }
 
     }
 

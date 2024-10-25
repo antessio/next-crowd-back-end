@@ -10,6 +10,7 @@ import nextcrowd.crowdfunding.loan.port.EventPublisher;
 import nextcrowd.crowdfunding.loan.port.LoanRepository;
 
 public class LoanCreationService {
+
     private final LoanRepository loanRepository;
     private final EventPublisher eventPublisher;
 
@@ -18,11 +19,12 @@ public class LoanCreationService {
         this.eventPublisher = eventPublisher;
     }
 
-    public Loan createLoan(LoanCreationCommand command){
+    public Loan createLoan(LoanCreationCommand command) {
         Loan loan = Loan.builder()
                         .id(new LoanId(UUID.randomUUID().toString()))
                         .debtorId(command.getDebtorId())
                         .investments(command.getInvestments())
+                        .durationInMonths(command.getDurationInMonths())
                         .build();
         loanRepository.save(loan);
         eventPublisher.publish(LoanCreatedEvent.builder()
@@ -31,4 +33,5 @@ public class LoanCreationService {
                                                .build());
         return loan;
     }
+
 }
