@@ -3,9 +3,11 @@ package nextcrowd.crowdfunding.loan;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOfType;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
@@ -17,6 +19,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,6 +41,8 @@ import nextcrowd.crowdfunding.loan.model.LoanId;
 import nextcrowd.crowdfunding.loan.port.ChargeRepository;
 import nextcrowd.crowdfunding.loan.port.EventPublisher;
 import nextcrowd.crowdfunding.loan.port.LoanRepository;
+import nextcrowd.crowdfunding.loan.port.PaymentService;
+import nextcrowd.crowdfunding.loan.port.PaymentServiceChargeId;
 
 class LoanServiceTest {
 
@@ -45,6 +50,7 @@ class LoanServiceTest {
     private ChargeRepository chargeRepository;
     private EventPublisher eventPublisher;
     private LoanService loanService;
+    private PaymentService paymentService;
     private Clock clock;
 
     @BeforeEach
@@ -52,8 +58,9 @@ class LoanServiceTest {
         eventPublisher = mock(EventPublisher.class);
         loanRepository = mock(LoanRepository.class);
         chargeRepository = mock(ChargeRepository.class);
+        paymentService = mock(PaymentService.class);
         clock = mock(Clock.class);
-        loanService = new LoanService(loanRepository, chargeRepository, clock, eventPublisher);
+        loanService = new LoanService(loanRepository, chargeRepository, paymentService, clock, eventPublisher);
     }
 
     @Nested
@@ -118,7 +125,7 @@ class LoanServiceTest {
 
             // when
             assertThatExceptionOfType(LoanException.class)
-                    .isThrownBy(()->            loanService.createCharges(loanId))
+                    .isThrownBy(() -> loanService.createCharges(loanId))
                     .matches(e -> e.getReason() == LoanException.Reason.LOAN_NOT_FOUND);
         }
 
@@ -187,31 +194,80 @@ class LoanServiceTest {
 
         }
 
-        private void verifyChargesCreatedEventPublished(Charge[] expectedCharges, DebtorId debtorId, LoanId loanId) {
-            ChargeCreatedEvent[] expectedEvents = Arrays.stream(expectedCharges).map(c -> ChargeCreatedEvent.builder()
-                                                                                                            .dueDate(c.getDueDate())
-                                                                                                            .id(c.getId())
-                                                                                                            .amount(c.getAmount())
-                                                                                                            .debtorId(debtorId)
-                                                                                                            .loanId(loanId)
-                                                                                                            .build()).toArray(ChargeCreatedEvent[]::new);
-            ArgumentCaptor<ChargeCreatedEvent> chargeCreatedEventArgumentCaptor = ArgumentCaptor.forClass(ChargeCreatedEvent.class);
-            verify(eventPublisher, times(expectedEvents.length)).publish(chargeCreatedEventArgumentCaptor.capture());
-            assertThat(chargeCreatedEventArgumentCaptor.getAllValues())
-                    .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
-                    .containsOnly(expectedEvents);
+    }
+
+    @Nested
+    @DisplayName("charges executions")
+    class ChargesExecution {
+
+        @Test
+        @DisplayName("should create payment for charges in pending")
+        void shouldChargePendingCharges() {
+            // given
+            Instant now = Instant.now();
+            mockNow(now);
+
+            LocalDate targetDate = LocalDate.ofInstant(now, ZoneId.of("UTC"));
+            List<Charge> expectedCharges = List.of(Charge.builder()
+                                                         .loanId(randomLoanId())
+                                                         .id(randomChargeId())
+                                                         .dueDate(targetDate.minusDays(1))
+                                                         .status(Charge.ChargeStatus.PENDING)
+                                                         .amount(new BigDecimal("30.00"))
+                                                         .build());
+            when(chargeRepository.findByDueDateBefore(targetDate))
+                    .thenReturn(expectedCharges.stream());
+
+            when(paymentService.createCharge(any())).thenAnswer((_invocation) -> getRandomPaymentServiceChargeId());
+
+            // when
+            loanService.performCharges(targetDate);
+
+            // then
+            ArgumentCaptor<BigDecimal> chargeAmountCaptor = ArgumentCaptor.forClass(BigDecimal.class);
+            verify(paymentService, times(expectedCharges.size())).createCharge(chargeAmountCaptor.capture());
+            assertThat(chargeAmountCaptor.getAllValues())
+                    .containsOnly(expectedCharges.stream().map(Charge::getAmount).toArray(BigDecimal[]::new));
+            ArgumentCaptor<Charge> chargeCaptor = ArgumentCaptor.forClass(Charge.class);
+            verify(chargeRepository, times(expectedCharges.size())).save(chargeCaptor.capture());
+            assertThat(chargeCaptor.getAllValues())
+                    .allMatch(c -> c.getPaymentServiceChargeId() != null);
+
         }
 
-        private void verifyChargesSaved(Charge[] expectedCharges) {
-            ArgumentCaptor<Charge> chargeArgumentCaptor = ArgumentCaptor.forClass(Charge.class);
-            verify(chargeRepository, times(expectedCharges.length)).save(chargeArgumentCaptor.capture());
-            assertThat(chargeArgumentCaptor.getAllValues())
-                    .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
-                    .containsOnly(
-                            expectedCharges
-                    );
+        @Test
+        @DisplayName("should skip payment for charges already created")
+        void shouldSkipPaymentForChargesAlreadyCreated() {
+            // given
+            Instant now = Instant.now();
+            mockNow(now);
+
+            LocalDate targetDate = LocalDate.ofInstant(now, ZoneId.of("UTC"));
+            List<Charge> expectedCharges = List.of(Charge.builder()
+                                                         .loanId(randomLoanId())
+                                                         .id(randomChargeId())
+                                                         .dueDate(targetDate.minusDays(1))
+                                                         .status(Charge.ChargeStatus.PENDING)
+                                                         .amount(new BigDecimal("30.00"))
+                                                         .paymentServiceChargeId(getRandomPaymentServiceChargeId())
+                                                         .build());
+            when(chargeRepository.findByDueDateBefore(targetDate))
+                    .thenReturn(expectedCharges.stream());
+
+
+            // when
+            loanService.performCharges(targetDate);
+
+            // verify
+            verify(paymentService, times(0)).createCharge(any());
+            verify(chargeRepository, times(0)).save(any());
         }
 
+
+    }
+
+    private static PaymentServiceChargeId getRandomPaymentServiceChargeId() {
+        return new PaymentServiceChargeId(UUID.randomUUID().toString());
     }
 
     private DebtorId randomDebtorId() {
@@ -233,6 +289,31 @@ class LoanServiceTest {
 
     private LoanId randomLoanId() {
         return new LoanId(UUID.randomUUID().toString());
+    }
+
+    private void verifyChargesSaved(Charge[] expectedCharges) {
+        ArgumentCaptor<Charge> chargeArgumentCaptor = ArgumentCaptor.forClass(Charge.class);
+        verify(chargeRepository, times(expectedCharges.length)).save(chargeArgumentCaptor.capture());
+        assertThat(chargeArgumentCaptor.getAllValues())
+                .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
+                .containsOnly(
+                        expectedCharges
+                );
+    }
+
+    private void verifyChargesCreatedEventPublished(Charge[] expectedCharges, DebtorId debtorId, LoanId loanId) {
+        ChargeCreatedEvent[] expectedEvents = Arrays.stream(expectedCharges).map(c -> ChargeCreatedEvent.builder()
+                                                                                                        .dueDate(c.getDueDate())
+                                                                                                        .id(c.getId())
+                                                                                                        .amount(c.getAmount())
+                                                                                                        .debtorId(debtorId)
+                                                                                                        .loanId(loanId)
+                                                                                                        .build()).toArray(ChargeCreatedEvent[]::new);
+        ArgumentCaptor<ChargeCreatedEvent> chargeCreatedEventArgumentCaptor = ArgumentCaptor.forClass(ChargeCreatedEvent.class);
+        verify(eventPublisher, times(expectedEvents.length)).publish(chargeCreatedEventArgumentCaptor.capture());
+        assertThat(chargeCreatedEventArgumentCaptor.getAllValues())
+                .usingRecursiveFieldByFieldElementComparatorIgnoringFields("id")
+                .containsOnly(expectedEvents);
     }
 
 }
