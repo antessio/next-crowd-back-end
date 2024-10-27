@@ -1,0 +1,3 @@
+org.springframework.test.context.ContextCustomizerFactory = nextcrowd.\
+    infrastructure.jhipster.config.\
+    SqlTestContainersSpringContextCustomizerFactory
