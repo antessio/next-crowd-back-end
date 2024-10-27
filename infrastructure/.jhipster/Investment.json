@@ -1,0 +1,26 @@
+{
+  "annotations": {
+    "changelogDate": "20241027164855"
+  },
+  "applications": "*",
+  "fields": [
+    {
+      "fieldName": "bakerId",
+      "fieldType": "String",
+      "fieldValidateRules": ["required"]
+    },
+    {
+      "fieldName": "amount",
+      "fieldType": "BigDecimal",
+      "fieldValidateRules": ["required"]
+    },
+    {
+      "fieldName": "moneyTransferId",
+      "fieldType": "String"
+    }
+  ],
+  "name": "Investment",
+  "pagination": "pagination",
+  "relationships": [],
+  "searchEngine": "no"
+}

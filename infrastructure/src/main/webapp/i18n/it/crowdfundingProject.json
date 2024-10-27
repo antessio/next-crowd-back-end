@@ -1,0 +1,41 @@
+{
+  "nextCrowdBackEndApp": {
+    "crowdfundingProject": {
+      "home": {
+        "title": "CrowdfundingProjects",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Genera un nuovo Crowdfunding Project",
+        "createOrEditLabel": "Genera o modifica un Crowdfunding Project",
+        "notFound": "No Crowdfunding Projects found"
+      },
+      "created": "&Egrave; stato generato un nuovo Crowdfunding Project con identificatore {{ param }}",
+      "updated": "&Egrave; stato aggiornato Crowdfunding Project identificato da {{ param }}",
+      "deleted": "&Egrave; stato eliminato Crowdfunding Project con identificatore {{ param }}",
+      "delete": {
+        "question": "Sei sicuro di volere eliminare Crowdfunding Project {{ id }}?"
+      },
+      "detail": {
+        "title": "Crowdfunding Project"
+      },
+      "id": "ID",
+      "title": "Title",
+      "status": "Status",
+      "requestedAmount": "Requested Amount",
+      "collectedAmount": "Collected Amount",
+      "currency": "Currency",
+      "imageUrl": "Image Url",
+      "projectStartDate": "Project Start Date",
+      "projectEndDate": "Project End Date",
+      "numberOfBackers": "Number Of Backers",
+      "description": "Description",
+      "longDescription": "Long Description",
+      "projectVideoUrl": "Project Video Url",
+      "risk": "Risk",
+      "expectedProfit": "Expected Profit",
+      "minimumInvestment": "Minimum Investment",
+      "owner": "Owner",
+      "rewards": "Rewards",
+      "investments": "Investments"
+    }
+  }
+}

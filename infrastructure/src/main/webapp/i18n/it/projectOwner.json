@@ -1,0 +1,26 @@
+{
+  "nextCrowdBackEndApp": {
+    "projectOwner": {
+      "home": {
+        "title": "ProjectOwners",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Genera un nuovo Project Owner",
+        "createOrEditLabel": "Genera o modifica un Project Owner",
+        "notFound": "No Project Owners found"
+      },
+      "created": "&Egrave; stato generato un nuovo Project Owner con identificatore {{ param }}",
+      "updated": "&Egrave; stato aggiornato Project Owner identificato da {{ param }}",
+      "deleted": "&Egrave; stato eliminato Project Owner con identificatore {{ param }}",
+      "delete": {
+        "question": "Sei sicuro di volere eliminare Project Owner {{ id }}?"
+      },
+      "detail": {
+        "title": "Project Owner"
+      },
+      "id": "ID",
+      "name": "Name",
+      "imageUrl": "Image Url",
+      "crowdfundingProject": "Crowdfunding Project"
+    }
+  }
+}

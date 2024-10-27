@@ -1,0 +1,54 @@
+entity ProjectOwner {
+  name String required,
+  imageUrl String
+}
+
+entity ProjectReward {
+  name String required,
+  imageUrl String,
+  description String
+}
+
+entity Investment {
+  bakerId String required,
+  amount BigDecimal required,
+  moneyTransferId String
+}
+
+entity CrowdfundingProject {
+  title String required,
+  status Status required,
+  requestedAmount BigDecimal required,
+  collectedAmount BigDecimal,
+  currency String required,
+  imageUrl String,
+  projectStartDate Instant,
+  projectEndDate Instant,
+  numberOfBackers Integer,
+  description String,
+  longDescription String,
+  projectVideoUrl String,
+  risk Integer,
+  expectedProfit BigDecimal,
+  minimumInvestment BigDecimal
+}
+
+enum Status {
+  SUBMITTED,
+  APPROVED,
+  REJECTED,
+  ISSUED
+}
+
+relationship OneToOne {
+  CrowdfundingProject{owner} to ProjectOwner
+}
+
+relationship OneToMany {
+  CrowdfundingProject{rewards} to ProjectReward,
+  CrowdfundingProject{investments} to Investment
+}
+
+paginate CrowdfundingProject with pagination
+paginate Investment with pagination
+paginate ProjectReward with pagination

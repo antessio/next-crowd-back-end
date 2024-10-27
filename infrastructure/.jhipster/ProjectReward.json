@@ -1,0 +1,25 @@
+{
+  "annotations": {
+    "changelogDate": "20241027164854"
+  },
+  "applications": "*",
+  "fields": [
+    {
+      "fieldName": "name",
+      "fieldType": "String",
+      "fieldValidateRules": ["required"]
+    },
+    {
+      "fieldName": "imageUrl",
+      "fieldType": "String"
+    },
+    {
+      "fieldName": "description",
+      "fieldType": "String"
+    }
+  ],
+  "name": "ProjectReward",
+  "pagination": "pagination",
+  "relationships": [],
+  "searchEngine": "no"
+}

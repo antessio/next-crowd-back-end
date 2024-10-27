@@ -1,0 +1,96 @@
+{
+  "annotations": {
+    "changelogDate": "20241027164856"
+  },
+  "applications": "*",
+  "fields": [
+    {
+      "fieldName": "title",
+      "fieldType": "String",
+      "fieldValidateRules": ["required"]
+    },
+    {
+      "fieldName": "status",
+      "fieldType": "Status",
+      "fieldValidateRules": ["required"],
+      "fieldValues": "SUBMITTED,APPROVED,REJECTED,ISSUED"
+    },
+    {
+      "fieldName": "requestedAmount",
+      "fieldType": "BigDecimal",
+      "fieldValidateRules": ["required"]
+    },
+    {
+      "fieldName": "collectedAmount",
+      "fieldType": "BigDecimal"
+    },
+    {
+      "fieldName": "currency",
+      "fieldType": "String",
+      "fieldValidateRules": ["required"]
+    },
+    {
+      "fieldName": "imageUrl",
+      "fieldType": "String"
+    },
+    {
+      "fieldName": "projectStartDate",
+      "fieldType": "Instant"
+    },
+    {
+      "fieldName": "projectEndDate",
+      "fieldType": "Instant"
+    },
+    {
+      "fieldName": "numberOfBackers",
+      "fieldType": "Integer"
+    },
+    {
+      "fieldName": "description",
+      "fieldType": "String"
+    },
+    {
+      "fieldName": "longDescription",
+      "fieldType": "String"
+    },
+    {
+      "fieldName": "projectVideoUrl",
+      "fieldType": "String"
+    },
+    {
+      "fieldName": "risk",
+      "fieldType": "Integer"
+    },
+    {
+      "fieldName": "expectedProfit",
+      "fieldType": "BigDecimal"
+    },
+    {
+      "fieldName": "minimumInvestment",
+      "fieldType": "BigDecimal"
+    }
+  ],
+  "name": "CrowdfundingProject",
+  "pagination": "pagination",
+  "relationships": [
+    {
+      "otherEntityName": "projectOwner",
+      "relationshipName": "owner",
+      "relationshipSide": "left",
+      "relationshipType": "one-to-one"
+    },
+    {
+      "otherEntityName": "projectReward",
+      "relationshipName": "rewards",
+      "relationshipSide": "left",
+      "relationshipType": "one-to-many"
+    },
+    {
+      "otherEntityName": "investment",
+      "relationshipName": "investments",
+      "relationshipSide": "left",
+      "relationshipType": "one-to-many"
+    }
+  ],
+  "searchEngine": "no"
+}

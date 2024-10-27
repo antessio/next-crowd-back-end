@@ -1,0 +1,27 @@
+{
+  "nextCrowdBackEndApp": {
+    "investment": {
+      "home": {
+        "title": "Investments",
+        "refreshListLabel": "Refresh list",
+        "createLabel": "Create a new Investment",
+        "createOrEditLabel": "Create or edit a Investment",
+        "notFound": "No Investments found"
+      },
+      "created": "A new Investment is created with identifier {{ param }}",
+      "updated": "A Investment is updated with identifier {{ param }}",
+      "deleted": "A Investment is deleted with identifier {{ param }}",
+      "delete": {
+        "question": "Are you sure you want to delete Investment {{ id }}?"
+      },
+      "detail": {
+        "title": "Investment"
+      },
+      "id": "ID",
+      "bakerId": "Baker Id",
+      "amount": "Amount",
+      "moneyTransferId": "Money Transfer Id",
+      "crowdfundingProject": "Crowdfunding Project"
+    }
+  }
+}
