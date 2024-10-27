@@ -6,6 +6,7 @@ import ProjectOwner from './project-owner';
 import ProjectReward from './project-reward';
 import Investment from './investment';
 import CrowdfundingProject from './crowdfunding-project';
+import { Route } from 'react-router';
 /* jhipster-needle-add-route-import - JHipster will add routes here */
 
 export default () => {
