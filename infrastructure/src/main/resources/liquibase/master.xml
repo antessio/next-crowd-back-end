@@ -13,4 +13,5 @@
     <include file="changelog/0000000001_create_project_owner.xml" relativeToChangelogFile="true"/>
     <include file="changelog/0000000002_create_crowdfunding_project.xml" relativeToChangelogFile="true"/>
     <include file="changelog/0000000004_create_project_investment.xml" relativeToChangelogFile="true"/>
+    <include file="changelog/events/0000000005_events.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>
