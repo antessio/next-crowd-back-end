@@ -15,9 +15,19 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <modules>
-        <module>infrastructure</module>
         <module>domain</module>
+        <module>infrastructure</module>
     </modules>
 
+    <dependencyManagement>
+        <dependencies>
+            <!-- Define domain dependency for use in other modules -->
+            <dependency>
+                <groupId>nextcrowd.crowdfunding</groupId>
+                <artifactId>domain</artifactId>
+                <version>1.0-SNAPSHOT</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
 </project>
