@@ -15,6 +15,13 @@ jobs:
           java-version: '22'
           distribution: 'temurin'
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Start Docker Compose for PostgreSQL
+        run: docker-compose -f path/to/docker-compose.yml up -d
+        # Replace 'path/to/docker-compose.yml' with the actual path to your Docker Compose file
+
       - name: Cache Maven packages
         uses: actions/cache@v2
         with:
@@ -26,5 +33,18 @@ jobs:
       - name: Install dependencies
         run: mvn install -DskipTests
 
+      - name: Wait for PostgreSQL to be ready
+        run: |
+          for i in {1..10}; do
+            if docker-compose exec postgresql pg_isready -U nextcrowd_root; then
+              echo "PostgreSQL is ready!"
+              break
+            fi
+            echo "Waiting for PostgreSQL..."
+            sleep 5
+          done
       - name: Run tests
         run: mvn test
+      - name: Shut down Docker Compose
+        if: always()
+        run: docker-compose -f path/to/docker-compose.yml down
