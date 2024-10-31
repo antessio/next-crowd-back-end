@@ -11,9 +11,17 @@ import com.github.f4b6a3.uuid.UuidCreator;
 import nextcrowd.crowdfunding.infrastructure.events.Event;
 import nextcrowd.crowdfunding.infrastructure.events.EventRepository;
 import nextcrowd.crowdfunding.infrastructure.events.EventStatus;
+import nextcrowd.crowdfunding.project.event.CrowdfundingProjectApprovedEvent;
+import nextcrowd.crowdfunding.project.event.CrowdfundingProjectIssuedEvent;
+import nextcrowd.crowdfunding.project.event.CrowdfundingProjectPendingInvestmentAddedEvent;
+import nextcrowd.crowdfunding.project.event.CrowdfundingProjectPendingInvestmentCanceledEvent;
+import nextcrowd.crowdfunding.project.event.CrowdfundingProjectPendingInvestmentConfirmedEvent;
+import nextcrowd.crowdfunding.project.event.CrowdfundingProjectRejectedEvent;
+import nextcrowd.crowdfunding.project.event.CrowdfundingProjectSubmittedEvent;
+import nextcrowd.crowdfunding.project.port.EventPublisher;
 
 @Component
-public class DatabaseEventPublisher {
+public class DatabaseEventPublisher implements EventPublisher {
 
     private final EventRepository eventRepository;
     private final ObjectMapper objectMapper;
@@ -39,6 +47,41 @@ public class DatabaseEventPublisher {
             throw new RuntimeException(e);
         }
 
+    }
+
+    @Override
+    public void publish(CrowdfundingProjectSubmittedEvent crowdfundingProjectSubmittedEvent) {
+        publish(crowdfundingProjectSubmittedEvent, CrowdfundingProjectSubmittedEvent.class, crowdfundingProjectSubmittedEvent.getProjectId().getId());
+    }
+
+    @Override
+    public void publish(CrowdfundingProjectApprovedEvent crowdfundingProjectApprovedEvent) {
+        publish(crowdfundingProjectApprovedEvent, CrowdfundingProjectApprovedEvent.class, crowdfundingProjectApprovedEvent.getProjectId().getId());
+    }
+
+    @Override
+    public void publish(CrowdfundingProjectRejectedEvent event) {
+        publish(event, CrowdfundingProjectRejectedEvent.class, event.getProjectId().getId());
+    }
+
+    @Override
+    public void publish(CrowdfundingProjectPendingInvestmentAddedEvent event) {
+        publish(event, CrowdfundingProjectPendingInvestmentAddedEvent.class, event.getProjectId().getId());
+    }
+
+    @Override
+    public void publish(CrowdfundingProjectIssuedEvent event) {
+        publish(event, CrowdfundingProjectIssuedEvent.class, event.getProjectId().getId());
+    }
+
+    @Override
+    public void publish(CrowdfundingProjectPendingInvestmentConfirmedEvent event) {
+        publish(event, CrowdfundingProjectPendingInvestmentConfirmedEvent.class, event.getProjectId().getId());
+    }
+
+    @Override
+    public void publish(CrowdfundingProjectPendingInvestmentCanceledEvent event) {
+        publish(event, CrowdfundingProjectPendingInvestmentCanceledEvent.class, event.getProjectId().getId());
     }
 
 }
