@@ -13,7 +13,7 @@ jobs:
         uses: actions/setup-java@v2
         with:
           java-version: '22'
-          distribution: 'corretto'
+          distribution: 'openjdk'
 
       - name: Cache Maven packages
         uses: actions/cache@v2
