@@ -18,8 +18,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      - name: Set up Docker Compose
+        run: sudo apt-get update && sudo apt-get install -y docker-compose-plugin
+
       - name: Start Docker Compose for PostgreSQL
-        run: docker-compose -f path/to/docker-compose.yml up -d
+        run: docker-compose -f ./infrastructure/docker/postgres.yml up -d
         # Replace 'path/to/docker-compose.yml' with the actual path to your Docker Compose file
 
       - name: Cache Maven packages
