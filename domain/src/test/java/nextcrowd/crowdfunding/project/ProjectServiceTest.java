@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Supplier;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -52,6 +53,7 @@ import nextcrowd.crowdfunding.project.model.ProjectOwner;
 import nextcrowd.crowdfunding.project.model.ProjectReward;
 import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
 import nextcrowd.crowdfunding.project.port.EventPublisher;
+import nextcrowd.crowdfunding.project.port.TransactionalManager;
 import nextcrowd.crowdfunding.project.service.ProjectValidationService;
 
 class ProjectServiceTest {
@@ -66,7 +68,18 @@ class ProjectServiceTest {
         validationService = Mockito.mock(ProjectValidationService.class);
         eventPublisher = Mockito.mock(EventPublisher.class);
         crowdfundingProjectRepository = Mockito.mock(CrowdfundingProjectRepository.class);
-        projectService = new ProjectService(validationService, crowdfundingProjectRepository, eventPublisher);
+        TransactionalManager fakeTransactionalManager = new TransactionalManager() {
+            @Override
+            public void executeInTransaction(Runnable runnable) {
+                runnable.run();
+            }
+
+            @Override
+            public <T> T executeInTransaction(Supplier<T> supplier) {
+                return supplier.get();
+            }
+        };
+        projectService = new ProjectService(validationService, crowdfundingProjectRepository, eventPublisher, fakeTransactionalManager);
     }
 
     @Nested

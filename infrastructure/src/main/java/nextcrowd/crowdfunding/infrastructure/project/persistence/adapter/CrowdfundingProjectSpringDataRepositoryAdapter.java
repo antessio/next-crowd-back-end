@@ -3,10 +3,13 @@ package nextcrowd.crowdfunding.infrastructure.project.persistence.adapter;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.stereotype.Component;
+
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
 
+@Component
 public class CrowdfundingProjectSpringDataRepositoryAdapter implements CrowdfundingProjectRepository {
 
     private nextcrowd.crowdfunding.infrastructure.project.persistence.CrowdfundingProjectRepository springDataRepository;
