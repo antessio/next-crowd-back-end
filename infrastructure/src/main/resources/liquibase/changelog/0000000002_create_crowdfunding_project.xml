@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+    xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+    xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+
+    <!--
+        Added the entity CrowdfundingProject.
+    -->
+    <changeSet id="0000000002-create-crowdfunding-project" author="antessio">
+        <createTable tableName="crowdfunding_project">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="title" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="status" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="requested_amount" type="decimal(21,2)">
+                <constraints nullable="true" />
+            </column>
+            <column name="collected_amount" type="decimal(21,2)">
+                <constraints nullable="true" />
+            </column>
+            <column name="currency" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="image_url" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="project_start_date" type="${datetimeType}">
+                <constraints nullable="true" />
+            </column>
+            <column name="project_end_date" type="${datetimeType}">
+                <constraints nullable="true" />
+            </column>
+            <column name="number_of_backers" type="integer">
+                <constraints nullable="true" />
+            </column>
+            <column name="description" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="long_description" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="project_video_url" type="varchar(255)">
+                <constraints nullable="true" />
+            </column>
+            <column name="risk" type="integer">
+                <constraints nullable="true" />
+            </column>
+            <column name="expected_profit" type="decimal(21,2)">
+                <constraints nullable="true" />
+            </column>
+            <column name="minimum_investment" type="decimal(21,2)">
+                <constraints nullable="true" />
+            </column>
+            <column name="project_owner_id" type="UUID">
+                <constraints nullable="true"/>
+            </column>
+        </createTable>
+        <addForeignKeyConstraint
+                constraintName="crowdfunding_project-project-owner-1-N"
+                baseTableName="crowdfunding_project"
+                baseColumnNames="project_owner_id"
+                referencedTableName="project_owner"
+                referencedColumnNames="id"
+                onDelete="CASCADE"/>
+    </changeSet>
+</databaseChangeLog>

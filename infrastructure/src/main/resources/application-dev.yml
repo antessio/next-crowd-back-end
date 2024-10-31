@@ -1,0 +1,9 @@
+spring:
+  datasource:
+    type: com.zaxxer.hikari.HikariDataSource
+    url: jdbc:postgresql://localhost:5432/nextcrowd_db
+    username: nextcrowd_root
+    password: nextcrowd_pwd
+    hikari:
+      poolName: Hikari
+      auto-commit: false

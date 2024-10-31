@@ -27,6 +27,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import com.github.f4b6a3.uuid.UuidCreator;
+
 import nextcrowd.crowdfunding.loan.command.LoanCreationCommand;
 import nextcrowd.crowdfunding.loan.event.ChargeCreatedEvent;
 import nextcrowd.crowdfunding.loan.event.ChargePaidEvent;
@@ -72,15 +74,15 @@ class LoanServiceTest {
         void shouldCreateLoanAndPublishEvent() {
             // given
             LoanCreationCommand command = LoanCreationCommand.builder()
-                                                             .debtorId(new DebtorId(UUID.randomUUID().toString()))
+                                                             .debtorId(new DebtorId(UuidCreator.getTimeOrderedEpoch().toString()))
                                                              .investments(List.of(
                                                                      Investment.builder()
                                                                                .amount(new BigDecimal(300))
-                                                                               .lenderId(new LenderId(UUID.randomUUID().toString()))
+                                                                               .lenderId(new LenderId(UuidCreator.getTimeOrderedEpoch().toString()))
                                                                                .build(),
                                                                      Investment.builder()
                                                                                .amount(new BigDecimal(1300))
-                                                                               .lenderId(new LenderId(UUID.randomUUID().toString()))
+                                                                               .lenderId(new LenderId(UuidCreator.getTimeOrderedEpoch().toString()))
                                                                                .build()
                                                              ))
                                                              .durationInMonths(30)
@@ -365,15 +367,15 @@ class LoanServiceTest {
     }
 
     private static PaymentServiceChargeId getRandomPaymentServiceChargeId() {
-        return new PaymentServiceChargeId(UUID.randomUUID().toString());
+        return new PaymentServiceChargeId(UuidCreator.getTimeOrderedEpoch().toString());
     }
 
     private DebtorId randomDebtorId() {
-        return new DebtorId(UUID.randomUUID().toString());
+        return new DebtorId(UuidCreator.getTimeOrderedEpoch().toString());
     }
 
     private ChargeId randomChargeId() {
-        return new ChargeId(UUID.randomUUID().toString());
+        return new ChargeId(UuidCreator.getTimeOrderedEpoch().toString());
     }
 
     private void mockNow(Instant now) {
@@ -382,11 +384,11 @@ class LoanServiceTest {
     }
 
     private LenderId randomLenderId() {
-        return new LenderId(UUID.randomUUID().toString());
+        return new LenderId(UuidCreator.getTimeOrderedEpoch().toString());
     }
 
     private LoanId randomLoanId() {
-        return new LoanId(UUID.randomUUID().toString());
+        return new LoanId(UuidCreator.getTimeOrderedEpoch().toString());
     }
 
     private void verifyChargesSaved(Charge[] expectedCharges) {

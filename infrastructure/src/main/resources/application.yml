@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: next-crowd-back-end
+  profiles:
+    active: dev
+
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  liquibase:
+    change-log: classpath:liquibase/master.xml

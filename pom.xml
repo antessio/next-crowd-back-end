@@ -15,7 +15,9 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
     <modules>
-        <module>jhipster</module>
+        <module>infrastructure</module>
         <module>domain</module>
     </modules>
+
+
 </project>
