@@ -13,10 +13,10 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -24,6 +24,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+
+import com.github.f4b6a3.uuid.UuidCreator;
 
 import nextcrowd.crowdfunding.project.command.AddInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
@@ -39,10 +41,11 @@ import nextcrowd.crowdfunding.project.event.CrowdfundingProjectRejectedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectSubmittedEvent;
 import nextcrowd.crowdfunding.project.exception.CrowdfundingProjectException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
-import nextcrowd.crowdfunding.project.model.AcceptedInvestment;
 import nextcrowd.crowdfunding.project.model.BakerId;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.Investment;
+import nextcrowd.crowdfunding.project.model.InvestmentId;
+import nextcrowd.crowdfunding.project.model.InvestmentStatus;
 import nextcrowd.crowdfunding.project.model.MoneyTransferId;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
@@ -388,10 +391,7 @@ class ProjectServiceTest {
                                                                .amount(new BigDecimal(300))
                                                                .bakerId(new BakerId("bakerId"))
                                                                .build();
-            Investment previousInvestment = Investment.builder()
-                                                      .amount(new BigDecimal(1000))
-                                                      .bakerId(command.getBakerId())
-                                                      .build();
+            Investment previousInvestment = buildPendingInvestment(command.getBakerId(), new BigDecimal(1000));
             CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0), List.of(previousInvestment), List.of(), List.of());
             when(crowdfundingProjectRepository.findById(projectId))
                     .thenReturn(Optional.of(approvedProject));
@@ -483,11 +483,7 @@ class ProjectServiceTest {
             // given
             BakerId bakerId = randomBakerId();
             ProjectId projectId = randomProjectId();
-            AcceptedInvestment existingInvestment = AcceptedInvestment.builder()
-                                                                      .bakerId(bakerId)
-                                                                      .amount(new BigDecimal(300))
-                                                                      .moneyTransferId(randomMoneyTransferId())
-                                                                      .build();
+            Investment existingInvestment = buildAcceptedInvestment(bakerId, new BigDecimal(300));
             CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0), List.of(), List.of(existingInvestment), List.of());
             when(crowdfundingProjectRepository.findById(projectId))
                     .thenReturn(Optional.of(approvedProject));
@@ -510,10 +506,7 @@ class ProjectServiceTest {
             // given
             BakerId bakerId = new BakerId("bakerId");
             ProjectId projectId = randomProjectId();
-            Investment existingInvestment = Investment.builder()
-                                                      .bakerId(bakerId)
-                                                      .amount(new BigDecimal(300))
-                                                      .build();
+            Investment existingInvestment = buildPendingInvestment(bakerId, new BigDecimal(300));
             CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0), List.of(existingInvestment), List.of(), List.of());
             when(crowdfundingProjectRepository.findById(projectId))
                     .thenReturn(Optional.of(approvedProject));
@@ -541,6 +534,25 @@ class ProjectServiceTest {
                                                                                              .build());
         }
 
+    }
+
+    private static Investment buildPendingInvestment(BakerId bakerId, BigDecimal amount) {
+        return Investment.builder()
+                        .id(new InvestmentId(UuidCreator.getTimeOrderedEpoch().toString()))
+                         .bakerId(bakerId)
+                         .amount(amount)
+                         .status(InvestmentStatus.PENDING)
+                         .build();
+    }
+
+    private static Investment buildAcceptedInvestment(BakerId bakerId, BigDecimal amount) {
+        return Investment.builder()
+                         .id(new InvestmentId(UuidCreator.getTimeOrderedEpoch().toString()))
+                         .bakerId(bakerId)
+                         .amount(amount)
+                         .moneyTransferId(randomMoneyTransferId())
+                         .status(InvestmentStatus.ACCEPTED)
+                         .build();
     }
 
     @Nested
@@ -604,10 +616,7 @@ class ProjectServiceTest {
             // given
             BakerId bakerId = randomBakerId();
             ProjectId projectId = randomProjectId();
-            Investment existingInvestment = Investment.builder()
-                                                                      .bakerId(bakerId)
-                                                                      .amount(new BigDecimal(300))
-                                                                      .build();
+            Investment existingInvestment = buildRefusedInvestment(bakerId);
             CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0), List.of(), List.of(), List.of(existingInvestment));
             when(crowdfundingProjectRepository.findById(projectId))
                     .thenReturn(Optional.of(approvedProject));
@@ -629,16 +638,13 @@ class ProjectServiceTest {
             // given
             BakerId bakerId = new BakerId("bakerId");
             ProjectId projectId = randomProjectId();
-            Investment existingInvestment = Investment.builder()
-                                                      .bakerId(bakerId)
-                                                      .amount(new BigDecimal(300))
-                                                      .build();
+            Investment existingInvestment = buildPendingInvestment(bakerId, new BigDecimal(300));
             CrowdfundingProject approvedProject = buildProjectApproved(projectId, new BigDecimal(0), List.of(existingInvestment), List.of(), List.of());
             when(crowdfundingProjectRepository.findById(projectId))
                     .thenReturn(Optional.of(approvedProject));
             CancelInvestmentCommand command = CancelInvestmentCommand.builder()
-                                                                       .bakerId(bakerId)
-                                                                       .build();
+                                                                     .bakerId(bakerId)
+                                                                     .build();
 
             // when
             projectService.cancelInvestment(projectId, command);
@@ -660,12 +666,21 @@ class ProjectServiceTest {
 
     }
 
+    private static Investment buildRefusedInvestment(BakerId bakerId) {
+        return Investment.builder()
+                         .id(new InvestmentId(UuidCreator.getTimeOrderedEpoch().toString()))
+                         .bakerId(bakerId)
+                         .amount(new BigDecimal(300))
+                         .status(InvestmentStatus.REFUSED)
+                         .build();
+    }
+
     private static MoneyTransferId randomMoneyTransferId() {
-        return new MoneyTransferId(UUID.randomUUID().toString());
+        return new MoneyTransferId(UuidCreator.getTimeOrderedEpoch().toString());
     }
 
     private static BakerId randomBakerId() {
-        return new BakerId(UUID.randomUUID().toString());
+        return new BakerId(UuidCreator.getTimeOrderedEpoch().toString());
     }
 
     @Nested
@@ -790,8 +805,13 @@ class ProjectServiceTest {
     }
 
     private static CrowdfundingProject buildProjectApproved(
-            ProjectId projectId, BigDecimal collectedAmount, List<Investment> investments,
-            List<AcceptedInvestment> acceptedInvestments, List<Investment> refusedInvestments) {
+            ProjectId projectId, BigDecimal collectedAmount, List<Investment> pendingInvestments,
+            List<Investment> acceptedInvestments, List<Investment> refusedInvestments) {
+
+        List<Investment> investments = new ArrayList<>();
+        investments.addAll(pendingInvestments);
+        investments.addAll(acceptedInvestments);
+        investments.addAll(refusedInvestments);
         return CrowdfundingProject.builder()
                                   .id(projectId)
                                   .status(CrowdfundingProject.Status.APPROVED)
@@ -824,9 +844,7 @@ class ProjectServiceTest {
                                                        .imageUrl("rewardImageUrl2")
                                                        .name("rewardName2")
                                                        .build()))
-                                  .pendingInvestments(investments)
-                                  .acceptedInvestments(acceptedInvestments)
-                                  .refusedInvestments(refusedInvestments)
+                                  .investments(investments)
                                   .build();
     }
 
@@ -866,7 +884,7 @@ class ProjectServiceTest {
     }
 
     private static ProjectId randomProjectId() {
-        return new ProjectId(UUID.randomUUID().toString());
+        return new ProjectId(UuidCreator.getTimeOrderedEpoch().toString());
     }
 
     private static SubmitCrowdfundingProjectCommand buildSubmitCommand(Instant now, ProjectOwner projectOwner) {

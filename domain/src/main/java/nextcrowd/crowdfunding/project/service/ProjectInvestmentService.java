@@ -1,12 +1,11 @@
 package nextcrowd.crowdfunding.project.service;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Collectors;
+
+import com.github.f4b6a3.uuid.UuidCreator;
 
 import nextcrowd.crowdfunding.project.command.AddInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.CancelInvestmentCommand;
@@ -19,6 +18,8 @@ import nextcrowd.crowdfunding.project.model.AcceptedInvestment;
 import nextcrowd.crowdfunding.project.model.BakerId;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.Investment;
+import nextcrowd.crowdfunding.project.model.InvestmentId;
+import nextcrowd.crowdfunding.project.model.InvestmentStatus;
 import nextcrowd.crowdfunding.project.model.MoneyTransferId;
 import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
 import nextcrowd.crowdfunding.project.port.EventPublisher;
@@ -34,13 +35,9 @@ public class ProjectInvestmentService {
     }
 
 
-
-
     public void addInvestment(AddInvestmentCommand command, CrowdfundingProject project) {
         checkStatus(project);
-        CrowdfundingProject updatedProject = addBaker(project, Investment.builder()
-                                                                         .bakerId(command.getBakerId())
-                                                                         .amount(command.getAmount()).build());
+        CrowdfundingProject updatedProject = addBaker(project, command);
         repository.save(updatedProject);
         eventPublisher.publish(CrowdfundingProjectPendingInvestmentAddedEvent.builder()
                                                                              .amount(command.getAmount())
@@ -54,11 +51,11 @@ public class ProjectInvestmentService {
         checkStatus(project);
         if (!project.hasConfirmedInvestment(command.getBakerId())) {
             CrowdfundingProject updatedProject = acceptInvestment(project, command.getBakerId(), command.getMoneyTransferId());
-            AcceptedInvestment acceptedInvestment = updatedProject.getAcceptedInvestments()
-                                                                  .stream()
-                                                                  .filter(i -> i.getBakerId().equals(command.getBakerId()))
-                                                                  .findFirst()
-                                                                  .orElseThrow(() -> new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVESTMENT_NOT_FOUND));
+            Investment acceptedInvestment = updatedProject.getAcceptedInvestments()
+                                                          .stream()
+                                                          .filter(i -> i.getBakerId().equals(command.getBakerId()))
+                                                          .findFirst()
+                                                          .orElseThrow(() -> new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVESTMENT_NOT_FOUND));
             repository.save(updatedProject);
             eventPublisher.publish(CrowdfundingProjectPendingInvestmentConfirmedEvent
                                            .builder()
@@ -89,66 +86,69 @@ public class ProjectInvestmentService {
         }
     }
 
-    private CrowdfundingProject addBaker(CrowdfundingProject project, Investment investment) {
+    private CrowdfundingProject addBaker(CrowdfundingProject project, AddInvestmentCommand command) {
 
-        Map<BakerId, Investment> investmentsByBaker = Optional.ofNullable(project.getPendingInvestments())
-                                                              .map(investmentList -> investmentList
-                                                                      .stream()
-                                                                      .collect(Collectors.toMap(Investment::getBakerId, Function.identity())))
-                                                              .orElseGet(HashMap::new);
-        Investment investmentToAdd = Optional.ofNullable(investmentsByBaker.get(investment.getBakerId()))
-                                             .map(i -> i.add(investment.getAmount()))
-                                             .orElse(investment);
 
-        investmentsByBaker.put(investmentToAdd.getBakerId(), investmentToAdd);
-        return project.toBuilder()
-                      .pendingInvestments(new ArrayList<>(investmentsByBaker.values()))
-                      .build();
+        List<Investment> newInvestmentsList = findExistingPendingInvestment(project, command.getBakerId())
+                .map(existingInvestment -> existingInvestment.add(command.getAmount()))
+                .map(updateInvestment -> replaceInvestmentInList(project.getInvestments(), updateInvestment))
+                .orElseGet(() -> addNewInvestmentToList(project.getInvestments(), createNewInvestment(command)));
+
+        return project.updateInvestments(newInvestmentsList);
+    }
+
+    private Optional<Investment> findExistingPendingInvestment(CrowdfundingProject project, BakerId bakerId) {
+        return project.getPendingInvestments()
+                      .stream()
+                      .filter(investment -> investment.getBakerId().equals(bakerId))
+                      .findFirst();
+    }
+
+    private List<Investment> replaceInvestmentInList(List<Investment> investments, Investment updatedInvestment) {
+        return investments.stream()
+                          .map(investment -> investment.getId().equals(updatedInvestment.getId()) ? updatedInvestment : investment)
+                          .collect(Collectors.toList());
+    }
+
+    private List<Investment> addNewInvestmentToList(List<Investment> investments, Investment newInvestment) {
+        List<Investment> updatedList = new ArrayList<>(investments);
+        updatedList.add(newInvestment);
+        return updatedList;
+    }
+
+    private Investment createNewInvestment(AddInvestmentCommand command) {
+        return Investment.builder()
+                         .id(new InvestmentId(UuidCreator.getTimeOrderedEpoch().toString()))
+                         .amount(command.getAmount())
+                         .bakerId(command.getBakerId())
+                         .status(InvestmentStatus.PENDING)
+                         .build();
     }
 
     private CrowdfundingProject rejectInvestment(CrowdfundingProject project, BakerId bakerId) {
         if (project.hasCanceledInvestment(bakerId)) {
             return project;
         }
-        return project.getPendingInvestments()
-                      .stream()
-                      .filter(i -> i.getBakerId().equals(bakerId))
-                      .findFirst()
-                      .map(investment -> {
-                          List<Investment> refusedInvestmentsToUpDate = new ArrayList<>(project.getRefusedInvestments());
-                          refusedInvestmentsToUpDate.add(investment);
-                          return project.toBuilder()
-                                        .pendingInvestments(project.getPendingInvestments().stream().filter(i -> !i.equals(investment)).toList())
-                                        .refusedInvestments(refusedInvestmentsToUpDate)
-                                        .build();
 
-                      }).orElse(project);
+        return findExistingPendingInvestment(project, bakerId)
+                .map(Investment::refuse)
+                .map(refusedInvestment -> replaceInvestmentInList(project.getInvestments(), refusedInvestment))
+                .map(project::updateInvestments)
+                .orElse(project);
+
     }
+
     private CrowdfundingProject acceptInvestment(CrowdfundingProject project, BakerId bakerId, MoneyTransferId moneyTransferId) {
         if (project.hasConfirmedInvestment(bakerId)) {
             return project;
         }
-        return project.getPendingInvestments()
-                      .stream()
-                      .filter(i -> i.getBakerId().equals(bakerId))
-                      .findFirst()
-                      .map(pendingInvestment -> {
-                          List<AcceptedInvestment> acceptedInvestmentsToUpDate = new ArrayList<>(project.getAcceptedInvestments());
-                          AcceptedInvestment acceptedInvestment = AcceptedInvestment.builder()
-                                                                                    .bakerId(pendingInvestment.getBakerId())
-                                                                                    .amount(pendingInvestment.getAmount())
-                                                                                    .moneyTransferId(moneyTransferId)
-                                                                                    .build();
-                          acceptedInvestmentsToUpDate.add(acceptedInvestment);
-                          return project.toBuilder()
-                                        .pendingInvestments(project.getPendingInvestments().stream().filter(i -> !i.equals(pendingInvestment)).toList())
-                                        .acceptedInvestments(acceptedInvestmentsToUpDate)
-                                        .collectedAmount(project.getCollectedAmount().add(acceptedInvestment.getAmount()))
-                                        .build();
-
-                      }).orElse(project);
-
+        return findExistingPendingInvestment(project, bakerId)
+                .map(existingInvestment -> existingInvestment.accept(moneyTransferId))
+                .map(acceptedInvestment -> replaceInvestmentInList(project.getInvestments(), acceptedInvestment))
+                .map(project::updateInvestments)
+                .orElse(project);
     }
+
     private void checkStatus(CrowdfundingProject project) {
         if (project.getStatus() != CrowdfundingProject.Status.APPROVED) {
             throw new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS);

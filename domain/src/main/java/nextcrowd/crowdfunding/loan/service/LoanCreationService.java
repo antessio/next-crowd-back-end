@@ -1,9 +1,11 @@
 package nextcrowd.crowdfunding.loan.service;
 
-import java.util.UUID;
+import com.github.f4b6a3.uuid.UuidCreator;
 
 import nextcrowd.crowdfunding.loan.command.LoanCreationCommand;
 import nextcrowd.crowdfunding.loan.event.LoanCreatedEvent;
+import nextcrowd.crowdfunding.loan.model.Investment;
+import nextcrowd.crowdfunding.project.model.InvestmentId;
 import nextcrowd.crowdfunding.loan.model.Loan;
 import nextcrowd.crowdfunding.loan.model.LoanId;
 import nextcrowd.crowdfunding.loan.port.EventPublisher;
@@ -21,7 +23,7 @@ public class LoanCreationService {
 
     public Loan createLoan(LoanCreationCommand command) {
         Loan loan = Loan.builder()
-                        .id(new LoanId(UUID.randomUUID().toString()))
+                        .id(new LoanId(UuidCreator.getTimeOrderedEpoch().toString()))
                         .debtorId(command.getDebtorId())
                         .investments(command.getInvestments())
                         .durationInMonths(command.getDurationInMonths())
@@ -33,5 +35,7 @@ public class LoanCreationService {
                                                .build());
         return loan;
     }
+
+
 
 }

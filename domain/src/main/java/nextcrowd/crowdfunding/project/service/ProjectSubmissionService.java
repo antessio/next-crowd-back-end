@@ -3,6 +3,8 @@ package nextcrowd.crowdfunding.project.service;
 import java.math.BigDecimal;
 import java.util.UUID;
 
+import com.github.f4b6a3.uuid.UuidCreator;
+
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectSubmittedEvent;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
@@ -42,7 +44,7 @@ public class ProjectSubmissionService {
     }
 
     private ProjectId generateId() {
-        return new ProjectId(UUID.randomUUID().toString());
+        return new ProjectId(UuidCreator.getTimeOrderedEpoch().toString());
     }
 
 }
