@@ -47,6 +47,7 @@
 /Users/antoniodalessio/personal/next-crowd-back-end/domain/src/main/java/nextcrowd/crowdfunding/project/port/CrowdfundingProjectRepository.java
 /Users/antoniodalessio/personal/next-crowd-back-end/domain/src/main/java/nextcrowd/crowdfunding/project/port/EventPublisher.java
 /Users/antoniodalessio/personal/next-crowd-back-end/domain/src/main/java/nextcrowd/crowdfunding/project/port/LoanService.java
+/Users/antoniodalessio/personal/next-crowd-back-end/domain/src/main/java/nextcrowd/crowdfunding/project/port/TransactionalManager.java
 /Users/antoniodalessio/personal/next-crowd-back-end/domain/src/main/java/nextcrowd/crowdfunding/project/service/ProjectApprovalService.java
 /Users/antoniodalessio/personal/next-crowd-back-end/domain/src/main/java/nextcrowd/crowdfunding/project/service/ProjectInvestmentService.java
 /Users/antoniodalessio/personal/next-crowd-back-end/domain/src/main/java/nextcrowd/crowdfunding/project/service/ProjectIssuingService.java

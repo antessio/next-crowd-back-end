@@ -1,3 +1,4 @@
+enableTestcontainers: false
 spring:
   application:
     name: next-crowd-back-end
