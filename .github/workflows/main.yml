@@ -14,6 +14,6 @@ jobs:
           java-version: '22'
           distribution: 'adopt'
       - name: Build generated source
-        run: mvn clean generate-sources                                                                                                                                                                                                                   ─╯
+        run: mvn clean generate-sources
       - name: Build with Maven
         run: mvn clean install -DenableTestcontainers=true
