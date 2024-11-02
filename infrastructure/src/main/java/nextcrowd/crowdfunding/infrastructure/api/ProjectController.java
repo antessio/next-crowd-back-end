@@ -3,6 +3,7 @@ package nextcrowd.crowdfunding.infrastructure.api;
 import java.util.List;
 import java.util.Optional;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -20,6 +21,7 @@ import nextcrowd.crowdfunding.admin.api.model.ProjectId;
 import nextcrowd.crowdfunding.admin.api.model.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.infrastructure.api.adapter.ApiToDomainConverter;
 import nextcrowd.crowdfunding.project.ProjectService;
+import nextcrowd.crowdfunding.project.exception.CrowdfundingProjectException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
 import nextcrowd.crowdfunding.project.model.InvestmentId;
 
@@ -91,9 +93,9 @@ public class ProjectController implements AdminApi {
     @Override
     public ResponseEntity<PaginatedProjectsResponse> adminProjectsPendingReviewGet(String cursor, Integer limit) {
         List<CrowdfundingProject> results = projectService.getPendingReviewProjects(new nextcrowd.crowdfunding.project.model.ProjectId(cursor))
-                                                       .limit(limit + 1)
-                                                       .map(ApiToDomainConverter::toApi)
-                                                       .toList();
+                                                          .limit(limit + 1)
+                                                          .map(ApiToDomainConverter::toApi)
+                                                          .toList();
         boolean hasMore = results.size() > limit;
         if (hasMore) {
             results.removeLast();
@@ -117,7 +119,7 @@ public class ProjectController implements AdminApi {
                                             .map(InvestmentId::new)
                                             .orElse(null);
         List<Investment> results = projectService.getAcceptedInvestments(new nextcrowd.crowdfunding.project.model.ProjectId(
-                                                                                          projectId), startingFrom)
+                                                         projectId), startingFrom)
                                                  .limit(limit + 1)
                                                  .map(ApiToDomainConverter::toApi)
                                                  .toList();
@@ -169,4 +171,10 @@ public class ProjectController implements AdminApi {
     public ResponseEntity<ApiError> handleValidationException(ValidationException ex) {
         return ResponseEntity.badRequest().body(new ApiError(ex.getMessage()));
     }
+
+    @ExceptionHandler(CrowdfundingProjectException.class)
+    public ResponseEntity<ApiError> handleCrowdfundingProjectException(CrowdfundingProjectException ex) {
+        return ResponseEntity.badRequest().body(new ApiError(ex.getMessage()));
+    }
+
 }

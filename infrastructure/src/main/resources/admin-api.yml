@@ -433,6 +433,8 @@ components:
       properties:
         bakerId:
           type: string
+        moneyTransferId:
+          type: string
 
     CancelInvestmentCommand:
       type: object

@@ -4,6 +4,7 @@ import static nextcrowd.crowdfunding.infrastructure.TestUtils.buildRandomInstant
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -27,9 +28,12 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import nextcrowd.crowdfunding.admin.api.model.AddInvestmentCommand;
 import nextcrowd.crowdfunding.admin.api.model.ApproveCrowdfundingProjectCommand;
+import nextcrowd.crowdfunding.admin.api.model.CancelInvestmentCommand;
+import nextcrowd.crowdfunding.admin.api.model.ConfirmInvestmentCommand;
 import nextcrowd.crowdfunding.admin.api.model.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.infrastructure.TestUtils;
 import nextcrowd.crowdfunding.project.ProjectService;
+import nextcrowd.crowdfunding.project.exception.CrowdfundingProjectException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.ProjectId;
@@ -88,6 +92,7 @@ class ProjectControllerTest {
                    .andExpect(status().isNotFound());
         }
 
+
     }
 
     @Nested
@@ -140,6 +145,44 @@ class ProjectControllerTest {
         }
 
         @Test
+        @DisplayName("Approve a project with validation error")
+        void testApproveProjectWithValidationError() throws Exception {
+            String projectId = "test-project-id";
+            ApproveCrowdfundingProjectCommand approveCommand = new ApproveCrowdfundingProjectCommand()
+                    .expectedProfit(300.00)
+                    .risk(5)
+                    .minimumInvestment(200.00);
+
+            doThrow(new ValidationException("Validation error")).when(projectService).approve(eq(new ProjectId(projectId)), any());
+
+            mockMvc.perform(post("/admin/projects/{id}/approve", projectId)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(TestUtils.objectMapper().writeValueAsBytes(approveCommand)))
+                   .andExpect(status().isBadRequest())
+                   .andExpect(jsonPath("$.message").value("Validation error"));
+        }
+
+        @Test
+        @DisplayName("Approve a project with status failure")
+        void testApproveProjectWithStatusFailure() throws Exception {
+            String projectId = "test-project-id";
+            ApproveCrowdfundingProjectCommand approveCommand = new ApproveCrowdfundingProjectCommand()
+                    .expectedProfit(300.00)
+                    .risk(5)
+                    .minimumInvestment(200.00);
+
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectService)
+                                                                                                                 .approve(eq(new ProjectId(projectId)), any());
+
+            mockMvc.perform(post("/admin/projects/{id}/approve", projectId)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(TestUtils.objectMapper().writeValueAsBytes(approveCommand)))
+                   .andExpect(status().isBadRequest())
+                   .andExpect(jsonPath("$.message").value("Crowdfunding project exception "
+                                                          + CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS.name()));
+        }
+
+        @Test
         @DisplayName("Reject a project")
         void testRejectProject() throws Exception {
             String projectId = "test-project-id";
@@ -149,6 +192,34 @@ class ProjectControllerTest {
             mockMvc.perform(post("/admin/projects/{id}/reject", projectId)
                                     .contentType(MediaType.APPLICATION_JSON))
                    .andExpect(status().isAccepted());
+        }
+
+        @Test
+        @DisplayName("Reject a project with validation error")
+        void testRejectProjectWithValidationError() throws Exception {
+            String projectId = "test-project-id";
+
+            doThrow(new ValidationException("Validation error")).when(projectService).reject(eq(new ProjectId(projectId)));
+
+            mockMvc.perform(post("/admin/projects/{id}/reject", projectId)
+                                    .contentType(MediaType.APPLICATION_JSON))
+                   .andExpect(status().isBadRequest())
+                   .andExpect(jsonPath("$.message").value("Validation error"));
+        }
+
+        @Test
+        @DisplayName("Reject a project with status failure")
+        void testRejectProjectWithStatusFailure() throws Exception {
+            String projectId = "test-project-id";
+
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectService)
+                                                                                                                 .reject(eq(new ProjectId(projectId)));
+
+            mockMvc.perform(post("/admin/projects/{id}/reject", projectId)
+                                    .contentType(MediaType.APPLICATION_JSON))
+                   .andExpect(status().isBadRequest())
+                   .andExpect(jsonPath("$.message").value("Crowdfunding project exception "
+                                                          + CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS.name()));
         }
 
     }
@@ -171,6 +242,99 @@ class ProjectControllerTest {
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(TestUtils.objectMapper().writeValueAsBytes(addInvestmentCommand)))
                    .andExpect(status().isAccepted());
+        }
+
+        @Test
+        @DisplayName("Confirm investment")
+        void testConfirmInvestment() throws Exception {
+            String projectId = "test-project-id";
+            ConfirmInvestmentCommand confirmInvestmentCommand = new ConfirmInvestmentCommand()
+                    .bakerId("test-baker-id")
+                    .moneyTransferId("test-money-transfer-id");
+
+            doNothing().when(projectService).confirmInvestment(eq(new ProjectId(projectId)), any());
+
+            mockMvc.perform(post("/admin/projects/{id}/investments/confirm", projectId)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(TestUtils.objectMapper().writeValueAsBytes(confirmInvestmentCommand)))
+                   .andExpect(status().isAccepted());
+        }
+
+        @Test
+        @DisplayName("Cancel investment")
+        void testCancelInvestment() throws Exception {
+            String projectId = "test-project-id";
+            CancelInvestmentCommand cancelInvestmentCommand = new CancelInvestmentCommand()
+                    .bakerId("test-baker-id");
+
+            doNothing().when(projectService).cancelInvestment(eq(new ProjectId(projectId)), any());
+
+            mockMvc.perform(post("/admin/projects/{id}/investments/cancel", projectId)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(TestUtils.objectMapper().writeValueAsBytes(cancelInvestmentCommand)))
+                   .andExpect(status().isAccepted());
+        }
+
+        @Test
+        @DisplayName("Add investment with status failure")
+        void testAddInvestmentWithStatusFailure() throws Exception {
+            String projectId = "test-project-id";
+            AddInvestmentCommand addInvestmentCommand = new AddInvestmentCommand()
+                    .bakerId("test-baker-id")
+                    .amount(100.00);
+
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectService)
+                                                                                                                 .addInvestment(
+                                                                                                                         eq(new ProjectId(projectId)),
+                                                                                                                         any());
+
+            mockMvc.perform(post("/admin/projects/{id}/investments", projectId)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(TestUtils.objectMapper().writeValueAsBytes(addInvestmentCommand)))
+                   .andExpect(status().isBadRequest())
+                   .andExpect(jsonPath("$.message").value("Crowdfunding project exception "
+                                                          + CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS.name()));
+        }
+
+        @Test
+        @DisplayName("Confirm investment with status failure")
+        void testConfirmInvestmentWithStatusFailure() throws Exception {
+            String projectId = "test-project-id";
+            ConfirmInvestmentCommand confirmInvestmentCommand = new ConfirmInvestmentCommand()
+                    .bakerId("test-baker-id")
+                    .moneyTransferId("test-money-transfer-id");
+
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectService)
+                                                                                                                 .confirmInvestment(
+                                                                                                                         eq(new ProjectId(projectId)),
+                                                                                                                         any());
+
+            mockMvc.perform(post("/admin/projects/{id}/investments/confirm", projectId)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(TestUtils.objectMapper().writeValueAsBytes(confirmInvestmentCommand)))
+                   .andExpect(status().isBadRequest())
+                   .andExpect(jsonPath("$.message").value("Crowdfunding project exception "
+                                                          + CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS.name()));
+        }
+
+        @Test
+        @DisplayName("Cancel investment with status failure")
+        void testCancelInvestmentWithStatusFailure() throws Exception {
+            String projectId = "test-project-id";
+            CancelInvestmentCommand cancelInvestmentCommand = new CancelInvestmentCommand()
+                    .bakerId("test-baker-id");
+
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectService)
+                                                                                                                 .cancelInvestment(
+                                                                                                                         eq(new ProjectId(projectId)),
+                                                                                                                         any());
+
+            mockMvc.perform(post("/admin/projects/{id}/investments/cancel", projectId)
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(TestUtils.objectMapper().writeValueAsBytes(cancelInvestmentCommand)))
+                   .andExpect(status().isBadRequest())
+                   .andExpect(jsonPath("$.message").value("Crowdfunding project exception "
+                                                          + CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS.name()));
         }
 
     }

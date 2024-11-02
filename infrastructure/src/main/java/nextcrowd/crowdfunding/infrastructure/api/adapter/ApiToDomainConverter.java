@@ -79,6 +79,7 @@ public final class ApiToDomainConverter {
     public static ConfirmInvestmentCommand toDomain(nextcrowd.crowdfunding.admin.api.model.ConfirmInvestmentCommand confirmInvestmentCommand) {
         return ConfirmInvestmentCommand.builder()
                                        .bakerId(new BakerId(confirmInvestmentCommand.getBakerId()))
+                                       .moneyTransferId(new MoneyTransferId(confirmInvestmentCommand.getMoneyTransferId()))
                                        .build();
     }
 
