@@ -35,10 +35,10 @@ public class InvestmentAdapter {
                                .amount(investment.getAmount())
                                .status(investment.getStatus())
                                .bakerId(UUID.fromString(investment.getBakerId().id()))
-                               .moneyTransferId(Optional.ofNullable(investment.getMoneyTransferId())
-                                                        .map(MoneyTransferId::id)
-                                                        .map(UUID::fromString)
-                                                        .orElse(null))
+                               .moneyTransferId(investment.getMoneyTransferId()
+                                                          .map(MoneyTransferId::id)
+                                                          .map(UUID::fromString)
+                                                          .orElse(null))
                                .build();
     }
 

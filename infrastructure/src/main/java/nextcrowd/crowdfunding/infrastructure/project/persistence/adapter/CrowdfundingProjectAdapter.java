@@ -39,13 +39,13 @@ public class CrowdfundingProjectAdapter {
 
     // Convert from Domain Object to Entity
     public static CrowdfundingProjectEntity toEntity(CrowdfundingProject project) {
-        UUID projectId = UUID.fromString(project.getId().getId());
+        UUID projectId = UUID.fromString(project.getId().id());
         CrowdfundingProjectEntity entity = CrowdfundingProjectEntity.builder()
                                                                     .id(projectId)
                                                                     .title(project.getTitle())
                                                                     .status(project.getStatus())
                                                                     .requestedAmount(project.getRequestedAmount())
-                                                                    .collectedAmount(project.getCollectedAmount())
+                                                                    .collectedAmount(project.getCollectedAmount().orElse(null))
                                                                     .currency(project.getCurrency())
                                                                     .imageUrl(project.getImageUrl())
                                                                     .projectOwner(ProjectOwnerAdapter.toEntity(project.getOwner()))

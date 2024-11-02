@@ -1,6 +1,7 @@
 package nextcrowd.crowdfunding.project.model;
 
 import java.math.BigDecimal;
+import java.util.Optional;
 
 import lombok.Builder;
 import lombok.Value;
@@ -31,6 +32,10 @@ public class Investment {
 
     public boolean isPending() {
         return this.status == InvestmentStatus.PENDING;
+    }
+
+    public Optional<MoneyTransferId> getMoneyTransferId() {
+        return Optional.ofNullable(moneyTransferId);
     }
 
     public Investment refuse() {

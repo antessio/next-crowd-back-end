@@ -1,7 +1,10 @@
 package nextcrowd.crowdfunding.project;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import nextcrowd.crowdfunding.project.command.AddInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
@@ -11,6 +14,9 @@ import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.exception.CrowdfundingProjectException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
+import nextcrowd.crowdfunding.project.model.Investment;
+import nextcrowd.crowdfunding.project.model.InvestmentId;
+import nextcrowd.crowdfunding.project.model.InvestmentStatus;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
 import nextcrowd.crowdfunding.project.port.EventPublisher;
@@ -32,6 +38,7 @@ public class ProjectService {
     private final ProjectInvestmentService projectInvestment;
     private final ProjectIssuingService projectIssuingService;
     private final TransactionalManager transactionalManager;
+    private static final Set<CrowdfundingProject.Status> PUBLISHED_STATUSES = Set.of(CrowdfundingProject.Status.APPROVED, CrowdfundingProject.Status.COMPLETED);
 
     public ProjectService(
             ProjectValidationService validationService,
@@ -46,6 +53,25 @@ public class ProjectService {
         this.projectRejectionService = new ProjectRejectionService(eventPublisher, repository);
         this.projectInvestment = new ProjectInvestmentService(eventPublisher, repository);
         this.projectIssuingService = new ProjectIssuingService(eventPublisher, repository);
+    }
+
+    public Optional<CrowdfundingProject> getById(ProjectId projectId) {
+        return repository.findById(projectId);
+    }
+
+    public Stream<CrowdfundingProject> getPublishedProjects(ProjectId startingFrom) {
+        return repository.findByStatusesOrderByAsc(PUBLISHED_STATUSES, startingFrom);
+    }
+
+    public Stream<CrowdfundingProject> getPendingReviewProjects(ProjectId startingFrom) {
+        return repository.findByStatusesOrderByAsc(Set.of(CrowdfundingProject.Status.SUBMITTED), startingFrom);
+    }
+
+    public Stream<Investment> getPendingInvestments(ProjectId projectId, InvestmentId startingFrom) {
+        return repository.findInvestmentsByStatusesOrderByDesc(projectId, startingFrom, Set.of(InvestmentStatus.PENDING));
+    }
+    public Stream<Investment> getAcceptedInvestments(ProjectId projectId, InvestmentId startingFrom) {
+        return repository.findInvestmentsByStatusesOrderByDesc(projectId, startingFrom, Set.of(InvestmentStatus.ACCEPTED));
     }
 
     public ProjectId submitProject(SubmitCrowdfundingProjectCommand projectCreationCommand) {
@@ -97,13 +123,13 @@ public class ProjectService {
     public void cancelInvestment(ProjectId projectId, CancelInvestmentCommand command) {
         CrowdfundingProject project = repository.findById(projectId)
                                                 .orElseThrow(() -> new CrowdfundingProjectException(CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND));
-        transactionalManager.executeInTransaction(()->projectInvestment.cancelInvestment(command, project));
+        transactionalManager.executeInTransaction(() -> projectInvestment.cancelInvestment(command, project));
     }
 
     public void issue(ProjectId projectId) {
         CrowdfundingProject project = repository.findById(projectId)
                                                 .orElseThrow(() -> new CrowdfundingProjectException(CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND));
-        transactionalManager.executeInTransaction(()->projectIssuingService.issue(project));
+        transactionalManager.executeInTransaction(() -> projectIssuingService.issue(project));
     }
 
 

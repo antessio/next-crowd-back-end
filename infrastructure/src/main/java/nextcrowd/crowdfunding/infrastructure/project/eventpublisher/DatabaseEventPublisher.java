@@ -51,37 +51,37 @@ public class DatabaseEventPublisher implements EventPublisher {
 
     @Override
     public void publish(CrowdfundingProjectSubmittedEvent crowdfundingProjectSubmittedEvent) {
-        publish(crowdfundingProjectSubmittedEvent, CrowdfundingProjectSubmittedEvent.class, crowdfundingProjectSubmittedEvent.getProjectId().getId());
+        publish(crowdfundingProjectSubmittedEvent, CrowdfundingProjectSubmittedEvent.class, crowdfundingProjectSubmittedEvent.getProjectId().id());
     }
 
     @Override
     public void publish(CrowdfundingProjectApprovedEvent crowdfundingProjectApprovedEvent) {
-        publish(crowdfundingProjectApprovedEvent, CrowdfundingProjectApprovedEvent.class, crowdfundingProjectApprovedEvent.getProjectId().getId());
+        publish(crowdfundingProjectApprovedEvent, CrowdfundingProjectApprovedEvent.class, crowdfundingProjectApprovedEvent.getProjectId().id());
     }
 
     @Override
     public void publish(CrowdfundingProjectRejectedEvent event) {
-        publish(event, CrowdfundingProjectRejectedEvent.class, event.getProjectId().getId());
+        publish(event, CrowdfundingProjectRejectedEvent.class, event.getProjectId().id());
     }
 
     @Override
     public void publish(CrowdfundingProjectPendingInvestmentAddedEvent event) {
-        publish(event, CrowdfundingProjectPendingInvestmentAddedEvent.class, event.getProjectId().getId());
+        publish(event, CrowdfundingProjectPendingInvestmentAddedEvent.class, event.getProjectId().id());
     }
 
     @Override
     public void publish(CrowdfundingProjectIssuedEvent event) {
-        publish(event, CrowdfundingProjectIssuedEvent.class, event.getProjectId().getId());
+        publish(event, CrowdfundingProjectIssuedEvent.class, event.getProjectId().id());
     }
 
     @Override
     public void publish(CrowdfundingProjectPendingInvestmentConfirmedEvent event) {
-        publish(event, CrowdfundingProjectPendingInvestmentConfirmedEvent.class, event.getProjectId().getId());
+        publish(event, CrowdfundingProjectPendingInvestmentConfirmedEvent.class, event.getProjectId().id());
     }
 
     @Override
     public void publish(CrowdfundingProjectPendingInvestmentCanceledEvent event) {
-        publish(event, CrowdfundingProjectPendingInvestmentCanceledEvent.class, event.getProjectId().getId());
+        publish(event, CrowdfundingProjectPendingInvestmentCanceledEvent.class, event.getProjectId().id());
     }
 
 }

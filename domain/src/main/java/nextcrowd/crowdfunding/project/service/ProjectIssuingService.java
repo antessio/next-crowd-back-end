@@ -19,11 +19,11 @@ public class ProjectIssuingService {
 
 
     public void issue(CrowdfundingProject project) {
-        if (project.getStatus() == CrowdfundingProject.Status.ISSUED) {
+        if (project.getStatus() == CrowdfundingProject.Status.COMPLETED) {
             return;
         }
         checkStatus(project);
-        CrowdfundingProject issuedProject = updateStatusIssued(project);
+        CrowdfundingProject issuedProject = updateStatusCompleted(project);
         repository.save(issuedProject);
         eventPublisher.publish(CrowdfundingProjectIssuedEvent.builder()
                                                                             .projectId(issuedProject.getId())
@@ -34,9 +34,9 @@ public class ProjectIssuingService {
             throw new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS);
         }
     }
-    private CrowdfundingProject updateStatusIssued(CrowdfundingProject project) {
+    private CrowdfundingProject updateStatusCompleted(CrowdfundingProject project) {
         return project.toBuilder()
-                      .status(CrowdfundingProject.Status.ISSUED)
+                      .status(CrowdfundingProject.Status.COMPLETED)
                       .build();
     }
 

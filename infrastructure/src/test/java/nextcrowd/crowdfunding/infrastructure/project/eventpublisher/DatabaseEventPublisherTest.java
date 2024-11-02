@@ -12,6 +12,7 @@ import org.springframework.context.annotation.Import;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import nextcrowd.crowdfunding.infrastructure.BaseTestWithTestcontainers;
 import nextcrowd.crowdfunding.infrastructure.events.Event;
 import nextcrowd.crowdfunding.infrastructure.events.EventRepository;
 import nextcrowd.crowdfunding.infrastructure.events.EventStatus;
@@ -19,7 +20,7 @@ import nextcrowd.crowdfunding.infrastructure.events.EventStatus;
 @DataJpaTest
 @Import({DatabaseEventPublisher.class, ObjectMapper.class})
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)  // Prevent replacing with an embedded DB
-class DatabaseEventPublisherTest {
+class DatabaseEventPublisherTest extends BaseTestWithTestcontainers {
 
     @Autowired
     private EventRepository eventRepository;
