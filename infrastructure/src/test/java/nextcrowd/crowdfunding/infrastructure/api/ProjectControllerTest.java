@@ -1,6 +1,7 @@
 package nextcrowd.crowdfunding.infrastructure.api;
 
 import static nextcrowd.crowdfunding.infrastructure.TestUtils.buildRandomInstant;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
@@ -13,7 +14,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import java.math.BigDecimal;
 import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -92,6 +95,50 @@ class ProjectControllerTest {
                    .andExpect(status().isNotFound());
         }
 
+        @Test
+        @DisplayName("Get pending review projects")
+        void testGetPendingReviewProjects() throws Exception {
+            String cursor = "test-cursor";
+            int limit = 10;
+            List<CrowdfundingProject> projects = IntStream.range(0, 15)
+                                                          .mapToObj(_ -> TestUtils.buildRandomProject(TestUtils.buildRandomProjectOwner()))
+                                                          .toList();
+            when(projectService.getPendingReviewProjects(any())).thenReturn(projects.stream());
+
+            mockMvc.perform(get("/admin/projects/pending-review")
+                                    .param("cursor", cursor)
+                                    .param("limit", String.valueOf(limit)))
+                   .andExpect(status().isOk())
+                   .andExpect(jsonPath("$.data").isArray())
+                   .andExpect(jsonPath("$.data.length()").value(10))
+                   .andExpect(jsonPath("$.hasMore").value(true))
+                   .andExpect(jsonPath(
+                           "$.data[*].id",
+                           containsInAnyOrder(projects.stream().map(CrowdfundingProject::getId).map(ProjectId::id).limit(10).toArray(String[]::new))))
+            ;
+        }
+
+        @Test
+        @DisplayName("Get published projects")
+        void testGetPublishedProjects() throws Exception {
+            String cursor = "test-cursor";
+            int limit = 10;
+            List<CrowdfundingProject> projects = IntStream.range(0, 15)
+                                                          .mapToObj(_ -> TestUtils.buildRandomProject(TestUtils.buildRandomProjectOwner()))
+                                                          .toList();
+            when(projectService.getPublishedProjects(any())).thenReturn(projects.stream());
+
+            mockMvc.perform(get("/admin/projects/published")
+                                    .param("cursor", cursor)
+                                    .param("limit", String.valueOf(limit)))
+                   .andExpect(status().isOk())
+                   .andExpect(jsonPath("$.data").isArray())
+                   .andExpect(jsonPath("$.data.length()").value(10))
+                   .andExpect(jsonPath("$.hasMore").value(true))
+                   .andExpect(jsonPath(
+                           "$.data[*].id",
+                           containsInAnyOrder(projects.stream().map(CrowdfundingProject::getId).map(ProjectId::id).limit(10).toArray(String[]::new))));
+        }
 
     }
 
@@ -216,6 +263,46 @@ class ProjectControllerTest {
                                                                                                                  .reject(eq(new ProjectId(projectId)));
 
             mockMvc.perform(post("/admin/projects/{id}/reject", projectId)
+                                    .contentType(MediaType.APPLICATION_JSON))
+                   .andExpect(status().isBadRequest())
+                   .andExpect(jsonPath("$.message").value("Crowdfunding project exception "
+                                                          + CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS.name()));
+        }
+
+        @Test
+        @DisplayName("Issue a project")
+        void testIssueProject() throws Exception {
+            String projectId = "test-project-id";
+
+            doNothing().when(projectService).issue(eq(new ProjectId(projectId)));
+
+            mockMvc.perform(post("/admin/projects/{id}/issue", projectId)
+                                    .contentType(MediaType.APPLICATION_JSON))
+                   .andExpect(status().isAccepted());
+        }
+
+        @Test
+        @DisplayName("Issue a project with validation error")
+        void testIssueProjectWithValidationError() throws Exception {
+            String projectId = "test-project-id";
+
+            doThrow(new ValidationException("Validation error")).when(projectService).issue(eq(new ProjectId(projectId)));
+
+            mockMvc.perform(post("/admin/projects/{id}/issue", projectId)
+                                    .contentType(MediaType.APPLICATION_JSON))
+                   .andExpect(status().isBadRequest())
+                   .andExpect(jsonPath("$.message").value("Validation error"));
+        }
+
+        @Test
+        @DisplayName("Issue a project with status failure")
+        void testIssueProjectWithStatusFailure() throws Exception {
+            String projectId = "test-project-id";
+
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectService)
+                                                                                                                 .issue(eq(new ProjectId(projectId)));
+
+            mockMvc.perform(post("/admin/projects/{id}/issue", projectId)
                                     .contentType(MediaType.APPLICATION_JSON))
                    .andExpect(status().isBadRequest())
                    .andExpect(jsonPath("$.message").value("Crowdfunding project exception "

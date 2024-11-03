@@ -1,5 +1,6 @@
 package nextcrowd.crowdfunding.infrastructure.api;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -92,10 +93,10 @@ public class ProjectController implements AdminApi {
 
     @Override
     public ResponseEntity<PaginatedProjectsResponse> adminProjectsPendingReviewGet(String cursor, Integer limit) {
-        List<CrowdfundingProject> results = projectService.getPendingReviewProjects(new nextcrowd.crowdfunding.project.model.ProjectId(cursor))
-                                                          .limit(limit + 1)
-                                                          .map(ApiToDomainConverter::toApi)
-                                                          .toList();
+        List<CrowdfundingProject> results = new ArrayList<>(projectService.getPendingReviewProjects(new nextcrowd.crowdfunding.project.model.ProjectId(cursor))
+                                                                          .limit(limit + 1)
+                                                                          .map(ApiToDomainConverter::toApi)
+                                                                          .toList());
         boolean hasMore = results.size() > limit;
         if (hasMore) {
             results.removeLast();
@@ -137,11 +138,11 @@ public class ProjectController implements AdminApi {
         InvestmentId startingFrom = Optional.ofNullable(cursor)
                                             .map(InvestmentId::new)
                                             .orElse(null);
-        List<Investment> results = projectService.getPendingInvestments(new nextcrowd.crowdfunding.project.model.ProjectId(
+        List<Investment> results = new ArrayList<>(projectService.getPendingInvestments(new nextcrowd.crowdfunding.project.model.ProjectId(
                                                          projectId), startingFrom)
                                                  .limit(limit + 1)
                                                  .map(ApiToDomainConverter::toApi)
-                                                 .toList();
+                                                 .toList());
         boolean hasMore = results.size() > limit;
         if (hasMore) {
             results.removeLast();
@@ -153,10 +154,10 @@ public class ProjectController implements AdminApi {
 
     @Override
     public ResponseEntity<PaginatedProjectsResponse> adminProjectsPublishedGet(String cursor, Integer limit) {
-        List<CrowdfundingProject> results = projectService.getPublishedProjects(new nextcrowd.crowdfunding.project.model.ProjectId(cursor))
+        List<CrowdfundingProject> results = new ArrayList<>(projectService.getPublishedProjects(new nextcrowd.crowdfunding.project.model.ProjectId(cursor))
                                                           .limit(limit + 1)
                                                           .map(ApiToDomainConverter::toApi)
-                                                          .toList();
+                                                          .toList());
         boolean hasMore = results.size() > limit;
         if (hasMore) {
             results.removeLast();
