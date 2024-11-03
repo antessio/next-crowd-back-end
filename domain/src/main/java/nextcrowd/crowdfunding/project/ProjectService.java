@@ -123,6 +123,7 @@ public class ProjectService {
     public void cancelInvestment(ProjectId projectId, CancelInvestmentCommand command) {
         CrowdfundingProject project = repository.findById(projectId)
                                                 .orElseThrow(() -> new CrowdfundingProjectException(CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND));
+
         transactionalManager.executeInTransaction(() -> projectInvestment.cancelInvestment(command, project));
     }
 
