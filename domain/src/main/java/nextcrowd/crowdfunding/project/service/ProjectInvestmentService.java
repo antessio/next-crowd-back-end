@@ -14,7 +14,6 @@ import nextcrowd.crowdfunding.project.event.CrowdfundingProjectPendingInvestment
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectPendingInvestmentCanceledEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectPendingInvestmentConfirmedEvent;
 import nextcrowd.crowdfunding.project.exception.CrowdfundingProjectException;
-import nextcrowd.crowdfunding.project.model.AcceptedInvestment;
 import nextcrowd.crowdfunding.project.model.BakerId;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.Investment;
@@ -59,7 +58,7 @@ public class ProjectInvestmentService {
             repository.save(updatedProject);
             eventPublisher.publish(CrowdfundingProjectPendingInvestmentConfirmedEvent
                                            .builder()
-                                           .moneyTransferId(acceptedInvestment.getMoneyTransferId())
+                                           .moneyTransferId(acceptedInvestment.getMoneyTransferId().orElse(null))
                                            .projectId(project.getId())
                                            .amount(acceptedInvestment.getAmount())
                                            .bakerId(acceptedInvestment.getBakerId())

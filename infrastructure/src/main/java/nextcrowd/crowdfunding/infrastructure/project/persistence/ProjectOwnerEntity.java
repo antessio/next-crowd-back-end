@@ -4,11 +4,15 @@ package nextcrowd.crowdfunding.infrastructure.project.persistence;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
+import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.util.List;
 import java.util.UUID;
+
+
 
 /**
  * A ProjectOwner.
@@ -19,6 +23,7 @@ import java.util.UUID;
 @Builder(toBuilder = true)
 @NoArgsConstructor
 @AllArgsConstructor
+@Data
 public class ProjectOwnerEntity implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -36,32 +41,16 @@ public class ProjectOwnerEntity implements Serializable {
     @OneToMany(mappedBy = "projectOwner", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<CrowdfundingProjectEntity> projects;
 
-    public UUID getId() {
-        return id;
-    }
-
     public void setId(UUID id) {
         this.id = id;
-    }
-
-    public String getName() {
-        return name;
     }
 
     public void setName(String name) {
         this.name = name;
     }
 
-    public String getImageUrl() {
-        return imageUrl;
-    }
-
     public void setImageUrl(String imageUrl) {
         this.imageUrl = imageUrl;
-    }
-
-    public List<CrowdfundingProjectEntity> getProjects() {
-        return projects;
     }
 
     public void setProjects(List<CrowdfundingProjectEntity> projects) {

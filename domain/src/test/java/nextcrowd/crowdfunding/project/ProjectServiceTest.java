@@ -5,6 +5,7 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatExceptionOf
 import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -17,7 +18,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Supplier;
+import java.util.stream.Stream;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -83,6 +86,84 @@ class ProjectServiceTest {
     }
 
     @Nested
+    @DisplayName("project queries")
+    class ProjectQueries{
+
+
+        @Test
+        @DisplayName("should return published projects")
+        void shouldReturnPublishedProjects() {
+            // given
+            ProjectId startingFrom = ProjectId.generateId();
+            CrowdfundingProject project1 = buildProjectApproved(randomProjectId(), new BigDecimal(1000), List.of(), List.of(), List.of());
+            CrowdfundingProject project2 = buildProjectApproved(randomProjectId(), new BigDecimal(2000), List.of(), List.of(), List.of());
+            when(crowdfundingProjectRepository.findByStatusesOrderByAsc(argThat(s -> s.equals(Set.of(CrowdfundingProject.Status.APPROVED, CrowdfundingProject.Status.COMPLETED))),
+                                                                        eq(startingFrom)))
+                    .thenReturn(Stream.of(project1, project2));
+
+            // when
+            List<CrowdfundingProject> projects = projectService.getPublishedProjects(startingFrom).toList();
+
+            // then
+            assertThat(projects).containsExactlyInAnyOrder(project1, project2);
+        }
+
+        @Test
+        @DisplayName("should return pending review projects")
+        void shouldReturnPendingReviewProjects() {
+            // given
+            ProjectId startingFrom = ProjectId.generateId();
+            CrowdfundingProject project = buildProjectSubmitted(randomProjectId());
+            when(crowdfundingProjectRepository.findByStatusesOrderByAsc(Set.of(CrowdfundingProject.Status.SUBMITTED), startingFrom))
+                    .thenReturn(Stream.of(project));
+
+            // when
+            List<CrowdfundingProject> projects = projectService.getPendingReviewProjects(startingFrom).toList();
+
+            // then
+            assertThat(projects).containsExactly(project);
+        }
+
+        @Test
+        @DisplayName("should return pending investments")
+        void shouldReturnPendingInvestments() {
+            // given
+            ProjectId projectId = randomProjectId();
+            Investment investment = buildPendingInvestment(randomBakerId(), new BigDecimal(300));
+            InvestmentId startingFrom = randomInvestmentId();
+            when(crowdfundingProjectRepository.findInvestmentsByStatusesOrderByDesc(projectId, startingFrom, Set.of(InvestmentStatus.PENDING)))
+                    .thenReturn(Stream.of(investment));
+
+            // when
+            List<Investment> investments = projectService.getPendingInvestments(projectId, startingFrom).toList();
+
+            // then
+            assertThat(investments).containsExactly(investment);
+        }
+
+        @Test
+        @DisplayName("should return accepted investments")
+        void shouldReturnAcceptedInvestments() {
+            // given
+            ProjectId projectId = randomProjectId();
+            Investment investment = buildAcceptedInvestment(randomBakerId(), new BigDecimal(300));
+            InvestmentId startingFrom = randomInvestmentId();
+            when(crowdfundingProjectRepository.findInvestmentsByStatusesOrderByDesc(projectId, startingFrom, Set.of(InvestmentStatus.ACCEPTED)))
+                    .thenReturn(Stream.of(investment));
+
+            // when
+            List<Investment> investments = projectService.getAcceptedInvestments(projectId, startingFrom).toList();
+
+            // then
+            assertThat(investments).containsExactly(investment);
+        }
+    }
+
+    private InvestmentId randomInvestmentId() {
+        return InvestmentId.generate();
+    }
+
+    @Nested
     @DisplayName("project submission")
     class ProjectSubmissionTest {
 
@@ -117,6 +198,7 @@ class ProjectServiceTest {
                                                     .build();
             SubmitCrowdfundingProjectCommand projectCreationCommand = buildSubmitCommand(now, projectOwner);
             when(validationService.validateProjectSubmission(projectCreationCommand)).thenReturn(Collections.emptyList());
+            when(crowdfundingProjectRepository.findOwnerById(projectOwner.getId())).thenReturn(Optional.of(projectOwner));
             when(crowdfundingProjectRepository.save(argThat(p -> p.getId() != null))).thenAnswer(returnsFirstArg());
 
             // when
@@ -538,7 +620,7 @@ class ProjectServiceTest {
                     .matches(p -> p.getPendingInvestments() != null && p.getPendingInvestments()
                                                                         .stream()
                                                                         .noneMatch(i -> i.equals(existingInvestment)))
-                    .matches(p -> p.getCollectedAmount().equals(approvedProject.getCollectedAmount().add(existingInvestment.getAmount())));
+                    .matches(p -> p.getCollectedAmount().equals(approvedProject.getCollectedAmount().map(a->a.add(existingInvestment.getAmount()))));
             verify(eventPublisher).publish(CrowdfundingProjectPendingInvestmentConfirmedEvent.builder()
                                                                                              .projectId(projectId)
                                                                                              .amount(existingInvestment.getAmount())
@@ -745,7 +827,7 @@ class ProjectServiceTest {
             ArgumentCaptor<CrowdfundingProject> captor = ArgumentCaptor.forClass(CrowdfundingProject.class);
             verify(crowdfundingProjectRepository).save(captor.capture());
             assertThat(captor.getValue())
-                    .matches(p -> p.getStatus() == CrowdfundingProject.Status.ISSUED);
+                    .matches(p -> p.getStatus() == CrowdfundingProject.Status.COMPLETED);
             verify(eventPublisher).publish(CrowdfundingProjectIssuedEvent.builder()
                                                                          .projectId(projectId)
                                                                          .build());
@@ -864,7 +946,7 @@ class ProjectServiceTest {
     private static CrowdfundingProject buildProjectIssued(ProjectId projectId) {
         return CrowdfundingProject.builder()
                                   .id(projectId)
-                                  .status(CrowdfundingProject.Status.ISSUED)
+                                  .status(CrowdfundingProject.Status.COMPLETED)
                                   .risk(4)
                                   .expectedProfit(new BigDecimal(10))
                                   .minimumInvestment(new BigDecimal(3000))

@@ -5,7 +5,7 @@ import lombok.Getter;
 @Getter
 public class CrowdfundingProjectException extends RuntimeException {
 
-    public enum Reason{
+    public enum Reason {
         PROJECT_NOT_FOUND,
         INVALID_COMMAND,
         INVALID_PROJECT_STATUS,
@@ -15,6 +15,7 @@ public class CrowdfundingProjectException extends RuntimeException {
     private Reason reason;
 
     public CrowdfundingProjectException(Reason reason) {
+        super("Crowdfunding project exception %s".formatted(reason));
         this.reason = reason;
     }
 

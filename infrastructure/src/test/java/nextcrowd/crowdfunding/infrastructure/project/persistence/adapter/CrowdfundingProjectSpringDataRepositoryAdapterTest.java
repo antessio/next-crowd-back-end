@@ -1,112 +1,86 @@
 package nextcrowd.crowdfunding.infrastructure.project.persistence.adapter;
 
+import static nextcrowd.crowdfunding.infrastructure.TestUtils.buildRandomInvestment;
+import static nextcrowd.crowdfunding.infrastructure.TestUtils.buildRandomProject;
+import static nextcrowd.crowdfunding.infrastructure.TestUtils.buildRandomProjectOwnerEntity;
+import static nextcrowd.crowdfunding.infrastructure.TestUtils.getRandomStatus;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.math.BigDecimal;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
-import java.util.UUID;
+import java.util.Set;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
+
+import javax.sql.DataSource;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ContextConfiguration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javafaker.Faker;
 
+import nextcrowd.crowdfunding.infrastructure.BaseTestWithTestcontainers;
 import nextcrowd.crowdfunding.infrastructure.project.persistence.CrowdfundingProjectRepository;
+import nextcrowd.crowdfunding.infrastructure.project.persistence.InvestmentRepository;
 import nextcrowd.crowdfunding.infrastructure.project.persistence.ProjectOwnerEntity;
 import nextcrowd.crowdfunding.infrastructure.project.persistence.ProjectOwnerRepository;
-import nextcrowd.crowdfunding.project.model.BakerId;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.Investment;
-import nextcrowd.crowdfunding.project.model.InvestmentId;
 import nextcrowd.crowdfunding.project.model.InvestmentStatus;
-import nextcrowd.crowdfunding.project.model.MoneyTransferId;
-import nextcrowd.crowdfunding.project.model.ProjectId;
-import nextcrowd.crowdfunding.project.model.ProjectReward;
+import nextcrowd.crowdfunding.project.model.ProjectOwner;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)  // Prevent replacing with an embedded DB
-public class CrowdfundingProjectSpringDataRepositoryAdapterTest {
+public class CrowdfundingProjectSpringDataRepositoryAdapterTest extends BaseTestWithTestcontainers {
 
     @Autowired
     private CrowdfundingProjectRepository repository;
     @Autowired
+    private DataSource dataSource;
+    @Autowired
     private ProjectOwnerRepository projectOwnerRepository;
+    @Autowired
+    private InvestmentRepository investmentRepository;
+    private static final Random random = new Random();
+    private static final Faker faker = new Faker();
     private List<ProjectOwnerEntity> projectOwnerEntities;
     private CrowdfundingProjectSpringDataRepositoryAdapter repositoryAdapter;
-    private static final Faker faker = new Faker();
-    private static final Random random = new Random();
+
 
     @BeforeEach
     public void setUp() {
         // Initialize a test CrowdfundingProject entity
-        repositoryAdapter = new CrowdfundingProjectSpringDataRepositoryAdapter(repository);
+        repositoryAdapter = new CrowdfundingProjectSpringDataRepositoryAdapter(repository, projectOwnerRepository, investmentRepository);
         projectOwnerEntities = List.of(
-                buildRandomProjectOwner(),
-                buildRandomProjectOwner(),
-                buildRandomProjectOwner(),
-                buildRandomProjectOwner()
+                buildRandomProjectOwnerEntity(),
+                buildRandomProjectOwnerEntity(),
+                buildRandomProjectOwnerEntity(),
+                buildRandomProjectOwnerEntity()
         );
+        try {
+            System.out.println("dataSource = " + dataSource.getConnection().getMetaData().getURL());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
         projectOwnerRepository.saveAll(projectOwnerEntities);
 
     }
 
-    private static ProjectOwnerEntity buildRandomProjectOwner() {
-        return ProjectOwnerEntity.builder()
-                                 .id(UUID.randomUUID())
-                                 .imageUrl(faker.internet().url())
-                                 .name(faker.lebowski().character())
-                                 .build();
-    }
-
-    private CrowdfundingProject buildRandomProject() {
-        List<Investment> investments = List.of(buildRandomInvestment());
-        CrowdfundingProject project = CrowdfundingProject.builder()
-                                                         .id(new ProjectId(UUID.randomUUID().toString()))
-                                                         .status(faker.options().option(CrowdfundingProject.Status.values()))
-                                                         .title(faker.company().name())  // Random project title
-                                                         .description(faker.lorem().sentence(10))  // Random project description
-                                                         .requestedAmount(BigDecimal.valueOf(random.nextInt(100000)
-                                                                                             + 1000))  // Random amount between 1000 and 100000
-                                                         .currency("USD")  // Set to "USD" or randomize if needed
-                                                         .numberOfBackers(random.nextInt(1000))  // Random number of backers up to 1000
-                                                         .owner(ProjectOwnerAdapter.toDomain(projectOwnerEntities.get(random.nextInt(projectOwnerEntities.size()))))
-                                                         .rewards(List.of(
-                                                                 buildRandomProjectReward(),
-                                                                 buildRandomProjectReward(),
-                                                                 buildRandomProjectReward()
-                                                         ))
-                                                         .build();
-        return project.updateInvestments(investments);
-    }
-
-    private Investment buildRandomInvestment() {
-        return Investment.builder()
-                         .moneyTransferId(MoneyTransferId.generate())
-                         .amount(BigDecimal.valueOf(random.nextInt(100000) + 1000))  // Random amount between 1000 and 100000)
-                         .bakerId(BakerId.generate())
-                         .status(faker.options().option(InvestmentStatus.values()))
-                         .id(InvestmentId.generate())
-                         .build();
-    }
-
-
-    private ProjectReward buildRandomProjectReward() {
-        return ProjectReward.builder()
-                            .description(faker.lorem().sentence(10))  // Random description
-                            .name(faker.commerce().productName())
-                            .imageUrl(faker.internet().url())
-                            .build();
-    }
 
     @Test
     public void shouldInsertAndFind() {
         // given
-        CrowdfundingProject project = buildRandomProject();
+        CrowdfundingProject project = buildRandomProject(getRandomProjectOwnerFromExisting());
         CrowdfundingProject savedProject = repositoryAdapter.save(project);
 
         // when
@@ -124,10 +98,14 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest {
                 .containsExactlyInAnyOrderElementsOf(project.getRewards());
     }
 
+    private ProjectOwner getRandomProjectOwnerFromExisting() {
+        return ProjectOwnerAdapter.toDomain(projectOwnerEntities.get(random.nextInt(projectOwnerEntities.size())));
+    }
+
     @Test
     public void shouldUpdateProject() {
         // given
-        CrowdfundingProject project = buildRandomProject();
+        CrowdfundingProject project = buildRandomProject(getRandomProjectOwnerFromExisting());
         CrowdfundingProject savedProject = repositoryAdapter.save(project);
         // when
         CrowdfundingProject updatedProject = repositoryAdapter.save(savedProject.toBuilder()
@@ -142,5 +120,124 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest {
                 .usingRecursiveComparison()
                 .isEqualTo(updatedProject);
     }
+
+    @Test
+    public void shouldFindProjectsByStatus() {
+        // given
+        CrowdfundingProject.Status targetStatus = getRandomStatus();
+        List<CrowdfundingProject> expected = IntStream.range(0, 30)
+                                                      .mapToObj(_ -> buildRandomProject(getRandomProjectOwnerFromExisting()).toBuilder()
+                                                                                                                            .status(targetStatus)
+                                                                                                                            .build())
+                                                      .map(repositoryAdapter::save)
+                                                      .toList();
+        IntStream.range(0, 20)
+                 .mapToObj(_ -> buildRandomProject(getRandomProjectOwnerFromExisting()).toBuilder()
+                                                                                       .status(getRandomStatus(targetStatus))
+                                                                                       .build())
+                 .map(repositoryAdapter::save)
+                 .forEach(repositoryAdapter::save);
+
+        // when
+        List<CrowdfundingProject> pendingReviewProjects = repositoryAdapter.findByStatusesOrderByAsc(Set.of(targetStatus), null).toList();
+
+        // then
+        assertThat(pendingReviewProjects).containsExactly(expected.toArray(new CrowdfundingProject[0]));
+    }
+
+    @Test
+    public void shouldFindPendingInvestments() {
+        // given
+
+        int expectedPendingInvestmentsSize = 50;
+        List<Investment> project1Investments = Stream.concat(
+                                                             Stream.concat(
+                                                                     IntStream.range(0, 20)
+                                                                              .mapToObj(_ -> buildRandomInvestment().toBuilder().status(InvestmentStatus.ACCEPTED).build()),
+                                                                     IntStream.range(0, expectedPendingInvestmentsSize)
+                                                                              .mapToObj(_ -> buildRandomInvestment().toBuilder().status(InvestmentStatus.PENDING).build())
+                                                             ), IntStream.range(0, 10)
+                                                                         .mapToObj(_ -> buildRandomInvestment().toBuilder().status(InvestmentStatus.REFUSED).build()))
+                                                     .toList();
+
+        CrowdfundingProject project1 = buildRandomProject(getRandomProjectOwnerFromExisting()).toBuilder()
+                                                                                              .investments(project1Investments)
+                                                                                              .build();
+
+        List<Investment> project2Investments = Stream.concat(
+                                                             Stream.concat(
+                                                                     IntStream.range(0, 10)
+                                                                              .mapToObj(_ -> buildRandomInvestment().toBuilder().status(InvestmentStatus.ACCEPTED).build()),
+                                                                     IntStream.range(0, 10)
+                                                                              .mapToObj(_ -> buildRandomInvestment().toBuilder().status(InvestmentStatus.PENDING).build())
+                                                             ), IntStream.range(0, 10)
+                                                                         .mapToObj(_ -> buildRandomInvestment().toBuilder().status(InvestmentStatus.REFUSED).build()))
+                                                     .toList();
+
+        CrowdfundingProject project2 = buildRandomProject(getRandomProjectOwnerFromExisting()).toBuilder()
+                                                                                              .investments(project2Investments)
+                                                                                              .build();
+
+        repositoryAdapter.save(project1);
+        repositoryAdapter.save(project2);
+
+
+        // when
+        List<Investment> acceptedInvestments = repositoryAdapter.findInvestmentsByStatusesOrderByDesc(project1.getId(), null, Set.of(InvestmentStatus.PENDING))
+                                                                .toList();
+
+        // then
+        assertThat(acceptedInvestments)
+                .hasSize(expectedPendingInvestmentsSize)
+                .containsExactlyInAnyOrderElementsOf(project1.getPendingInvestments());
+    }
+
+    @Test
+    public void shouldFindAcceptedInvestments() {
+        // given
+
+        int expectedAcceptedInvestmentsSize = 40;
+        List<Investment> project1Investments = Stream.concat(
+                                                             Stream.concat(
+                                                                     IntStream.range(0, expectedAcceptedInvestmentsSize)
+                                                                              .mapToObj(_ -> buildRandomInvestment().toBuilder().status(InvestmentStatus.ACCEPTED).build()),
+                                                                     IntStream.range(0, 10)
+                                                                              .mapToObj(_ -> buildRandomInvestment().toBuilder().status(InvestmentStatus.PENDING).build())
+                                                             ), IntStream.range(0, 10)
+                                                                         .mapToObj(_ -> buildRandomInvestment().toBuilder().status(InvestmentStatus.REFUSED).build()))
+                                                     .toList();
+
+        CrowdfundingProject project1 = buildRandomProject(getRandomProjectOwnerFromExisting()).toBuilder()
+                                                                                              .investments(project1Investments)
+                                                                                              .build();
+
+        List<Investment> project2Investments = Stream.concat(
+                                                             Stream.concat(
+                                                                     IntStream.range(0, 10)
+                                                                              .mapToObj(_ -> buildRandomInvestment().toBuilder().status(InvestmentStatus.ACCEPTED).build()),
+                                                                     IntStream.range(0, 10)
+                                                                              .mapToObj(_ -> buildRandomInvestment().toBuilder().status(InvestmentStatus.PENDING).build())
+                                                             ), IntStream.range(0, 10)
+                                                                         .mapToObj(_ -> buildRandomInvestment().toBuilder().status(InvestmentStatus.REFUSED).build()))
+                                                     .toList();
+
+        CrowdfundingProject project2 = buildRandomProject(getRandomProjectOwnerFromExisting()).toBuilder()
+                                                                                              .investments(project2Investments)
+                                                                                              .build();
+
+        repositoryAdapter.save(project1);
+        repositoryAdapter.save(project2);
+
+
+        // when
+        List<Investment> acceptedInvestments = repositoryAdapter.findInvestmentsByStatusesOrderByDesc(project1.getId(), null, Set.of(InvestmentStatus.ACCEPTED))
+                                                                .toList();
+
+        // then
+        assertThat(acceptedInvestments)
+                .hasSize(expectedAcceptedInvestmentsSize)
+                .containsExactlyInAnyOrderElementsOf(project1.getAcceptedInvestments());
+    }
+
 
 }

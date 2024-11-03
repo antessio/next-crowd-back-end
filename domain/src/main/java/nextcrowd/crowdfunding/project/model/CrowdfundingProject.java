@@ -2,8 +2,8 @@ package nextcrowd.crowdfunding.project.model;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import lombok.Builder;
 import lombok.Value;
@@ -44,6 +44,10 @@ public class CrowdfundingProject {
         return investments.stream().filter(Investment::isPending).toList();
     }
 
+    public Optional<BigDecimal> getCollectedAmount(){
+        return Optional.ofNullable(collectedAmount);
+    }
+
 
     public boolean hasConfirmedInvestment(BakerId bakerId) {
         return this.getAcceptedInvestments().stream().anyMatch(i -> i.getBakerId().equals(bakerId));
@@ -68,7 +72,7 @@ public class CrowdfundingProject {
         SUBMITTED,
         APPROVED,
         REJECTED,
-        ISSUED
+        COMPLETED
     }
 
 

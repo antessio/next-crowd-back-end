@@ -1,0 +1,443 @@
+openapi: 3.0.3
+info:
+  title: Crowdfunding Project Admin API
+  description: API for managing crowdfunding projects
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local server
+
+paths:
+  /admin/projects/{projectId}:
+    get:
+      summary: Get Project by ID
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID of the project
+      responses:
+        '200':
+          description: Project retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrowdfundingProject'
+        '404':
+          description: Project not found
+
+  /admin/projects/published:
+    get:
+      summary: Get Published Projects
+      parameters:
+        - in: query
+          name: cursor
+          schema:
+            type: string
+          description: Cursor for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of items to return
+      responses:
+        '200':
+          description: List of published projects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProjectsResponse'
+
+  /admin/projects/pending-review:
+    get:
+      summary: Get Pending Review Projects
+      parameters:
+        - in: query
+          name: cursor
+          schema:
+            type: string
+          description: Cursor for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of items to return
+      responses:
+        '200':
+          description: List of projects pending review
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedProjectsResponse'
+
+  /admin/projects/{projectId}/investments/pending:
+    get:
+      summary: Get Pending Investments for Project
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID of the project
+        - in: query
+          name: cursor
+          schema:
+            type: string
+          description: Cursor for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of items to return
+      responses:
+        '200':
+          description: List of pending investments for the project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedInvestmentsResponse'
+
+  /admin/projects/{projectId}/investments/accepted:
+    get:
+      summary: Get Accepted Investments for Project
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+          description: ID of the project
+        - in: query
+          name: cursor
+          schema:
+            type: string
+          description: Cursor for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of items to return
+      responses:
+        '200':
+          description: List of accepted investments for the project
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedInvestmentsResponse'
+
+  /admin/projects:
+    post:
+      summary: Submit a new crowdfunding project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitCrowdfundingProjectCommand'
+      responses:
+        '200':
+          description: Project submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectId'
+        '400':
+          description: Invalid input
+
+  /admin/projects/{projectId}/approve:
+    post:
+      summary: Approve a crowdfunding project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveCrowdfundingProjectCommand'
+      responses:
+        '200':
+          description: Project approved successfully
+        '400':
+          description: Invalid input
+        '404':
+          description: Project not found
+
+  /admin/projects/{projectId}/reject:
+    post:
+      summary: Reject a crowdfunding project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Project rejected successfully
+        '404':
+          description: Project not found
+
+  /admin/projects/{projectId}/investments:
+    post:
+      summary: Add an investment to a crowdfunding project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddInvestmentCommand'
+      responses:
+        '200':
+          description: Investment added successfully
+        '404':
+          description: Project not found
+
+  /admin/projects/{projectId}/investments/confirm:
+    post:
+      summary: Confirm an investment in a crowdfunding project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmInvestmentCommand'
+      responses:
+        '200':
+          description: Investment confirmed successfully
+        '404':
+          description: Project not found
+
+  /admin/projects/{projectId}/investments/cancel:
+    post:
+      summary: Cancel an investment in a crowdfunding project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelInvestmentCommand'
+      responses:
+        '200':
+          description: Investment canceled successfully
+        '404':
+          description: Project not found
+
+  /admin/projects/{projectId}/issue:
+    post:
+      summary: Issue a crowdfunding project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Project issued successfully
+        '404':
+          description: Project not found
+
+components:
+  schemas:
+    CrowdfundingProject:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        status:
+          type: string
+        requestedAmount:
+          type: number
+          format: double
+        collectedAmount:
+          type: number
+          format: double
+        currency:
+          type: string
+        imageUrl:
+          type: string
+        projectStartDate:
+          type: string
+          format: date-time
+        projectEndDate:
+          type: string
+          format: date-time
+        numberOfBackers:
+          type: integer
+        description:
+          type: string
+        longDescription:
+          type: string
+        projectVideoUrl:
+          type: string
+        risk:
+          type: integer
+        expectedProfit:
+          type: number
+          format: double
+        minimumInvestment:
+          type: number
+          format: double
+
+    Investment:
+      type: object
+      properties:
+        id:
+          type: string
+        bakerId:
+          type: string
+        amount:
+          type: number
+          format: double
+        status:
+          type: string
+          enum: [PENDING, ACCEPTED]
+        moneyTransferId:
+          type: string
+
+    PaginatedProjectsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrowdfundingProject'
+        hasMore:
+          type: boolean
+          description: Indicates if there are more results to retrieve
+
+    PaginatedInvestmentsResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Investment'
+        hasMore:
+          type: boolean
+          description: Indicates if there are more results to retrieve
+
+    SubmitCrowdfundingProjectCommand:
+      type: object
+      properties:
+        projectStartDate:
+          type: string
+          format: date-time
+        projectEndDate:
+          type: string
+          format: date-time
+        projectVideoUrl:
+          type: string
+        owner:
+          $ref: '#/components/schemas/ProjectOwner'
+        title:
+          type: string
+        currency:
+          type: string
+        requestedAmount:
+          type: number
+          format: double
+        description:
+          type: string
+        longDescription:
+          type: string
+        imageUrl:
+          type: string
+        rewards:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectReward'
+
+    ProjectOwner:
+      type: object
+      properties:
+        name:
+          type: string
+        imageUrl:
+          type: string
+        id:
+          type: string
+
+    ProjectReward:
+      type: object
+      properties:
+        description:
+          type: string
+        imageUrl:
+          type: string
+        name:
+          type: string
+
+    ProjectId:
+      type: object
+      properties:
+        id:
+          type: string
+
+    ApproveCrowdfundingProjectCommand:
+      type: object
+      properties:
+        risk:
+          type: integer
+        expectedProfit:
+          type: number
+          format: double
+        minimumInvestment:
+          type: number
+          format: double
+
+    AddInvestmentCommand:
+      type: object
+      properties:
+        bakerId:
+          type: string
+        amount:
+          type: number
+          format: double
+
+    ConfirmInvestmentCommand:
+      type: object
+      properties:
+        bakerId:
+          type: string
+        moneyTransferId:
+          type: string
+
+    CancelInvestmentCommand:
+      type: object
+      properties:
+        bakerId:
+          type: string
