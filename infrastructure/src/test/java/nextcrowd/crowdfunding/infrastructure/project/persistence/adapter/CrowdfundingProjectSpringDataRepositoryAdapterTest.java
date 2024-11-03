@@ -6,6 +6,7 @@ import static nextcrowd.crowdfunding.infrastructure.TestUtils.buildRandomProject
 import static nextcrowd.crowdfunding.infrastructure.TestUtils.getRandomStatus;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -13,12 +14,19 @@ import java.util.Set;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import javax.sql.DataSource;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
+import org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.context.annotation.Import;
+import org.springframework.test.context.ContextConfiguration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javafaker.Faker;
 
 import nextcrowd.crowdfunding.infrastructure.BaseTestWithTestcontainers;
@@ -37,6 +45,8 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest extends BaseTest
 
     @Autowired
     private CrowdfundingProjectRepository repository;
+    @Autowired
+    private DataSource dataSource;
     @Autowired
     private ProjectOwnerRepository projectOwnerRepository;
     @Autowired
@@ -57,10 +67,14 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest extends BaseTest
                 buildRandomProjectOwnerEntity(),
                 buildRandomProjectOwnerEntity()
         );
+        try {
+            System.out.println("dataSource = " + dataSource.getConnection().getMetaData().getURL());
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
         projectOwnerRepository.saveAll(projectOwnerEntities);
 
     }
-
 
 
     @Test
@@ -112,15 +126,15 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest extends BaseTest
         // given
         CrowdfundingProject.Status targetStatus = getRandomStatus();
         List<CrowdfundingProject> expected = IntStream.range(0, 30)
-                                                             .mapToObj(_ -> buildRandomProject(getRandomProjectOwnerFromExisting()).toBuilder()
-                                                                                                .status(targetStatus)
-                                                                                                .build())
-                                                             .map(repositoryAdapter::save)
-                                                             .toList();
+                                                      .mapToObj(_ -> buildRandomProject(getRandomProjectOwnerFromExisting()).toBuilder()
+                                                                                                                            .status(targetStatus)
+                                                                                                                            .build())
+                                                      .map(repositoryAdapter::save)
+                                                      .toList();
         IntStream.range(0, 20)
                  .mapToObj(_ -> buildRandomProject(getRandomProjectOwnerFromExisting()).toBuilder()
-                                                    .status(getRandomStatus(targetStatus))
-                                                    .build())
+                                                                                       .status(getRandomStatus(targetStatus))
+                                                                                       .build())
                  .map(repositoryAdapter::save)
                  .forEach(repositoryAdapter::save);
 
@@ -147,8 +161,8 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest extends BaseTest
                                                      .toList();
 
         CrowdfundingProject project1 = buildRandomProject(getRandomProjectOwnerFromExisting()).toBuilder()
-                                                           .investments(project1Investments)
-                                                           .build();
+                                                                                              .investments(project1Investments)
+                                                                                              .build();
 
         List<Investment> project2Investments = Stream.concat(
                                                              Stream.concat(
@@ -161,8 +175,8 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest extends BaseTest
                                                      .toList();
 
         CrowdfundingProject project2 = buildRandomProject(getRandomProjectOwnerFromExisting()).toBuilder()
-                                                           .investments(project2Investments)
-                                                           .build();
+                                                                                              .investments(project2Investments)
+                                                                                              .build();
 
         repositoryAdapter.save(project1);
         repositoryAdapter.save(project2);
@@ -194,8 +208,8 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest extends BaseTest
                                                      .toList();
 
         CrowdfundingProject project1 = buildRandomProject(getRandomProjectOwnerFromExisting()).toBuilder()
-                                                           .investments(project1Investments)
-                                                           .build();
+                                                                                              .investments(project1Investments)
+                                                                                              .build();
 
         List<Investment> project2Investments = Stream.concat(
                                                              Stream.concat(
@@ -208,8 +222,8 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest extends BaseTest
                                                      .toList();
 
         CrowdfundingProject project2 = buildRandomProject(getRandomProjectOwnerFromExisting()).toBuilder()
-                                                           .investments(project2Investments)
-                                                           .build();
+                                                                                              .investments(project2Investments)
+                                                                                              .build();
 
         repositoryAdapter.save(project1);
         repositoryAdapter.save(project2);

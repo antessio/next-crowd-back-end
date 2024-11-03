@@ -16,4 +16,4 @@ jobs:
       - name: Build generated source
         run: mvn clean generate-sources
       - name: Build with Maven
-        run: mvn clean install -DenableTestcontainers=true
+        run: mvn clean install

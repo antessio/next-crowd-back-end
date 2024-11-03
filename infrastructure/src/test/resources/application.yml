@@ -1,15 +1,13 @@
-enableTestcontainers: false
 spring:
   application:
     name: next-crowd-back-end
   profiles:
-    active: dev
+    active: test
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
-    url: jdbc:postgresql://localhost:5432/nextcrowd_db
+    url: jdbc:tc:postgresql:16.4:///nextcrowd_db
     username: nextcrowd_root
     password: nextcrowd_pwd
-    schema: nextcrowd_test
     hikari:
       poolName: Hikari
       auto-commit: false
@@ -19,9 +17,7 @@ spring:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
-      show-sql: true
+      show-sql: false
 
   liquibase:
     change-log: classpath:liquibase/master.xml
-    default-schema: nextcrowd_test
-
