@@ -36,6 +36,7 @@ import nextcrowd.crowdfunding.admin.api.model.CancelInvestmentCommand;
 import nextcrowd.crowdfunding.admin.api.model.ConfirmInvestmentCommand;
 import nextcrowd.crowdfunding.admin.api.model.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.infrastructure.TestUtils;
+import nextcrowd.crowdfunding.infrastructure.security.persistence.UserRepository;
 import nextcrowd.crowdfunding.project.ProjectService;
 import nextcrowd.crowdfunding.project.exception.CrowdfundingProjectException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
@@ -48,6 +49,9 @@ class ProjectControllerTest {
 
     @MockBean
     private ProjectService projectService;
+
+    @MockBean
+    UserRepository userRepository;
     @Autowired
     private MockMvc mockMvc;
 
