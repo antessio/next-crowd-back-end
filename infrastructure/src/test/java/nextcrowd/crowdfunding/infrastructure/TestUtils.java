@@ -3,10 +3,12 @@ package nextcrowd.crowdfunding.infrastructure;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.Date;
 import java.util.List;
 import java.util.Random;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -16,8 +18,9 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.github.f4b6a3.uuid.UuidCreator;
 import com.github.javafaker.Faker;
 
-import nextcrowd.crowdfunding.infrastructure.project.persistence.CrowdfundingProjectEntity;
 import nextcrowd.crowdfunding.infrastructure.project.persistence.ProjectOwnerEntity;
+import nextcrowd.crowdfunding.infrastructure.security.persistence.Role;
+import nextcrowd.crowdfunding.infrastructure.security.persistence.User;
 import nextcrowd.crowdfunding.project.model.BakerId;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.Investment;
@@ -109,11 +112,12 @@ public class TestUtils {
     public static Instant buildRandomInstant() {
         return Instant.ofEpochMilli(faker.date().birthday().getTime());
     }
+
     public static OffsetDateTime buildRandomOffsetDateTime() {
         return OffsetDateTime.now().plusDays(new Random().nextInt(30));
     }
 
-    public static ObjectMapper objectMapper(){
+    public static ObjectMapper objectMapper() {
         return objectMapper;
     }
 
@@ -124,6 +128,17 @@ public class TestUtils {
     public static BigDecimal getRandomAmount() {
         return BigDecimal.valueOf(random.nextInt(100000)
                                   + 1000);
+    }
+
+    public static User buildRandomUser(Set<String> roleAdmin) {
+        return User.builder()
+                   .id(UUID.randomUUID())
+                   .email(faker.internet().emailAddress())
+                   .password(faker.internet().password())
+                   .fullName(faker.name().fullName())
+                   .createdAt(Date.from(buildRandomInstant()))
+                   .roles(roleAdmin.stream().map(r -> Role.builder().role(r).build()).collect(Collectors.toSet()))
+                   .build();
     }
 
 }

@@ -15,4 +15,5 @@
     <include file="changelog/0000000003_create_project_reward.xml" relativeToChangelogFile="true"/>
     <include file="changelog/0000000004_create_project_investment.xml" relativeToChangelogFile="true"/>
     <include file="changelog/events/0000000005_events.xml" relativeToChangelogFile="true"/>
+    <include file="changelog/security/0000000006_users.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>
