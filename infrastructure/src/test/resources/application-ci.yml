@@ -1,8 +1,4 @@
 spring:
-  application:
-    name: next-crowd-back-end
-  profiles:
-    active: ci
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     url: jdbc:tc:postgresql:16.4:///nextcrowd_db
@@ -18,6 +14,3 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
       show-sql: false
-
-  liquibase:
-    change-log: classpath:liquibase/master.xml
