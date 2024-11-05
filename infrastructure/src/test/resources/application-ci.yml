@@ -1,6 +1,4 @@
 spring:
-  profiles:
-    active: ci
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
     url: jdbc:tc:postgresql:16.4:///nextcrowd_db
