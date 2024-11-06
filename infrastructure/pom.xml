@@ -179,6 +179,7 @@
 				<version>6.0.1</version>
 				<executions>
 					<execution>
+						<id>Admin APIs</id>
 						<goals>
 							<goal>generate</goal>
 						</goals>
@@ -188,6 +189,22 @@
 							<output>${project.build.directory}/generated-sources/openapi</output>
 							<apiPackage>nextcrowd.crowdfunding.admin.api</apiPackage>
 							<modelPackage>nextcrowd.crowdfunding.admin.api.model</modelPackage>
+							<configOptions>
+								<interfaceOnly>true</interfaceOnly>
+							</configOptions>
+						</configuration>
+					</execution>
+					<execution>
+						<id>Website Public APIs</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${project.basedir}/src/main/resources/website-public-api.yml</inputSpec>
+							<generatorName>spring</generatorName>
+							<output>${project.build.directory}/generated-sources/openapi</output>
+							<apiPackage>nextcrowd.crowdfunding.websitepublic.api</apiPackage>
+							<modelPackage>nextcrowd.crowdfunding.websitepublic.api.model</modelPackage>
 							<configOptions>
 								<interfaceOnly>true</interfaceOnly>
 							</configOptions>
