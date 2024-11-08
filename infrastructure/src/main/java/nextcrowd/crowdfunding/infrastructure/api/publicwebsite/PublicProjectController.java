@@ -8,22 +8,22 @@ import org.springframework.stereotype.Controller;
 
 import nextcrowd.crowdfunding.infrastructure.api.publicwebsite.adapter.ApiConverter;
 import nextcrowd.crowdfunding.project.ProjectService;
-import nextcrowd.crowdfunding.websitepublic.api.ProjectsApi;
+import nextcrowd.crowdfunding.websitepublic.api.PublicApi;
 import nextcrowd.crowdfunding.websitepublic.api.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.websitepublic.api.model.PaginatedProjectsResponse;
 
 @Controller
-public class ProjectController implements ProjectsApi {
+public class PublicProjectController implements PublicApi {
 
     private final ProjectService projectService;
 
-    public ProjectController(ProjectService projectService) {
+    public PublicProjectController(ProjectService projectService) {
         this.projectService = projectService;
     }
 
 
     @Override
-    public ResponseEntity<CrowdfundingProject> projectsProjectIdGet(String projectId) {
+    public ResponseEntity<CrowdfundingProject> publicProjectsProjectIdGet(String projectId) {
         return projectService.getById(new nextcrowd.crowdfunding.project.model.ProjectId(projectId))
                              .map(ApiConverter::toApi)
                              .map(ResponseEntity::ok)
@@ -31,7 +31,7 @@ public class ProjectController implements ProjectsApi {
     }
 
     @Override
-    public ResponseEntity<PaginatedProjectsResponse> projectsPublishedGet(String cursor, Integer limit) {
+    public ResponseEntity<PaginatedProjectsResponse> publicProjectsPublishedGet(String cursor, Integer limit) {
         List<nextcrowd.crowdfunding.websitepublic.api.model.CrowdfundingProject>
                 results = new ArrayList<>(projectService.getPublishedProjects(new nextcrowd.crowdfunding.project.model.ProjectId(cursor))
                                                         .limit(limit + 1)

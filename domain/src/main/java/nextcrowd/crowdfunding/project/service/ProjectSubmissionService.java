@@ -37,6 +37,8 @@ public class ProjectSubmissionService {
                                                          .title(projectCreationCommand.getTitle())
                                                          .longDescription(projectCreationCommand.getLongDescription())
                                                          .rewards(projectCreationCommand.getRewards())
+                                                         .status(CrowdfundingProject.Status.SUBMITTED)
+                                                         .imageUrl(projectCreationCommand.getImageUrl())
                                                          .build();
         repository.save(project);
         eventPublisher.publish(CrowdfundingProjectSubmittedEvent.builder()
@@ -48,12 +50,12 @@ public class ProjectSubmissionService {
 
     private ProjectOwner getOrCreateProjectOwner(ProjectOwner owner) {
         return Optional.ofNullable(owner.getId())
-                .flatMap(repository::findOwnerById)
-                .orElseGet(() ->repository.createProjectOwner(ProjectOwner.builder()
-                                                                          .id(UuidCreator.getTimeOrdered().toString())
-                                                                          .name(owner.getName())
-                                                                          .imageUrl(owner.getImageUrl())
-                                                                          .build()));
+                       .flatMap(repository::findOwnerById)
+                       .orElseGet(() -> repository.createProjectOwner(ProjectOwner.builder()
+                                                                                  .id(UuidCreator.getTimeOrdered().toString())
+                                                                                  .name(owner.getName())
+                                                                                  .imageUrl(owner.getImageUrl())
+                                                                                  .build()));
 
     }
 

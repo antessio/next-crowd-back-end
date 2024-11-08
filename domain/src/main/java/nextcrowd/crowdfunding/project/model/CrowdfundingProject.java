@@ -22,12 +22,12 @@ public class CrowdfundingProject {
     private ProjectOwner owner;
     private Instant projectStartDate;
     private Instant projectEndDate;
-    private int numberOfBackers;
+    private Integer  numberOfBackers;
     private String description;
     private String longDescription;
     private List<ProjectReward> rewards;
     private String projectVideoUrl;
-    private int risk;
+    private Integer risk;
     private BigDecimal expectedProfit;
     private BigDecimal minimumInvestment;
     private List<Investment> investments;

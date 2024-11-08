@@ -27,11 +27,11 @@ import nextcrowd.crowdfunding.project.exception.ValidationException;
 import nextcrowd.crowdfunding.project.model.InvestmentId;
 
 @Controller
-public class ProjectController implements AdminApi {
+public class AdminProjectController implements AdminApi {
 
     private final ProjectService projectService;
 
-    public ProjectController(ProjectService projectService) {
+    public AdminProjectController(ProjectService projectService) {
         this.projectService = projectService;
     }
 
