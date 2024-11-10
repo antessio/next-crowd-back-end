@@ -8,6 +8,7 @@ spring:
     url: jdbc:tc:postgresql:16.4:///nextcrowd_db
     username: nextcrowd_root
     password: nextcrowd_pwd
+    schema: test
     hikari:
       poolName: Hikari
       auto-commit: false

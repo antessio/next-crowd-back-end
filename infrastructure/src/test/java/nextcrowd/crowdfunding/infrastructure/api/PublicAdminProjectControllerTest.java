@@ -134,7 +134,10 @@ class PublicAdminProjectControllerTest {
                    .andExpect(jsonPath("$.requestedAmount").value(project.getRequestedAmount().doubleValue()))
                    .andExpect(jsonPath("$.collectedAmount").value(project.getCollectedAmount().orElseThrow().doubleValue()))
                    .andExpect(jsonPath("$.projectStartDate").value(project.getProjectStartDate().toString()))
-                   .andExpect(jsonPath("$.projectEndDate").value(project.getProjectEndDate().toString()));
+                   .andExpect(jsonPath("$.projectEndDate").value(project.getProjectEndDate().toString()))
+                   .andExpect(jsonPath("$.owner.id").value(project.getOwner().getId()))
+                   .andExpect(jsonPath("$.owner.name").value(project.getOwner().getName()))
+                   .andExpect(jsonPath("$.owner.imageUrl").value(project.getOwner().getImageUrl()));
         }
 
         @Test

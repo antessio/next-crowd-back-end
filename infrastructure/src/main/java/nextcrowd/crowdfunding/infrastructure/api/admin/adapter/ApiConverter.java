@@ -103,7 +103,15 @@ public final class ApiConverter {
                 .projectEndDate(convertToOffsetDateTime(project.getProjectEndDate()))
                 .description(project.getDescription())
                 .longDescription(project.getLongDescription())
-                .projectVideoUrl(project.getProjectVideoUrl());
+                .projectVideoUrl(project.getProjectVideoUrl())
+                .owner(projectOwnerToApi(project.getOwner()));
+    }
+
+    private static nextcrowd.crowdfunding.admin.api.model.ProjectOwner projectOwnerToApi(ProjectOwner owner) {
+        return new nextcrowd.crowdfunding.admin.api.model.ProjectOwner()
+                .id(owner.getId())
+                .name(owner.getName())
+                .imageUrl(owner.getImageUrl());
     }
 
     public static nextcrowd.crowdfunding.admin.api.model.Investment toApi(Investment investment) {

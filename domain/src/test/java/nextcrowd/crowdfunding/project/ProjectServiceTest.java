@@ -27,6 +27,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.ArgumentMatcher;
 import org.mockito.Mockito;
 
 import com.github.f4b6a3.uuid.UuidCreator;
@@ -87,7 +88,7 @@ class ProjectServiceTest {
 
     @Nested
     @DisplayName("project queries")
-    class ProjectQueries{
+    class ProjectQueries {
 
 
         @Test
@@ -97,8 +98,9 @@ class ProjectServiceTest {
             ProjectId startingFrom = ProjectId.generateId();
             CrowdfundingProject project1 = buildProjectApproved(randomProjectId(), new BigDecimal(1000), List.of(), List.of(), List.of());
             CrowdfundingProject project2 = buildProjectApproved(randomProjectId(), new BigDecimal(2000), List.of(), List.of(), List.of());
-            when(crowdfundingProjectRepository.findByStatusesOrderByAsc(argThat(s -> s.equals(Set.of(CrowdfundingProject.Status.APPROVED, CrowdfundingProject.Status.COMPLETED))),
-                                                                        eq(startingFrom)))
+            when(crowdfundingProjectRepository.findByStatusesOrderByAsc(
+                    argThat(s -> s.equals(Set.of(CrowdfundingProject.Status.APPROVED, CrowdfundingProject.Status.COMPLETED))),
+                    eq(startingFrom)))
                     .thenReturn(Stream.of(project1, project2));
 
             // when
@@ -157,6 +159,7 @@ class ProjectServiceTest {
             // then
             assertThat(investments).containsExactly(investment);
         }
+
     }
 
     private InvestmentId randomInvestmentId() {
@@ -199,7 +202,7 @@ class ProjectServiceTest {
             SubmitCrowdfundingProjectCommand projectCreationCommand = buildSubmitCommand(now, projectOwner);
             when(validationService.validateProjectSubmission(projectCreationCommand)).thenReturn(Collections.emptyList());
             when(crowdfundingProjectRepository.findOwnerById(projectOwner.getId())).thenReturn(Optional.of(projectOwner));
-            when(crowdfundingProjectRepository.save(argThat(p -> p.getId() != null))).thenAnswer(returnsFirstArg());
+            when(crowdfundingProjectRepository.save(argThat(getCrowdfundingProjectArgumentMatcher(projectCreationCommand)))).thenAnswer(returnsFirstArg());
 
             // when
             ProjectId projectId = projectService.submitProject(projectCreationCommand);
@@ -210,6 +213,22 @@ class ProjectServiceTest {
                                                                             .build());
         }
 
+    }
+
+    private static ArgumentMatcher<CrowdfundingProject> getCrowdfundingProjectArgumentMatcher(SubmitCrowdfundingProjectCommand projectCreationCommand) {
+        return p -> p.getId() != null &&
+                    p.getImageUrl().equals(projectCreationCommand.getImageUrl()) &&
+                    p.getStatus().equals(CrowdfundingProject.Status.SUBMITTED)
+                    && p.getRequestedAmount().doubleValue() == projectCreationCommand.getRequestedAmount()
+                    && p.getCollectedAmount().isEmpty()
+                    && p.getCurrency().equals(projectCreationCommand.getCurrency())
+                    && p.getProjectStartDate().equals(projectCreationCommand.getProjectStartDate())
+                    && p.getProjectEndDate().equals(projectCreationCommand.getProjectEndDate())
+                    && p.getDescription().equals(projectCreationCommand.getDescription())
+                    && p.getTitle().equals(projectCreationCommand.getTitle())
+                    && p.getLongDescription().equals(projectCreationCommand.getLongDescription())
+                    && p.getRewards().equals(projectCreationCommand.getRewards())
+                    && p.getOwner().equals(projectCreationCommand.getOwner());
     }
 
     private static List<ProjectValidationService.ValidationFailure> buildValidationFailureList() {
@@ -620,7 +639,7 @@ class ProjectServiceTest {
                     .matches(p -> p.getPendingInvestments() != null && p.getPendingInvestments()
                                                                         .stream()
                                                                         .noneMatch(i -> i.equals(existingInvestment)))
-                    .matches(p -> p.getCollectedAmount().equals(approvedProject.getCollectedAmount().map(a->a.add(existingInvestment.getAmount()))));
+                    .matches(p -> p.getCollectedAmount().equals(approvedProject.getCollectedAmount().map(a -> a.add(existingInvestment.getAmount()))));
             verify(eventPublisher).publish(CrowdfundingProjectPendingInvestmentConfirmedEvent.builder()
                                                                                              .projectId(projectId)
                                                                                              .amount(existingInvestment.getAmount())
@@ -633,7 +652,7 @@ class ProjectServiceTest {
 
     private static Investment buildPendingInvestment(BakerId bakerId, BigDecimal amount) {
         return Investment.builder()
-                        .id(new InvestmentId(UuidCreator.getTimeOrderedEpoch().toString()))
+                         .id(new InvestmentId(UuidCreator.getTimeOrderedEpoch().toString()))
                          .bakerId(bakerId)
                          .amount(amount)
                          .status(InvestmentStatus.PENDING)
