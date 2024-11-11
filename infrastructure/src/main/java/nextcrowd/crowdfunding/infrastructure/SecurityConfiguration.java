@@ -58,6 +58,8 @@ public class SecurityConfiguration {
                 .cors(withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authz -> authz
+                        .requestMatchers("/admin/login").permitAll()
+                        .requestMatchers("/admin/sign_in").permitAll()
                         .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
                         .requestMatchers("/public/**").permitAll()
                         .anyRequest().denyAll())
