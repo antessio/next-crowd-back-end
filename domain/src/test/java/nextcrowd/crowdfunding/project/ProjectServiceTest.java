@@ -65,7 +65,7 @@ class ProjectServiceTest {
     private ProjectValidationService validationService;
     private CrowdfundingProjectRepository crowdfundingProjectRepository;
     private EventPublisher eventPublisher;
-    private ProjectService projectService;
+    private ProjectServicePort projectServicePort;
 
     @BeforeEach
     void setUp() {
@@ -83,7 +83,7 @@ class ProjectServiceTest {
                 return supplier.get();
             }
         };
-        projectService = new ProjectService(validationService, crowdfundingProjectRepository, eventPublisher, fakeTransactionalManager);
+        projectServicePort = new ProjectService(validationService, crowdfundingProjectRepository, eventPublisher, fakeTransactionalManager);
     }
 
     @Nested
@@ -104,7 +104,7 @@ class ProjectServiceTest {
                     .thenReturn(Stream.of(project1, project2));
 
             // when
-            List<CrowdfundingProject> projects = projectService.getPublishedProjects(startingFrom).toList();
+            List<CrowdfundingProject> projects = projectServicePort.getPublishedProjects(startingFrom).toList();
 
             // then
             assertThat(projects).containsExactlyInAnyOrder(project1, project2);
@@ -120,7 +120,7 @@ class ProjectServiceTest {
                     .thenReturn(Stream.of(project));
 
             // when
-            List<CrowdfundingProject> projects = projectService.getPendingReviewProjects(startingFrom).toList();
+            List<CrowdfundingProject> projects = projectServicePort.getPendingReviewProjects(startingFrom).toList();
 
             // then
             assertThat(projects).containsExactly(project);
@@ -137,7 +137,7 @@ class ProjectServiceTest {
                     .thenReturn(Stream.of(investment));
 
             // when
-            List<Investment> investments = projectService.getPendingInvestments(projectId, startingFrom).toList();
+            List<Investment> investments = projectServicePort.getPendingInvestments(projectId, startingFrom).toList();
 
             // then
             assertThat(investments).containsExactly(investment);
@@ -154,7 +154,7 @@ class ProjectServiceTest {
                     .thenReturn(Stream.of(investment));
 
             // when
-            List<Investment> investments = projectService.getAcceptedInvestments(projectId, startingFrom).toList();
+            List<Investment> investments = projectServicePort.getAcceptedInvestments(projectId, startingFrom).toList();
 
             // then
             assertThat(investments).containsExactly(investment);
@@ -185,7 +185,7 @@ class ProjectServiceTest {
             // when
             // then
             assertThatExceptionOfType(ValidationException.class)
-                    .isThrownBy(() -> projectService.submitProject(projectCreationCommand));
+                    .isThrownBy(() -> projectServicePort.submitProject(projectCreationCommand));
 
         }
 
@@ -205,7 +205,7 @@ class ProjectServiceTest {
             when(crowdfundingProjectRepository.save(argThat(getCrowdfundingProjectArgumentMatcher(projectCreationCommand)))).thenAnswer(returnsFirstArg());
 
             // when
-            ProjectId projectId = projectService.submitProject(projectCreationCommand);
+            ProjectId projectId = projectServicePort.submitProject(projectCreationCommand);
             //then
             verify(eventPublisher).publish(CrowdfundingProjectSubmittedEvent.builder()
                                                                             .projectId(projectId)
@@ -253,7 +253,7 @@ class ProjectServiceTest {
                                                                                          .build();
             // when
             assertThatExceptionOfType(CrowdfundingProjectException.class)
-                    .isThrownBy(() -> projectService.approve(projectId, command))
+                    .isThrownBy(() -> projectServicePort.approve(projectId, command))
                     .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND);
 
         }
@@ -272,7 +272,7 @@ class ProjectServiceTest {
                                                                                          .build();
             // when
             assertThatExceptionOfType(CrowdfundingProjectException.class)
-                    .isThrownBy(() -> projectService.approve(projectId, command))
+                    .isThrownBy(() -> projectServicePort.approve(projectId, command))
                     .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS);
         }
 
@@ -291,7 +291,7 @@ class ProjectServiceTest {
             when(validationService.validateProjectApproval(command)).thenReturn(buildValidationFailureList());
             // when
             assertThatExceptionOfType(CrowdfundingProjectException.class)
-                    .isThrownBy(() -> projectService.approve(projectId, command))
+                    .isThrownBy(() -> projectServicePort.approve(projectId, command))
                     .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.INVALID_COMMAND);
         }
 
@@ -310,7 +310,7 @@ class ProjectServiceTest {
             when(validationService.validateProjectApproval(command)).thenReturn(Collections.emptyList());
 
             // when
-            projectService.approve(projectId, command);
+            projectServicePort.approve(projectId, command);
 
             // then
             ArgumentCaptor<CrowdfundingProject> captor = ArgumentCaptor.forClass(CrowdfundingProject.class);
@@ -344,7 +344,7 @@ class ProjectServiceTest {
                                                                                          .build();
 
             // when
-            projectService.approve(projectId, command);
+            projectServicePort.approve(projectId, command);
 
             verify(crowdfundingProjectRepository, times(0)).save(any());
             verifyNoInteractions(eventPublisher);
@@ -364,7 +364,7 @@ class ProjectServiceTest {
             when(crowdfundingProjectRepository.findById(projectId)).thenReturn(Optional.empty());
             // when
             assertThatExceptionOfType(CrowdfundingProjectException.class)
-                    .isThrownBy(() -> projectService.reject(projectId))
+                    .isThrownBy(() -> projectServicePort.reject(projectId))
                     .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND);
 
         }
@@ -379,7 +379,7 @@ class ProjectServiceTest {
 
             // when
             assertThatExceptionOfType(CrowdfundingProjectException.class)
-                    .isThrownBy(() -> projectService.reject(projectId))
+                    .isThrownBy(() -> projectServicePort.reject(projectId))
                     .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS);
         }
 
@@ -392,7 +392,7 @@ class ProjectServiceTest {
                     .thenReturn(Optional.of(buildProjectSubmitted(projectId)));
 
             // when
-            projectService.reject(projectId);
+            projectServicePort.reject(projectId);
 
             // then
             ArgumentCaptor<CrowdfundingProject> captor = ArgumentCaptor.forClass(CrowdfundingProject.class);
@@ -415,7 +415,7 @@ class ProjectServiceTest {
                     .thenReturn(Optional.of(buildProjectRejected(projectId)));
 
             // when
-            projectService.reject(projectId);
+            projectServicePort.reject(projectId);
 
             // then
             verify(crowdfundingProjectRepository, times(0)).save(any());
@@ -440,7 +440,7 @@ class ProjectServiceTest {
                                                                .bakerId(new BakerId("contributorId"))
                                                                .build();
             assertThatExceptionOfType(CrowdfundingProjectException.class)
-                    .isThrownBy(() -> projectService.addInvestment(projectId, command))
+                    .isThrownBy(() -> projectServicePort.addInvestment(projectId, command))
                     .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND);
 
         }
@@ -459,7 +459,7 @@ class ProjectServiceTest {
                                                                .bakerId(new BakerId("contributorId"))
                                                                .build();
             assertThatExceptionOfType(CrowdfundingProjectException.class)
-                    .isThrownBy(() -> projectService.addInvestment(projectId, command))
+                    .isThrownBy(() -> projectServicePort.addInvestment(projectId, command))
                     .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS);
         }
 
@@ -477,7 +477,7 @@ class ProjectServiceTest {
                                                                .build();
 
             // when
-            projectService.addInvestment(projectId, command);
+            projectServicePort.addInvestment(projectId, command);
 
             // then
             ArgumentCaptor<CrowdfundingProject> captor = ArgumentCaptor.forClass(CrowdfundingProject.class);
@@ -511,7 +511,7 @@ class ProjectServiceTest {
                     .thenReturn(Optional.of(approvedProject));
 
             // when
-            projectService.addInvestment(projectId, command);
+            projectServicePort.addInvestment(projectId, command);
 
             // then
             ArgumentCaptor<CrowdfundingProject> captor = ArgumentCaptor.forClass(CrowdfundingProject.class);
@@ -552,7 +552,7 @@ class ProjectServiceTest {
                                                                        .moneyTransferId(randomMoneyTransferId())
                                                                        .build();
             assertThatExceptionOfType(CrowdfundingProjectException.class)
-                    .isThrownBy(() -> projectService.confirmInvestment(projectId, command))
+                    .isThrownBy(() -> projectServicePort.confirmInvestment(projectId, command))
                     .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND);
 
         }
@@ -571,7 +571,7 @@ class ProjectServiceTest {
                                                                        .moneyTransferId(randomMoneyTransferId())
                                                                        .build();
             assertThatExceptionOfType(CrowdfundingProjectException.class)
-                    .isThrownBy(() -> projectService.confirmInvestment(projectId, command))
+                    .isThrownBy(() -> projectServicePort.confirmInvestment(projectId, command))
                     .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS);
         }
 
@@ -588,7 +588,7 @@ class ProjectServiceTest {
                                                                        .moneyTransferId(randomMoneyTransferId())
                                                                        .build();
             assertThatExceptionOfType(CrowdfundingProjectException.class)
-                    .isThrownBy(() -> projectService.confirmInvestment(projectId, command))
+                    .isThrownBy(() -> projectServicePort.confirmInvestment(projectId, command))
                     .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.INVESTMENT_NOT_FOUND);
         }
 
@@ -607,7 +607,7 @@ class ProjectServiceTest {
                                                                        .build();
 
             // when
-            projectService.confirmInvestment(projectId, command);
+            projectServicePort.confirmInvestment(projectId, command);
 
             // then
             verify(crowdfundingProjectRepository, times(0)).save(any());
@@ -630,7 +630,7 @@ class ProjectServiceTest {
                                                                        .build();
 
             // when
-            projectService.confirmInvestment(projectId, command);
+            projectServicePort.confirmInvestment(projectId, command);
 
             // then
             ArgumentCaptor<CrowdfundingProject> captor = ArgumentCaptor.forClass(CrowdfundingProject.class);
@@ -685,7 +685,7 @@ class ProjectServiceTest {
                                                                      .bakerId(bakerId)
                                                                      .build();
             assertThatExceptionOfType(CrowdfundingProjectException.class)
-                    .isThrownBy(() -> projectService.cancelInvestment(projectId, command))
+                    .isThrownBy(() -> projectServicePort.cancelInvestment(projectId, command))
                     .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND);
 
         }
@@ -703,7 +703,7 @@ class ProjectServiceTest {
                                                                      .bakerId(randomBakerId())
                                                                      .build();
             assertThatExceptionOfType(CrowdfundingProjectException.class)
-                    .isThrownBy(() -> projectService.cancelInvestment(projectId, command))
+                    .isThrownBy(() -> projectServicePort.cancelInvestment(projectId, command))
                     .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS);
         }
 
@@ -720,7 +720,7 @@ class ProjectServiceTest {
                                                                      .bakerId(randomBakerId())
                                                                      .build();
             assertThatExceptionOfType(CrowdfundingProjectException.class)
-                    .isThrownBy(() -> projectService.cancelInvestment(projectId, command))
+                    .isThrownBy(() -> projectServicePort.cancelInvestment(projectId, command))
                     .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.INVESTMENT_NOT_FOUND);
         }
 
@@ -739,7 +739,7 @@ class ProjectServiceTest {
                                                                      .build();
 
             // when
-            projectService.cancelInvestment(projectId, command);
+            projectServicePort.cancelInvestment(projectId, command);
 
             // then
             verify(crowdfundingProjectRepository, times(0)).save(any());
@@ -761,7 +761,7 @@ class ProjectServiceTest {
                                                                      .build();
 
             // when
-            projectService.cancelInvestment(projectId, command);
+            projectServicePort.cancelInvestment(projectId, command);
 
             // then
             ArgumentCaptor<CrowdfundingProject> captor = ArgumentCaptor.forClass(CrowdfundingProject.class);
@@ -810,7 +810,7 @@ class ProjectServiceTest {
             // when
             // then
             assertThatExceptionOfType(CrowdfundingProjectException.class)
-                    .isThrownBy(() -> projectService.issue(projectId))
+                    .isThrownBy(() -> projectServicePort.issue(projectId))
                     .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND);
 
         }
@@ -826,7 +826,7 @@ class ProjectServiceTest {
             // when
             // then
             assertThatExceptionOfType(CrowdfundingProjectException.class)
-                    .isThrownBy(() -> projectService.issue(projectId))
+                    .isThrownBy(() -> projectServicePort.issue(projectId))
                     .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS);
         }
 
@@ -840,7 +840,7 @@ class ProjectServiceTest {
                     .thenReturn(Optional.of(approvedProject));
 
             // when
-            projectService.issue(projectId);
+            projectServicePort.issue(projectId);
 
             // then
             ArgumentCaptor<CrowdfundingProject> captor = ArgumentCaptor.forClass(CrowdfundingProject.class);

@@ -28,7 +28,7 @@ import nextcrowd.crowdfunding.project.service.ProjectRejectionService;
 import nextcrowd.crowdfunding.project.service.ProjectSubmissionService;
 import nextcrowd.crowdfunding.project.service.ProjectValidationService;
 
-public class ProjectService {
+public class ProjectService implements ProjectServicePort {
 
     private final ProjectValidationService validationService;
     private final CrowdfundingProjectRepository repository;
@@ -55,25 +55,31 @@ public class ProjectService {
         this.projectIssuingService = new ProjectIssuingService(eventPublisher, repository);
     }
 
+    @Override
     public Optional<CrowdfundingProject> getById(ProjectId projectId) {
         return repository.findById(projectId);
     }
 
+    @Override
     public Stream<CrowdfundingProject> getPublishedProjects(ProjectId startingFrom) {
         return repository.findByStatusesOrderByAsc(PUBLISHED_STATUSES, startingFrom);
     }
 
+    @Override
     public Stream<CrowdfundingProject> getPendingReviewProjects(ProjectId startingFrom) {
         return repository.findByStatusesOrderByAsc(Set.of(CrowdfundingProject.Status.SUBMITTED), startingFrom);
     }
 
+    @Override
     public Stream<Investment> getPendingInvestments(ProjectId projectId, InvestmentId startingFrom) {
         return repository.findInvestmentsByStatusesOrderByDesc(projectId, startingFrom, Set.of(InvestmentStatus.PENDING));
     }
+    @Override
     public Stream<Investment> getAcceptedInvestments(ProjectId projectId, InvestmentId startingFrom) {
         return repository.findInvestmentsByStatusesOrderByDesc(projectId, startingFrom, Set.of(InvestmentStatus.ACCEPTED));
     }
 
+    @Override
     public ProjectId submitProject(SubmitCrowdfundingProjectCommand projectCreationCommand) {
         List<ProjectValidationService.ValidationFailure> failedValidations = validationService.validateProjectSubmission(projectCreationCommand);
         if (!failedValidations.isEmpty()) {
@@ -85,6 +91,7 @@ public class ProjectService {
         return project.getId();
     }
 
+    @Override
     public void approve(ProjectId projectId, ApproveCrowdfundingProjectCommand command) {
         List<ProjectValidationService.ValidationFailure> failedValidations = validationService.validateProjectApproval(command);
         if (!failedValidations.isEmpty()) {
@@ -99,6 +106,7 @@ public class ProjectService {
         transactionalManager.executeInTransaction(() -> projectApprovalService.approve(command, project));
     }
 
+    @Override
     public void reject(ProjectId projectId) {
         CrowdfundingProject project = repository.findById(projectId)
                                                 .orElseThrow(() -> new CrowdfundingProjectException(CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND));
@@ -107,12 +115,14 @@ public class ProjectService {
 
     }
 
+    @Override
     public void addInvestment(ProjectId projectId, AddInvestmentCommand command) {
         CrowdfundingProject project = repository.findById(projectId)
                                                 .orElseThrow(() -> new CrowdfundingProjectException(CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND));
         transactionalManager.executeInTransaction(() -> projectInvestment.addInvestment(command, project));
     }
 
+    @Override
     public void confirmInvestment(ProjectId projectId, ConfirmInvestmentCommand command) {
         CrowdfundingProject project = repository.findById(projectId)
                                                 .orElseThrow(() -> new CrowdfundingProjectException(CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND));
@@ -120,6 +130,7 @@ public class ProjectService {
 
     }
 
+    @Override
     public void cancelInvestment(ProjectId projectId, CancelInvestmentCommand command) {
         CrowdfundingProject project = repository.findById(projectId)
                                                 .orElseThrow(() -> new CrowdfundingProjectException(CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND));
@@ -127,6 +138,7 @@ public class ProjectService {
         transactionalManager.executeInTransaction(() -> projectInvestment.cancelInvestment(command, project));
     }
 
+    @Override
     public void issue(ProjectId projectId) {
         CrowdfundingProject project = repository.findById(projectId)
                                                 .orElseThrow(() -> new CrowdfundingProjectException(CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND));

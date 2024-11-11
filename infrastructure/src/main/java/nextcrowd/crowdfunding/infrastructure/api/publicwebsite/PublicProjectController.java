@@ -11,7 +11,7 @@ import org.springframework.stereotype.Controller;
 
 import nextcrowd.crowdfunding.infrastructure.api.publicwebsite.adapter.ApiConverter;
 import nextcrowd.crowdfunding.infrastructure.storage.FileStorageService;
-import nextcrowd.crowdfunding.project.ProjectService;
+import nextcrowd.crowdfunding.project.ProjectServicePort;
 import nextcrowd.crowdfunding.websitepublic.api.PublicApi;
 import nextcrowd.crowdfunding.websitepublic.api.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.websitepublic.api.model.PaginatedProjectsResponse;
@@ -19,30 +19,30 @@ import nextcrowd.crowdfunding.websitepublic.api.model.PaginatedProjectsResponse;
 @Controller
 public class PublicProjectController implements PublicApi {
 
-    private final ProjectService projectService;
+    private final ProjectServicePort projectServicePort;
     private final FileStorageService fileStorageService;
 
-    public PublicProjectController(ProjectService projectService, FileStorageService fileStorageService) {
-        this.projectService = projectService;
+    public PublicProjectController(ProjectServicePort projectServicePort, FileStorageService fileStorageService) {
+        this.projectServicePort = projectServicePort;
         this.fileStorageService = fileStorageService;
     }
 
 
     @Override
     public ResponseEntity<CrowdfundingProject> publicProjectsProjectIdGet(String projectId) {
-        return projectService.getById(new nextcrowd.crowdfunding.project.model.ProjectId(projectId))
-                             .map(ApiConverter::toApi)
-                             .map(ResponseEntity::ok)
-                             .orElseGet(() -> ResponseEntity.notFound().build());
+        return projectServicePort.getById(new nextcrowd.crowdfunding.project.model.ProjectId(projectId))
+                                 .map(ApiConverter::toApi)
+                                 .map(ResponseEntity::ok)
+                                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @Override
     public ResponseEntity<PaginatedProjectsResponse> publicProjectsPublishedGet(String cursor, Integer limit) {
         List<nextcrowd.crowdfunding.websitepublic.api.model.CrowdfundingProject>
-                results = new ArrayList<>(projectService.getPublishedProjects(new nextcrowd.crowdfunding.project.model.ProjectId(cursor))
-                                                        .limit(limit + 1)
-                                                        .map(ApiConverter::toApi)
-                                                        .toList());
+                results = new ArrayList<>(projectServicePort.getPublishedProjects(new nextcrowd.crowdfunding.project.model.ProjectId(cursor))
+                                                            .limit(limit + 1)
+                                                            .map(ApiConverter::toApi)
+                                                            .toList());
         boolean hasMore = results.size() > limit;
         if (hasMore) {
             results.removeLast();

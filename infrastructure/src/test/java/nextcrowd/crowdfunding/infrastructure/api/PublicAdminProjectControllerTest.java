@@ -47,7 +47,7 @@ import nextcrowd.crowdfunding.infrastructure.security.persistence.User;
 import nextcrowd.crowdfunding.infrastructure.security.persistence.UserRepository;
 import nextcrowd.crowdfunding.infrastructure.security.service.JwtService;
 import nextcrowd.crowdfunding.infrastructure.storage.FileStorageService;
-import nextcrowd.crowdfunding.project.ProjectService;
+import nextcrowd.crowdfunding.project.ProjectServicePort;
 import nextcrowd.crowdfunding.project.exception.CrowdfundingProjectException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
@@ -67,7 +67,7 @@ class PublicAdminProjectControllerTest {
     private static final User ADMIN_USER = TestUtils.buildRandomUser(Set.of("ROLE_ADMIN"));
     private static final User APPLICATION_PROJECT_USER = TestUtils.buildRandomUser(Set.of("ROLE_PROJECT"));
     @MockBean
-    private ProjectService projectService;
+    private ProjectServicePort projectServicePort;
     @MockBean
     private FileStorageService fileStorageService;
 
@@ -126,7 +126,7 @@ class PublicAdminProjectControllerTest {
                                                    .projectEndDate(buildRandomInstant().truncatedTo(ChronoUnit.SECONDS))
                                                    .build();
             ProjectId projectId = project.getId();
-            when(projectService.getById(projectId)).thenReturn(Optional.of(project));
+            when(projectServicePort.getById(projectId)).thenReturn(Optional.of(project));
 
             // Act & Assert
 
@@ -146,7 +146,7 @@ class PublicAdminProjectControllerTest {
                                                    .projectEndDate(buildRandomInstant().truncatedTo(ChronoUnit.SECONDS))
                                                    .build();
             ProjectId projectId = project.getId();
-            when(projectService.getById(projectId)).thenReturn(Optional.of(project));
+            when(projectServicePort.getById(projectId)).thenReturn(Optional.of(project));
 
             // Act & Assert
 
@@ -175,7 +175,7 @@ class PublicAdminProjectControllerTest {
         void testGetProjectByIdNotFound() throws Exception {
             String projectId = "non-existent-project-id";
 
-            when(projectService.getById(new ProjectId(projectId))).thenReturn(Optional.empty());
+            when(projectServicePort.getById(new ProjectId(projectId))).thenReturn(Optional.empty());
 
             mockMvc.perform(get("/admin/projects/{id}", projectId)
                                     .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER)))
@@ -190,7 +190,7 @@ class PublicAdminProjectControllerTest {
             List<CrowdfundingProject> projects = IntStream.range(0, 15)
                                                           .mapToObj(_ -> TestUtils.buildRandomProject(TestUtils.buildRandomProjectOwner()))
                                                           .toList();
-            when(projectService.getPendingReviewProjects(any())).thenReturn(projects.stream());
+            when(projectServicePort.getPendingReviewProjects(any())).thenReturn(projects.stream());
 
             mockMvc.perform(get("/admin/projects/pending-review")
                                     .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
@@ -214,7 +214,7 @@ class PublicAdminProjectControllerTest {
             List<CrowdfundingProject> projects = IntStream.range(0, 15)
                                                           .mapToObj(_ -> TestUtils.buildRandomProject(TestUtils.buildRandomProjectOwner()))
                                                           .toList();
-            when(projectService.getPublishedProjects(any())).thenReturn(projects.stream());
+            when(projectServicePort.getPublishedProjects(any())).thenReturn(projects.stream());
 
             mockMvc.perform(get("/admin/projects/published")
                                     .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
@@ -240,7 +240,7 @@ class PublicAdminProjectControllerTest {
         void testSubmitProject() throws Exception {
             SubmitCrowdfundingProjectCommand submitCommandApi = buildRandomSubmitCrowdfundingProjectCommand();
             ProjectId expectedProjectId = ProjectId.generateId();
-            when(projectService.submitProject(any())).thenReturn(expectedProjectId);
+            when(projectServicePort.submitProject(any())).thenReturn(expectedProjectId);
 
             // Act & Assert
             mockMvc.perform(post("/admin/projects")
@@ -255,7 +255,7 @@ class PublicAdminProjectControllerTest {
         @DisplayName("Submit a new project with validation error")
         void testSubmitProjectWithValidationError() throws Exception {
             SubmitCrowdfundingProjectCommand submitCommandApi = buildRandomSubmitCrowdfundingProjectCommand();
-            when(projectService.submitProject(any())).thenThrow(new ValidationException("Validation error"));
+            when(projectServicePort.submitProject(any())).thenThrow(new ValidationException("Validation error"));
 
             mockMvc.perform(post("/admin/projects")
                                     .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
@@ -274,7 +274,7 @@ class PublicAdminProjectControllerTest {
                     .risk(5)
                     .minimumInvestment(200.00);
 
-            doNothing().when(projectService).approve(eq(new ProjectId(projectId)), any());
+            doNothing().when(projectServicePort).approve(eq(new ProjectId(projectId)), any());
 
             mockMvc.perform(post("/admin/projects/{id}/approve", projectId)
                                     .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
@@ -292,7 +292,7 @@ class PublicAdminProjectControllerTest {
                     .risk(5)
                     .minimumInvestment(200.00);
 
-            doThrow(new ValidationException("Validation error")).when(projectService).approve(eq(new ProjectId(projectId)), any());
+            doThrow(new ValidationException("Validation error")).when(projectServicePort).approve(eq(new ProjectId(projectId)), any());
 
             mockMvc.perform(post("/admin/projects/{id}/approve", projectId)
                                     .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
@@ -311,7 +311,7 @@ class PublicAdminProjectControllerTest {
                     .risk(5)
                     .minimumInvestment(200.00);
 
-            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectService)
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectServicePort)
                                                                                                                  .approve(eq(new ProjectId(projectId)), any());
 
             mockMvc.perform(post("/admin/projects/{id}/approve", projectId)
@@ -328,7 +328,7 @@ class PublicAdminProjectControllerTest {
         void testRejectProject() throws Exception {
             String projectId = "test-project-id";
 
-            doNothing().when(projectService).reject(eq(new ProjectId(projectId)));
+            doNothing().when(projectServicePort).reject(eq(new ProjectId(projectId)));
 
             mockMvc.perform(post("/admin/projects/{id}/reject", projectId)
                                     .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
@@ -341,7 +341,7 @@ class PublicAdminProjectControllerTest {
         void testRejectProjectWithValidationError() throws Exception {
             String projectId = "test-project-id";
 
-            doThrow(new ValidationException("Validation error")).when(projectService).reject(eq(new ProjectId(projectId)));
+            doThrow(new ValidationException("Validation error")).when(projectServicePort).reject(eq(new ProjectId(projectId)));
 
             mockMvc.perform(post("/admin/projects/{id}/reject", projectId)
                                     .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
@@ -355,7 +355,7 @@ class PublicAdminProjectControllerTest {
         void testRejectProjectWithStatusFailure() throws Exception {
             String projectId = "test-project-id";
 
-            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectService)
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectServicePort)
                                                                                                                  .reject(eq(new ProjectId(projectId)));
 
             mockMvc.perform(post("/admin/projects/{id}/reject", projectId)
@@ -371,7 +371,7 @@ class PublicAdminProjectControllerTest {
         void testIssueProject() throws Exception {
             String projectId = "test-project-id";
 
-            doNothing().when(projectService).issue(eq(new ProjectId(projectId)));
+            doNothing().when(projectServicePort).issue(eq(new ProjectId(projectId)));
 
             mockMvc.perform(post("/admin/projects/{id}/issue", projectId)
                                     .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
@@ -384,7 +384,7 @@ class PublicAdminProjectControllerTest {
         void testIssueProjectWithValidationError() throws Exception {
             String projectId = "test-project-id";
 
-            doThrow(new ValidationException("Validation error")).when(projectService).issue(eq(new ProjectId(projectId)));
+            doThrow(new ValidationException("Validation error")).when(projectServicePort).issue(eq(new ProjectId(projectId)));
 
             mockMvc.perform(post("/admin/projects/{id}/issue", projectId)
                                     .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
@@ -398,7 +398,7 @@ class PublicAdminProjectControllerTest {
         void testIssueProjectWithStatusFailure() throws Exception {
             String projectId = "test-project-id";
 
-            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectService)
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectServicePort)
                                                                                                                  .issue(eq(new ProjectId(projectId)));
 
             mockMvc.perform(post("/admin/projects/{id}/issue", projectId)
@@ -423,7 +423,7 @@ class PublicAdminProjectControllerTest {
                     .bakerId("test-baker-id")
                     .amount(100.00);
 
-            doNothing().when(projectService).addInvestment(eq(new ProjectId(projectId)), any());
+            doNothing().when(projectServicePort).addInvestment(eq(new ProjectId(projectId)), any());
 
             mockMvc.perform(post("/admin/projects/{id}/investments", projectId)
                                     .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
@@ -440,7 +440,7 @@ class PublicAdminProjectControllerTest {
                     .bakerId("test-baker-id")
                     .moneyTransferId("test-money-transfer-id");
 
-            doNothing().when(projectService).confirmInvestment(eq(new ProjectId(projectId)), any());
+            doNothing().when(projectServicePort).confirmInvestment(eq(new ProjectId(projectId)), any());
 
             mockMvc.perform(post("/admin/projects/{id}/investments/confirm", projectId)
                                     .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
@@ -456,7 +456,7 @@ class PublicAdminProjectControllerTest {
             CancelInvestmentCommand cancelInvestmentCommand = new CancelInvestmentCommand()
                     .bakerId("test-baker-id");
 
-            doNothing().when(projectService).cancelInvestment(eq(new ProjectId(projectId)), any());
+            doNothing().when(projectServicePort).cancelInvestment(eq(new ProjectId(projectId)), any());
 
             mockMvc.perform(post("/admin/projects/{id}/investments/cancel", projectId)
                                     .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
@@ -473,7 +473,7 @@ class PublicAdminProjectControllerTest {
                     .bakerId("test-baker-id")
                     .amount(100.00);
 
-            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectService)
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectServicePort)
                                                                                                                  .addInvestment(
                                                                                                                          eq(new ProjectId(projectId)),
                                                                                                                          any());
@@ -495,7 +495,7 @@ class PublicAdminProjectControllerTest {
                     .bakerId("test-baker-id")
                     .moneyTransferId("test-money-transfer-id");
 
-            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectService)
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectServicePort)
                                                                                                                  .confirmInvestment(
                                                                                                                          eq(new ProjectId(projectId)),
                                                                                                                          any());
@@ -516,7 +516,7 @@ class PublicAdminProjectControllerTest {
             CancelInvestmentCommand cancelInvestmentCommand = new CancelInvestmentCommand()
                     .bakerId("test-baker-id");
 
-            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectService)
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectServicePort)
                                                                                                                  .cancelInvestment(
                                                                                                                          eq(new ProjectId(projectId)),
                                                                                                                          any());

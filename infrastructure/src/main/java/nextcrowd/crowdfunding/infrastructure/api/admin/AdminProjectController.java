@@ -12,7 +12,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.multipart.MultipartFile;
 
-import lombok.SneakyThrows;
 import nextcrowd.crowdfunding.admin.api.AdminApi;
 import nextcrowd.crowdfunding.admin.api.model.AddInvestmentCommand;
 import nextcrowd.crowdfunding.admin.api.model.ApproveCrowdfundingProjectCommand;
@@ -28,7 +27,7 @@ import nextcrowd.crowdfunding.admin.api.model.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.infrastructure.api.ApiError;
 import nextcrowd.crowdfunding.infrastructure.api.admin.adapter.ApiConverter;
 import nextcrowd.crowdfunding.infrastructure.storage.FileStorageService;
-import nextcrowd.crowdfunding.project.ProjectService;
+import nextcrowd.crowdfunding.project.ProjectServicePort;
 import nextcrowd.crowdfunding.project.exception.CrowdfundingProjectException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
 import nextcrowd.crowdfunding.project.model.InvestmentId;
@@ -36,11 +35,11 @@ import nextcrowd.crowdfunding.project.model.InvestmentId;
 @Controller
 public class AdminProjectController implements AdminApi {
 
-    private final ProjectService projectService;
+    private final ProjectServicePort projectServicePort;
     private final FileStorageService fileStorageService;
 
-    public AdminProjectController(ProjectService projectService, FileStorageService fileStorageService) {
-        this.projectService = projectService;
+    public AdminProjectController(ProjectServicePort projectServicePort, FileStorageService fileStorageService) {
+        this.projectServicePort = projectServicePort;
         this.fileStorageService = fileStorageService;
     }
 
@@ -48,7 +47,7 @@ public class AdminProjectController implements AdminApi {
     public ResponseEntity<ProjectId> adminProjectsPost(SubmitCrowdfundingProjectCommand submitCrowdfundingProjectCommand) {
         return Optional.of(submitCrowdfundingProjectCommand)
                        .map(ApiConverter::toDomain)
-                       .map(projectService::submitProject)
+                       .map(projectServicePort::submitProject)
                        .map(nextcrowd.crowdfunding.project.model.ProjectId::id)
                        .map(id -> new ProjectId().id(id))
                        .map(ResponseEntity::ok)
@@ -57,7 +56,7 @@ public class AdminProjectController implements AdminApi {
 
     @Override
     public ResponseEntity<Void> adminProjectsProjectIdApprovePost(String projectId, ApproveCrowdfundingProjectCommand approveCrowdfundingProjectCommand) {
-        projectService.approve(
+        projectServicePort.approve(
                 new nextcrowd.crowdfunding.project.model.ProjectId(projectId),
                 ApiConverter.toDomain(approveCrowdfundingProjectCommand));
         return ResponseEntity.accepted().build();
@@ -67,7 +66,7 @@ public class AdminProjectController implements AdminApi {
     public ResponseEntity<Void> adminProjectsProjectIdInvestmentsCancelPost(
             String projectId,
             CancelInvestmentCommand cancelInvestmentCommand) {
-        projectService.cancelInvestment(new nextcrowd.crowdfunding.project.model.ProjectId(projectId), ApiConverter.toDomain(cancelInvestmentCommand));
+        projectServicePort.cancelInvestment(new nextcrowd.crowdfunding.project.model.ProjectId(projectId), ApiConverter.toDomain(cancelInvestmentCommand));
         return ResponseEntity.accepted().build();
     }
 
@@ -75,7 +74,7 @@ public class AdminProjectController implements AdminApi {
     public ResponseEntity<Void> adminProjectsProjectIdInvestmentsConfirmPost(
             String projectId,
             ConfirmInvestmentCommand confirmInvestmentCommand) {
-        projectService.confirmInvestment(
+        projectServicePort.confirmInvestment(
                 new nextcrowd.crowdfunding.project.model.ProjectId(projectId),
                 ApiConverter.toDomain(confirmInvestmentCommand));
         return ResponseEntity.accepted().build();
@@ -83,29 +82,29 @@ public class AdminProjectController implements AdminApi {
 
     @Override
     public ResponseEntity<Void> adminProjectsProjectIdInvestmentsPost(String projectId, AddInvestmentCommand addInvestmentCommand) {
-        projectService.addInvestment(new nextcrowd.crowdfunding.project.model.ProjectId(projectId), ApiConverter.toDomain(addInvestmentCommand));
+        projectServicePort.addInvestment(new nextcrowd.crowdfunding.project.model.ProjectId(projectId), ApiConverter.toDomain(addInvestmentCommand));
         return ResponseEntity.accepted().build();
     }
 
     @Override
     public ResponseEntity<Void> adminProjectsProjectIdIssuePost(String projectId) {
-        projectService.issue(new nextcrowd.crowdfunding.project.model.ProjectId(projectId));
+        projectServicePort.issue(new nextcrowd.crowdfunding.project.model.ProjectId(projectId));
         return ResponseEntity.accepted().build();
     }
 
     @Override
     public ResponseEntity<Void> adminProjectsProjectIdRejectPost(String projectId) {
-        projectService.reject(new nextcrowd.crowdfunding.project.model.ProjectId(projectId));
+        projectServicePort.reject(new nextcrowd.crowdfunding.project.model.ProjectId(projectId));
         return ResponseEntity.accepted().build();
     }
 
 
     @Override
     public ResponseEntity<PaginatedProjectsResponse> adminProjectsPendingReviewGet(String cursor, Integer limit) {
-        List<CrowdfundingProject> results = new ArrayList<>(projectService.getPendingReviewProjects(new nextcrowd.crowdfunding.project.model.ProjectId(cursor))
-                                                                          .limit(limit + 1)
-                                                                          .map(ApiConverter::toApi)
-                                                                          .toList());
+        List<CrowdfundingProject> results = new ArrayList<>(projectServicePort.getPendingReviewProjects(new nextcrowd.crowdfunding.project.model.ProjectId(cursor))
+                                                                              .limit(limit + 1)
+                                                                              .map(ApiConverter::toApi)
+                                                                              .toList());
         boolean hasMore = results.size() > limit;
         if (hasMore) {
             results.removeLast();
@@ -117,10 +116,10 @@ public class AdminProjectController implements AdminApi {
 
     @Override
     public ResponseEntity<CrowdfundingProject> adminProjectsProjectIdGet(String projectId) {
-        return projectService.getById(new nextcrowd.crowdfunding.project.model.ProjectId(projectId))
-                             .map(ApiConverter::toApi)
-                             .map(ResponseEntity::ok)
-                             .orElseGet(() -> ResponseEntity.notFound().build());
+        return projectServicePort.getById(new nextcrowd.crowdfunding.project.model.ProjectId(projectId))
+                                 .map(ApiConverter::toApi)
+                                 .map(ResponseEntity::ok)
+                                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @Override
@@ -128,11 +127,11 @@ public class AdminProjectController implements AdminApi {
         InvestmentId startingFrom = Optional.ofNullable(cursor)
                                             .map(InvestmentId::new)
                                             .orElse(null);
-        List<Investment> results = projectService.getAcceptedInvestments(new nextcrowd.crowdfunding.project.model.ProjectId(
+        List<Investment> results = projectServicePort.getAcceptedInvestments(new nextcrowd.crowdfunding.project.model.ProjectId(
                                                          projectId), startingFrom)
-                                                 .limit(limit + 1)
-                                                 .map(ApiConverter::toApi)
-                                                 .toList();
+                                                     .limit(limit + 1)
+                                                     .map(ApiConverter::toApi)
+                                                     .toList();
         boolean hasMore = results.size() > limit;
         if (hasMore) {
             results.removeLast();
@@ -147,11 +146,11 @@ public class AdminProjectController implements AdminApi {
         InvestmentId startingFrom = Optional.ofNullable(cursor)
                                             .map(InvestmentId::new)
                                             .orElse(null);
-        List<Investment> results = new ArrayList<>(projectService.getPendingInvestments(new nextcrowd.crowdfunding.project.model.ProjectId(
+        List<Investment> results = new ArrayList<>(projectServicePort.getPendingInvestments(new nextcrowd.crowdfunding.project.model.ProjectId(
                                                                          projectId), startingFrom)
-                                                                 .limit(limit + 1)
-                                                                 .map(ApiConverter::toApi)
-                                                                 .toList());
+                                                                     .limit(limit + 1)
+                                                                     .map(ApiConverter::toApi)
+                                                                     .toList());
         boolean hasMore = results.size() > limit;
         if (hasMore) {
             results.removeLast();
@@ -163,10 +162,10 @@ public class AdminProjectController implements AdminApi {
 
     @Override
     public ResponseEntity<PaginatedProjectsResponse> adminProjectsPublishedGet(String cursor, Integer limit) {
-        List<CrowdfundingProject> results = new ArrayList<>(projectService.getPublishedProjects(new nextcrowd.crowdfunding.project.model.ProjectId(cursor))
-                                                                          .limit(limit + 1)
-                                                                          .map(ApiConverter::toApi)
-                                                                          .toList());
+        List<CrowdfundingProject> results = new ArrayList<>(projectServicePort.getPublishedProjects(new nextcrowd.crowdfunding.project.model.ProjectId(cursor))
+                                                                              .limit(limit + 1)
+                                                                              .map(ApiConverter::toApi)
+                                                                              .toList());
         boolean hasMore = results.size() > limit;
         if (hasMore) {
             results.removeLast();
