@@ -42,7 +42,7 @@ public class FileSystemStorageService implements FileStorageService {
 
 
     @Override
-    public Optional<StorageResource> loadImage(String id) {
+    public Optional<StorageResource> load(String id) {
         try {
             Path filePath = storageDirectory.resolve(id);
             if (Files.exists(filePath)) {

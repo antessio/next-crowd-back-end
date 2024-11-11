@@ -34,4 +34,4 @@ logging:
         security: TRACE
 storage:
   directory: /tmp/.next-crowd-files/
-  baseUrl: http://localhost:8080/public
+  baseUrl: http://localhost:8080/public/

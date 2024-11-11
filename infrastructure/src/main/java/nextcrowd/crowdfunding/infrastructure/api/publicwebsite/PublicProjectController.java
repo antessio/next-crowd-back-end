@@ -54,7 +54,7 @@ public class PublicProjectController implements PublicApi {
 
     @Override
     public ResponseEntity<Resource> publicImageIdGet(String id) {
-        return fileStorageService.loadImage(id)
+        return fileStorageService.load(id)
                                  .map(storageResource -> ResponseEntity.ok()
                                                                        .contentLength(storageResource.content().length)
                                                                        .contentType(MediaType.parseMediaType(storageResource.contentType()))
@@ -62,13 +62,19 @@ public class PublicProjectController implements PublicApi {
                                  .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+
     private static Resource fromStorage(FileStorageService.StorageResource storageResource) {
         return new ByteArrayResource(storageResource.content());
     }
 
     @Override
     public ResponseEntity<Resource> publicVideoIdGet(String id) {
-        return PublicApi.super.publicVideoIdGet(id);
+        return fileStorageService.load(id)
+                                 .map(storageResource -> ResponseEntity.ok()
+                                                                       .contentLength(storageResource.content().length)
+                                                                       .contentType(MediaType.parseMediaType(storageResource.contentType()))
+                                                                       .body(fromStorage(storageResource)))
+                                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
 
 }

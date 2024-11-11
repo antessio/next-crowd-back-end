@@ -76,12 +76,12 @@ class FileSystemStorageServiceTest {
     }
 
     @Test
-    void loadImage() {
+    void load() {
         byte[] fileContent = "test content".getBytes();
         String contentType = "image/png";
         URI fileUri = fileSystemStorageService.storeFile(fileContent, contentType);
         String id = fileUri.toString().replace(BASE_URL, "");
-        FileSystemStorageService.StorageResource storageResource = fileSystemStorageService.loadImage(id)
+        FileSystemStorageService.StorageResource storageResource = fileSystemStorageService.load(id)
                                                                                            .orElseThrow();
 
         assertArrayEquals(fileContent, storageResource.content());

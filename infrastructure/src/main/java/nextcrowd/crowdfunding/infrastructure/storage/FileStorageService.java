@@ -9,5 +9,5 @@ public interface FileStorageService {
 
     record StorageResource(byte[] content, String contentType) {
     }
-    Optional<StorageResource> loadImage(String id);
+    Optional<StorageResource> load(String id);
 }

@@ -27,11 +27,11 @@ public class MultipleStorageService implements FileStorageService {
     }
 
     @Override
-    public Optional<StorageResource> loadImage(String id) {
+    public Optional<StorageResource> load(String id) {
         StorageUtils.StorageId storageId = StorageUtils.StorageId.parse(id);
         FileStorageService storageService = Optional.ofNullable(storageServices.get(storageId.location()))
                                                     .orElseThrow(() -> new IllegalStateException("No storage service available"));
-        return storageService.loadImage(storageId.toString())
+        return storageService.load(storageId.toString())
                              .map(storageResource -> new StorageResource(storageResource.content(), storageResource.contentType()));
     }
 
