@@ -1,19 +1,25 @@
 package nextcrowd.crowdfunding.infrastructure.api.admin;
 
+import java.io.IOException;
+import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.Predicate;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.multipart.MultipartFile;
 
+import lombok.SneakyThrows;
 import nextcrowd.crowdfunding.admin.api.AdminApi;
 import nextcrowd.crowdfunding.admin.api.model.AddInvestmentCommand;
 import nextcrowd.crowdfunding.admin.api.model.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.admin.api.model.CancelInvestmentCommand;
 import nextcrowd.crowdfunding.admin.api.model.ConfirmInvestmentCommand;
 import nextcrowd.crowdfunding.admin.api.model.CrowdfundingProject;
+import nextcrowd.crowdfunding.admin.api.model.FileUploadResponse;
 import nextcrowd.crowdfunding.admin.api.model.Investment;
 import nextcrowd.crowdfunding.admin.api.model.PaginatedInvestmentsResponse;
 import nextcrowd.crowdfunding.admin.api.model.PaginatedProjectsResponse;
@@ -21,6 +27,7 @@ import nextcrowd.crowdfunding.admin.api.model.ProjectId;
 import nextcrowd.crowdfunding.admin.api.model.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.infrastructure.api.ApiError;
 import nextcrowd.crowdfunding.infrastructure.api.admin.adapter.ApiConverter;
+import nextcrowd.crowdfunding.infrastructure.storage.FileStorageService;
 import nextcrowd.crowdfunding.project.ProjectService;
 import nextcrowd.crowdfunding.project.exception.CrowdfundingProjectException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
@@ -30,9 +37,11 @@ import nextcrowd.crowdfunding.project.model.InvestmentId;
 public class AdminProjectController implements AdminApi {
 
     private final ProjectService projectService;
+    private final FileStorageService fileStorageService;
 
-    public AdminProjectController(ProjectService projectService) {
+    public AdminProjectController(ProjectService projectService, FileStorageService fileStorageService) {
         this.projectService = projectService;
+        this.fileStorageService = fileStorageService;
     }
 
     @Override
@@ -139,10 +148,10 @@ public class AdminProjectController implements AdminApi {
                                             .map(InvestmentId::new)
                                             .orElse(null);
         List<Investment> results = new ArrayList<>(projectService.getPendingInvestments(new nextcrowd.crowdfunding.project.model.ProjectId(
-                                                         projectId), startingFrom)
-                                                 .limit(limit + 1)
-                                                 .map(ApiConverter::toApi)
-                                                 .toList());
+                                                                         projectId), startingFrom)
+                                                                 .limit(limit + 1)
+                                                                 .map(ApiConverter::toApi)
+                                                                 .toList());
         boolean hasMore = results.size() > limit;
         if (hasMore) {
             results.removeLast();
@@ -155,9 +164,9 @@ public class AdminProjectController implements AdminApi {
     @Override
     public ResponseEntity<PaginatedProjectsResponse> adminProjectsPublishedGet(String cursor, Integer limit) {
         List<CrowdfundingProject> results = new ArrayList<>(projectService.getPublishedProjects(new nextcrowd.crowdfunding.project.model.ProjectId(cursor))
-                                                          .limit(limit + 1)
-                                                          .map(ApiConverter::toApi)
-                                                          .toList());
+                                                                          .limit(limit + 1)
+                                                                          .map(ApiConverter::toApi)
+                                                                          .toList());
         boolean hasMore = results.size() > limit;
         if (hasMore) {
             results.removeLast();
@@ -167,6 +176,28 @@ public class AdminProjectController implements AdminApi {
                                          .hasMore(hasMore));
     }
 
+    @Override
+    public ResponseEntity<FileUploadResponse> adminUploadPost(MultipartFile file) {
+        return Optional.ofNullable(file)
+                       .filter(Predicate.not(MultipartFile::isEmpty))
+                       .map(this::getStoreFile)
+                       .map(uri -> new FileUploadResponse().url(uri))
+                       .map(ResponseEntity::ok)
+                       .orElseThrow(() -> new ValidationException("File is empty"));
+
+    }
+
+    private URI getStoreFile(MultipartFile multipartFile) {
+        return fileStorageService.storeFile(getMultipartFileFunction(multipartFile), multipartFile.getContentType());
+    }
+
+    private static byte[] getMultipartFileFunction(MultipartFile f) {
+        try {
+            return f.getBytes();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @ExceptionHandler(ValidationException.class)
     public ResponseEntity<ApiError> handleValidationException(ValidationException ex) {

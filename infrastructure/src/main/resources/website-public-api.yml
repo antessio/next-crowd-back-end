@@ -9,6 +9,46 @@ servers:
     description: Local server
 
 paths:
+  /public/image/{id}:
+    get:
+      summary: Get Image by Name
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Name of the image
+      responses:
+        '200':
+          description: Image retrieved successfully
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Image not found
+  /public/video/{id}:
+    get:
+      summary: Get Video by Name
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+          description: Name of the video
+      responses:
+        '200':
+          description: Video retrieved successfully
+          content:
+            video/mp4:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Video not found
   /public/projects/{projectId}:
     get:
       summary: Get Project by ID

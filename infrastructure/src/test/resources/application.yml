@@ -32,3 +32,6 @@ logging:
     org:
       springframework:
         security: TRACE
+storage:
+  directory: /tmp/.next-crowd-files/
+  baseUrl: http://localhost:8080/public

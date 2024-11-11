@@ -7,12 +7,14 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
+import java.net.URI;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +31,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -43,6 +46,7 @@ import nextcrowd.crowdfunding.infrastructure.TestUtils;
 import nextcrowd.crowdfunding.infrastructure.security.persistence.User;
 import nextcrowd.crowdfunding.infrastructure.security.persistence.UserRepository;
 import nextcrowd.crowdfunding.infrastructure.security.service.JwtService;
+import nextcrowd.crowdfunding.infrastructure.storage.FileStorageService;
 import nextcrowd.crowdfunding.project.ProjectService;
 import nextcrowd.crowdfunding.project.exception.CrowdfundingProjectException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
@@ -64,6 +68,8 @@ class PublicAdminProjectControllerTest {
     private static final User APPLICATION_PROJECT_USER = TestUtils.buildRandomUser(Set.of("ROLE_PROJECT"));
     @MockBean
     private ProjectService projectService;
+    @MockBean
+    private FileStorageService fileStorageService;
 
     @MockBean
     UserRepository userRepository;
@@ -78,6 +84,30 @@ class PublicAdminProjectControllerTest {
     void setUp() {
         when(userRepository.findByEmail(eq(ADMIN_USER.getEmail()))).thenReturn(Optional.of(ADMIN_USER));
         when(userRepository.findByEmail(eq(APPLICATION_PROJECT_USER.getEmail()))).thenReturn(Optional.of(APPLICATION_PROJECT_USER));
+
+    }
+
+    @Nested
+    @DisplayName("File upload")
+    class TestUpload {
+
+        @Test
+        @DisplayName("Upload file")
+        void testUploadFile() throws Exception {
+            byte[] file = TestUtils.getFaker().lorem().sentence(10).getBytes();
+            when(fileStorageService.storeFile(file, "text/plain")).thenReturn(URI.create(TestUtils.getFaker().internet().url()));
+            MockMultipartFile mockFile = new MockMultipartFile(
+                    "file",
+                    "testfile.txt",
+                    MediaType.TEXT_PLAIN_VALUE,
+                    file
+            );
+            mockMvc.perform(multipart("/admin/upload")
+                                    .file(mockFile)
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER)))
+                   .andExpect(status().isOk())
+                   .andExpect(jsonPath("$.url").isString());
+        }
 
     }
 
