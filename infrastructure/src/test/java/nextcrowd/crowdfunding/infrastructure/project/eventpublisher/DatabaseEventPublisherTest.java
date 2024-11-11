@@ -1,6 +1,7 @@
 package nextcrowd.crowdfunding.infrastructure.project.eventpublisher;
 import static org.junit.jupiter.api.Assertions.*;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,8 @@ class DatabaseEventPublisherTest extends BaseTestWithTestcontainers {
         publisher.publish(event, TestEvent.class, aggregateId);
 
         // Assert
-        Optional<Event> savedEventOptional = eventRepository.findAll().stream().findFirst();
+        List<Event> allEvents = eventRepository.findAll();
+        Optional<Event> savedEventOptional = allEvents.stream().findFirst();
         assertTrue(savedEventOptional.isPresent());
         Event savedEvent = savedEventOptional.get();
         assertEquals(TestEvent.class.getName(), savedEvent.getEventType());

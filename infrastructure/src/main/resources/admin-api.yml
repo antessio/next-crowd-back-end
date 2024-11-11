@@ -9,6 +9,29 @@ servers:
     description: Local server
 
 paths:
+  /admin/upload:
+    post:
+      summary: Upload a file
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: The file to upload
+      responses:
+        '200':
+          description: File uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileUploadResponse'
+        '400':
+          description: Invalid input
   /admin/projects/{projectId}:
     get:
       summary: Get Project by ID
@@ -279,6 +302,8 @@ components:
           type: string
         status:
           type: string
+        owner:
+          $ref: '#/components/schemas/ProjectOwner'
         requestedAmount:
           type: number
           format: double
@@ -441,3 +466,10 @@ components:
       properties:
         bakerId:
           type: string
+    FileUploadResponse:
+      type: object
+      properties:
+        url:
+          type: string
+          format: uri
+          description: Public URL of the uploaded file

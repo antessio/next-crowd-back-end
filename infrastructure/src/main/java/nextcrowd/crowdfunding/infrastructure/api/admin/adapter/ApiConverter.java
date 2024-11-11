@@ -1,4 +1,4 @@
-package nextcrowd.crowdfunding.infrastructure.api.adapter;
+package nextcrowd.crowdfunding.infrastructure.api.admin.adapter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -19,11 +19,11 @@ import nextcrowd.crowdfunding.project.model.MoneyTransferId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
 import nextcrowd.crowdfunding.project.model.ProjectReward;
 
-public final class ApiToDomainConverter {
+public final class ApiConverter {
 
     public static final ZoneOffset UTC = ZoneOffset.UTC;
 
-    private ApiToDomainConverter() {
+    private ApiConverter() {
     }
 
     public static SubmitCrowdfundingProjectCommand toDomain(nextcrowd.crowdfunding.admin.api.model.SubmitCrowdfundingProjectCommand submitCrowdfundingProjectCommand) {
@@ -40,7 +40,7 @@ public final class ApiToDomainConverter {
                                                .owner(convertProjectOwner(submitCrowdfundingProjectCommand.getOwner()))
                                                .rewards(Optional.ofNullable(submitCrowdfundingProjectCommand.getRewards()).orElseGet(List::of)
                                                                 .stream()
-                                                                .map(ApiToDomainConverter::convertProjectReward)
+                                                                .map(ApiConverter::convertProjectReward)
                                                                 .toList())
                                                .build();
 
@@ -103,7 +103,15 @@ public final class ApiToDomainConverter {
                 .projectEndDate(convertToOffsetDateTime(project.getProjectEndDate()))
                 .description(project.getDescription())
                 .longDescription(project.getLongDescription())
-                .projectVideoUrl(project.getProjectVideoUrl());
+                .projectVideoUrl(project.getProjectVideoUrl())
+                .owner(projectOwnerToApi(project.getOwner()));
+    }
+
+    private static nextcrowd.crowdfunding.admin.api.model.ProjectOwner projectOwnerToApi(ProjectOwner owner) {
+        return new nextcrowd.crowdfunding.admin.api.model.ProjectOwner()
+                .id(owner.getId())
+                .name(owner.getName())
+                .imageUrl(owner.getImageUrl());
     }
 
     public static nextcrowd.crowdfunding.admin.api.model.Investment toApi(Investment investment) {

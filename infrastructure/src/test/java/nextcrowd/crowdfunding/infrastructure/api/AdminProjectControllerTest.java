@@ -7,12 +7,14 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
+import java.net.URI;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
@@ -29,6 +31,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -42,8 +45,10 @@ import nextcrowd.crowdfunding.infrastructure.SecurityConfiguration;
 import nextcrowd.crowdfunding.infrastructure.TestUtils;
 import nextcrowd.crowdfunding.infrastructure.security.persistence.User;
 import nextcrowd.crowdfunding.infrastructure.security.persistence.UserRepository;
+import nextcrowd.crowdfunding.infrastructure.security.service.AuthenticationService;
 import nextcrowd.crowdfunding.infrastructure.security.service.JwtService;
-import nextcrowd.crowdfunding.project.ProjectService;
+import nextcrowd.crowdfunding.infrastructure.storage.FileStorageService;
+import nextcrowd.crowdfunding.project.ProjectServicePort;
 import nextcrowd.crowdfunding.project.exception.CrowdfundingProjectException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
@@ -58,12 +63,16 @@ import nextcrowd.crowdfunding.project.model.ProjectId;
         +
         "Mzg4NTUwMGEzN2ExZmFjYTMzNmY5MzNjZTYxNzY5NTIwNjBhYTg1OTM5ODA4YzEwMWJiZjk1MTA0OTIxMzVmYjhkMzZiZjFhNmY1NjgyYmQ3MTZiNDNkY2M4YWIyNDRhNTUwNzJiYTEzNzY0NDE4YWJhMzg1YTNkYTJjMDJiZGQ=",
 })
-class ProjectControllerTest {
+class AdminProjectControllerTest {
 
     private static final User ADMIN_USER = TestUtils.buildRandomUser(Set.of("ROLE_ADMIN"));
     private static final User APPLICATION_PROJECT_USER = TestUtils.buildRandomUser(Set.of("ROLE_PROJECT"));
     @MockBean
-    private ProjectService projectService;
+    private ProjectServicePort projectServicePort;
+    @MockBean
+    private FileStorageService fileStorageService;
+    @MockBean
+    private AuthenticationService authenticationService;
 
     @MockBean
     UserRepository userRepository;
@@ -82,6 +91,30 @@ class ProjectControllerTest {
     }
 
     @Nested
+    @DisplayName("File upload")
+    class TestUpload {
+
+        @Test
+        @DisplayName("Upload file")
+        void testUploadFile() throws Exception {
+            byte[] file = TestUtils.getFaker().lorem().sentence(10).getBytes();
+            when(fileStorageService.storeFile(file, "text/plain")).thenReturn(URI.create(TestUtils.getFaker().internet().url()));
+            MockMultipartFile mockFile = new MockMultipartFile(
+                    "file",
+                    "testfile.txt",
+                    MediaType.TEXT_PLAIN_VALUE,
+                    file
+            );
+            mockMvc.perform(multipart("/admin/upload")
+                                    .file(mockFile)
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername())))
+                   .andExpect(status().isOk())
+                   .andExpect(jsonPath("$.url").isString());
+        }
+
+    }
+
+    @Nested
     @DisplayName("Read Project API")
     class TestReadProjectAPI {
 
@@ -96,12 +129,12 @@ class ProjectControllerTest {
                                                    .projectEndDate(buildRandomInstant().truncatedTo(ChronoUnit.SECONDS))
                                                    .build();
             ProjectId projectId = project.getId();
-            when(projectService.getById(projectId)).thenReturn(Optional.of(project));
+            when(projectServicePort.getById(projectId)).thenReturn(Optional.of(project));
 
             // Act & Assert
 
             mockMvc.perform(get("/admin/projects/{id}", projectId.id())
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(APPLICATION_PROJECT_USER)))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(APPLICATION_PROJECT_USER.getUsername())))
                    .andExpect(status().isForbidden());
         }
 
@@ -116,12 +149,12 @@ class ProjectControllerTest {
                                                    .projectEndDate(buildRandomInstant().truncatedTo(ChronoUnit.SECONDS))
                                                    .build();
             ProjectId projectId = project.getId();
-            when(projectService.getById(projectId)).thenReturn(Optional.of(project));
+            when(projectServicePort.getById(projectId)).thenReturn(Optional.of(project));
 
             // Act & Assert
 
             mockMvc.perform(get("/admin/projects/{id}", projectId.id())
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER)))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername())))
                    .andExpect(status().isOk())
                    .andExpect(jsonPath("$.id").value(projectId.id()))
                    .andExpect(jsonPath("$.title").value(project.getTitle()))
@@ -134,7 +167,10 @@ class ProjectControllerTest {
                    .andExpect(jsonPath("$.requestedAmount").value(project.getRequestedAmount().doubleValue()))
                    .andExpect(jsonPath("$.collectedAmount").value(project.getCollectedAmount().orElseThrow().doubleValue()))
                    .andExpect(jsonPath("$.projectStartDate").value(project.getProjectStartDate().toString()))
-                   .andExpect(jsonPath("$.projectEndDate").value(project.getProjectEndDate().toString()));
+                   .andExpect(jsonPath("$.projectEndDate").value(project.getProjectEndDate().toString()))
+                   .andExpect(jsonPath("$.owner.id").value(project.getOwner().getId()))
+                   .andExpect(jsonPath("$.owner.name").value(project.getOwner().getName()))
+                   .andExpect(jsonPath("$.owner.imageUrl").value(project.getOwner().getImageUrl()));
         }
 
         @Test
@@ -142,10 +178,10 @@ class ProjectControllerTest {
         void testGetProjectByIdNotFound() throws Exception {
             String projectId = "non-existent-project-id";
 
-            when(projectService.getById(new ProjectId(projectId))).thenReturn(Optional.empty());
+            when(projectServicePort.getById(new ProjectId(projectId))).thenReturn(Optional.empty());
 
             mockMvc.perform(get("/admin/projects/{id}", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER)))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername())))
                    .andExpect(status().isNotFound());
         }
 
@@ -157,10 +193,10 @@ class ProjectControllerTest {
             List<CrowdfundingProject> projects = IntStream.range(0, 15)
                                                           .mapToObj(_ -> TestUtils.buildRandomProject(TestUtils.buildRandomProjectOwner()))
                                                           .toList();
-            when(projectService.getPendingReviewProjects(any())).thenReturn(projects.stream());
+            when(projectServicePort.getPendingReviewProjects(any())).thenReturn(projects.stream());
 
             mockMvc.perform(get("/admin/projects/pending-review")
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .param("cursor", cursor)
                                     .param("limit", String.valueOf(limit)))
                    .andExpect(status().isOk())
@@ -181,10 +217,10 @@ class ProjectControllerTest {
             List<CrowdfundingProject> projects = IntStream.range(0, 15)
                                                           .mapToObj(_ -> TestUtils.buildRandomProject(TestUtils.buildRandomProjectOwner()))
                                                           .toList();
-            when(projectService.getPublishedProjects(any())).thenReturn(projects.stream());
+            when(projectServicePort.getPublishedProjects(any())).thenReturn(projects.stream());
 
             mockMvc.perform(get("/admin/projects/published")
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .param("cursor", cursor)
                                     .param("limit", String.valueOf(limit)))
                    .andExpect(status().isOk())
@@ -207,11 +243,11 @@ class ProjectControllerTest {
         void testSubmitProject() throws Exception {
             SubmitCrowdfundingProjectCommand submitCommandApi = buildRandomSubmitCrowdfundingProjectCommand();
             ProjectId expectedProjectId = ProjectId.generateId();
-            when(projectService.submitProject(any())).thenReturn(expectedProjectId);
+            when(projectServicePort.submitProject(any())).thenReturn(expectedProjectId);
 
             // Act & Assert
             mockMvc.perform(post("/admin/projects")
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(TestUtils.objectMapper().writeValueAsBytes(submitCommandApi)))
                    .andExpect(status().isOk())
@@ -222,10 +258,10 @@ class ProjectControllerTest {
         @DisplayName("Submit a new project with validation error")
         void testSubmitProjectWithValidationError() throws Exception {
             SubmitCrowdfundingProjectCommand submitCommandApi = buildRandomSubmitCrowdfundingProjectCommand();
-            when(projectService.submitProject(any())).thenThrow(new ValidationException("Validation error"));
+            when(projectServicePort.submitProject(any())).thenThrow(new ValidationException("Validation error"));
 
             mockMvc.perform(post("/admin/projects")
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(TestUtils.objectMapper().writeValueAsBytes(submitCommandApi)))
                    .andExpect(status().isBadRequest())
@@ -241,10 +277,10 @@ class ProjectControllerTest {
                     .risk(5)
                     .minimumInvestment(200.00);
 
-            doNothing().when(projectService).approve(eq(new ProjectId(projectId)), any());
+            doNothing().when(projectServicePort).approve(eq(new ProjectId(projectId)), any());
 
             mockMvc.perform(post("/admin/projects/{id}/approve", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(TestUtils.objectMapper().writeValueAsBytes(approveCommand)))
                    .andExpect(status().isAccepted());
@@ -259,10 +295,10 @@ class ProjectControllerTest {
                     .risk(5)
                     .minimumInvestment(200.00);
 
-            doThrow(new ValidationException("Validation error")).when(projectService).approve(eq(new ProjectId(projectId)), any());
+            doThrow(new ValidationException("Validation error")).when(projectServicePort).approve(eq(new ProjectId(projectId)), any());
 
             mockMvc.perform(post("/admin/projects/{id}/approve", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(TestUtils.objectMapper().writeValueAsBytes(approveCommand)))
                    .andExpect(status().isBadRequest())
@@ -278,11 +314,11 @@ class ProjectControllerTest {
                     .risk(5)
                     .minimumInvestment(200.00);
 
-            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectService)
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectServicePort)
                                                                                                                  .approve(eq(new ProjectId(projectId)), any());
 
             mockMvc.perform(post("/admin/projects/{id}/approve", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(TestUtils.objectMapper().writeValueAsBytes(approveCommand)))
                    .andExpect(status().isBadRequest())
@@ -295,10 +331,10 @@ class ProjectControllerTest {
         void testRejectProject() throws Exception {
             String projectId = "test-project-id";
 
-            doNothing().when(projectService).reject(eq(new ProjectId(projectId)));
+            doNothing().when(projectServicePort).reject(eq(new ProjectId(projectId)));
 
             mockMvc.perform(post("/admin/projects/{id}/reject", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .contentType(MediaType.APPLICATION_JSON))
                    .andExpect(status().isAccepted());
         }
@@ -308,10 +344,10 @@ class ProjectControllerTest {
         void testRejectProjectWithValidationError() throws Exception {
             String projectId = "test-project-id";
 
-            doThrow(new ValidationException("Validation error")).when(projectService).reject(eq(new ProjectId(projectId)));
+            doThrow(new ValidationException("Validation error")).when(projectServicePort).reject(eq(new ProjectId(projectId)));
 
             mockMvc.perform(post("/admin/projects/{id}/reject", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .contentType(MediaType.APPLICATION_JSON))
                    .andExpect(status().isBadRequest())
                    .andExpect(jsonPath("$.message").value("Validation error"));
@@ -322,11 +358,11 @@ class ProjectControllerTest {
         void testRejectProjectWithStatusFailure() throws Exception {
             String projectId = "test-project-id";
 
-            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectService)
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectServicePort)
                                                                                                                  .reject(eq(new ProjectId(projectId)));
 
             mockMvc.perform(post("/admin/projects/{id}/reject", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .contentType(MediaType.APPLICATION_JSON))
                    .andExpect(status().isBadRequest())
                    .andExpect(jsonPath("$.message").value("Crowdfunding project exception "
@@ -338,10 +374,10 @@ class ProjectControllerTest {
         void testIssueProject() throws Exception {
             String projectId = "test-project-id";
 
-            doNothing().when(projectService).issue(eq(new ProjectId(projectId)));
+            doNothing().when(projectServicePort).issue(eq(new ProjectId(projectId)));
 
             mockMvc.perform(post("/admin/projects/{id}/issue", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .contentType(MediaType.APPLICATION_JSON))
                    .andExpect(status().isAccepted());
         }
@@ -351,10 +387,10 @@ class ProjectControllerTest {
         void testIssueProjectWithValidationError() throws Exception {
             String projectId = "test-project-id";
 
-            doThrow(new ValidationException("Validation error")).when(projectService).issue(eq(new ProjectId(projectId)));
+            doThrow(new ValidationException("Validation error")).when(projectServicePort).issue(eq(new ProjectId(projectId)));
 
             mockMvc.perform(post("/admin/projects/{id}/issue", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .contentType(MediaType.APPLICATION_JSON))
                    .andExpect(status().isBadRequest())
                    .andExpect(jsonPath("$.message").value("Validation error"));
@@ -365,11 +401,11 @@ class ProjectControllerTest {
         void testIssueProjectWithStatusFailure() throws Exception {
             String projectId = "test-project-id";
 
-            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectService)
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectServicePort)
                                                                                                                  .issue(eq(new ProjectId(projectId)));
 
             mockMvc.perform(post("/admin/projects/{id}/issue", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .contentType(MediaType.APPLICATION_JSON))
                    .andExpect(status().isBadRequest())
                    .andExpect(jsonPath("$.message").value("Crowdfunding project exception "
@@ -390,10 +426,10 @@ class ProjectControllerTest {
                     .bakerId("test-baker-id")
                     .amount(100.00);
 
-            doNothing().when(projectService).addInvestment(eq(new ProjectId(projectId)), any());
+            doNothing().when(projectServicePort).addInvestment(eq(new ProjectId(projectId)), any());
 
             mockMvc.perform(post("/admin/projects/{id}/investments", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(TestUtils.objectMapper().writeValueAsBytes(addInvestmentCommand)))
                    .andExpect(status().isAccepted());
@@ -407,10 +443,10 @@ class ProjectControllerTest {
                     .bakerId("test-baker-id")
                     .moneyTransferId("test-money-transfer-id");
 
-            doNothing().when(projectService).confirmInvestment(eq(new ProjectId(projectId)), any());
+            doNothing().when(projectServicePort).confirmInvestment(eq(new ProjectId(projectId)), any());
 
             mockMvc.perform(post("/admin/projects/{id}/investments/confirm", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(TestUtils.objectMapper().writeValueAsBytes(confirmInvestmentCommand)))
                    .andExpect(status().isAccepted());
@@ -423,10 +459,10 @@ class ProjectControllerTest {
             CancelInvestmentCommand cancelInvestmentCommand = new CancelInvestmentCommand()
                     .bakerId("test-baker-id");
 
-            doNothing().when(projectService).cancelInvestment(eq(new ProjectId(projectId)), any());
+            doNothing().when(projectServicePort).cancelInvestment(eq(new ProjectId(projectId)), any());
 
             mockMvc.perform(post("/admin/projects/{id}/investments/cancel", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(TestUtils.objectMapper().writeValueAsBytes(cancelInvestmentCommand)))
                    .andExpect(status().isAccepted());
@@ -440,13 +476,13 @@ class ProjectControllerTest {
                     .bakerId("test-baker-id")
                     .amount(100.00);
 
-            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectService)
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectServicePort)
                                                                                                                  .addInvestment(
                                                                                                                          eq(new ProjectId(projectId)),
                                                                                                                          any());
 
             mockMvc.perform(post("/admin/projects/{id}/investments", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(TestUtils.objectMapper().writeValueAsBytes(addInvestmentCommand)))
                    .andExpect(status().isBadRequest())
@@ -462,13 +498,13 @@ class ProjectControllerTest {
                     .bakerId("test-baker-id")
                     .moneyTransferId("test-money-transfer-id");
 
-            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectService)
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectServicePort)
                                                                                                                  .confirmInvestment(
                                                                                                                          eq(new ProjectId(projectId)),
                                                                                                                          any());
 
             mockMvc.perform(post("/admin/projects/{id}/investments/confirm", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(TestUtils.objectMapper().writeValueAsBytes(confirmInvestmentCommand)))
                    .andExpect(status().isBadRequest())
@@ -483,13 +519,13 @@ class ProjectControllerTest {
             CancelInvestmentCommand cancelInvestmentCommand = new CancelInvestmentCommand()
                     .bakerId("test-baker-id");
 
-            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectService)
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS)).when(projectServicePort)
                                                                                                                  .cancelInvestment(
                                                                                                                          eq(new ProjectId(projectId)),
                                                                                                                          any());
 
             mockMvc.perform(post("/admin/projects/{id}/investments/cancel", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER))
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
                                     .contentType(MediaType.APPLICATION_JSON)
                                     .content(TestUtils.objectMapper().writeValueAsBytes(cancelInvestmentCommand)))
                    .andExpect(status().isBadRequest())

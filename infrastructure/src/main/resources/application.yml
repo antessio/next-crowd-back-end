@@ -1,4 +1,9 @@
 spring:
+  servlet:
+    multipart:
+      enabled: true
+      max-file-size: 100MB    # Adjust as needed
+      max-request-size: 100MB # Adjust as needed
   application:
     name: next-crowd-back-end
   profiles:
@@ -14,3 +19,14 @@ security:
   jwt:
     secret-key: Mzg4NTUwMGEzN2ExZmFjYTMzNmY5MzNjZTYxNzY5NTIwNjBhYTg1OTM5ODA4YzEwMWJiZjk1MTA0OTIxMzVmYjhkMzZiZjFhNmY1NjgyYmQ3MTZiNDNkY2M4YWIyNDRhNTUwNzJiYTEzNzY0NDE4YWJhMzg1YTNkYTJjMDJiZGQ=
     expiration-time: 86400000
+
+storage:
+  directory: /tmp/.next-crowd-files/
+  baseUrl: http://localhost:8080/public/
+
+
+logging:
+  level:
+    org:
+      springframework:
+        web: DEBUG

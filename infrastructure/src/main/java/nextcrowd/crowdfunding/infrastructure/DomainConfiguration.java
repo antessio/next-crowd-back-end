@@ -9,6 +9,7 @@ import nextcrowd.crowdfunding.infrastructure.project.eventpublisher.DatabaseEven
 import nextcrowd.crowdfunding.infrastructure.project.persistence.adapter.CrowdfundingProjectSpringDataRepositoryAdapter;
 import nextcrowd.crowdfunding.infrastructure.transaction.SpringTransactionAdapter;
 import nextcrowd.crowdfunding.project.ProjectService;
+import nextcrowd.crowdfunding.project.ProjectServicePort;
 import nextcrowd.crowdfunding.project.service.ProjectValidationService;
 
 @Configuration
@@ -20,7 +21,7 @@ public class DomainConfiguration {
     }
 
     @Bean
-    public ProjectService projectService(
+    public ProjectServicePort projectService(
             Clock clock,
             CrowdfundingProjectSpringDataRepositoryAdapter crowdfundingProjectSpringDataRepositoryAdapter,
             DatabaseEventPublisher databaseEventPublisher,

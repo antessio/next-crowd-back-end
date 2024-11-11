@@ -10,7 +10,11 @@ import nextcrowd.crowdfunding.project.port.TransactionalManager;
 @Component
 public class SpringTransactionAdapter implements TransactionalManager {
 
-    private TransactionTemplate transactionTemplate;
+    private final TransactionTemplate transactionTemplate;
+
+    public SpringTransactionAdapter(TransactionTemplate transactionTemplate) {
+        this.transactionTemplate = transactionTemplate;
+    }
 
     @Override
     public void executeInTransaction(Runnable runnable) {

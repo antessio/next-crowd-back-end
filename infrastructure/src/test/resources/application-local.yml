@@ -7,6 +7,7 @@ spring:
     username: nextcrowd_root
     password: nextcrowd_pwd
     hikari:
+      schema: nextcrowd_test
       poolName: Hikari
       auto-commit: false
 
