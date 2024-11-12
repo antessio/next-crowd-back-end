@@ -3,14 +3,16 @@ version: '3.8'
 services:
   app:
     build:
-      context: .
-      dockerfile: infrastructure/docker/Dockerfile
+      context: ../../
+      dockerfile: Dockerfile
     ports:
       - "8080:8080"
     depends_on:
-      - db
+      - database
+    env_file:
+      - .env
 
-  db:
+  database:
     extends:
       file: postgres.yml
-      service: db
+      service: postgresql
