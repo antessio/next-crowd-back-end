@@ -16,3 +16,5 @@ services:
     extends:
       file: postgres.yml
       service: postgresql
+    ports:
+      - "5432:5432"
