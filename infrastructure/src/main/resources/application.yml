@@ -27,6 +27,7 @@ security:
   jwt:
     secret-key: ${SECURITY_JWT_SECRET_KEY}
     expiration-time: 86400000
+  allowedOrigins: ${SECURITY_ALLOWED_ORIGINS}
 
 storage:
   directory: ${STORAGE_DIRECTORY}
