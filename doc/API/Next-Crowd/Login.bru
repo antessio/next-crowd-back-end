@@ -1,0 +1,24 @@
+meta {
+  name: Login
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/admin/login
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "username": "antessio7@gmail.com",
+    "password": "{{password}}"
+  }
+}
+
+script:post-response {
+  let data =res.body ;
+  bru.setEnvVar("token",data);
+  
+}
