@@ -26,6 +26,7 @@ security:
   jwt:
     secret-key: Mzg4NTUwMGEzN2ExZmFjYTMzNmY5MzNjZTYxNzY5NTIwNjBhYTg1OTM5ODA4YzEwMWJiZjk1MTA0OTIxMzVmYjhkMzZiZjFhNmY1NjgyYmQ3MTZiNDNkY2M4YWIyNDRhNTUwNzJiYTEzNzY0NDE4YWJhMzg1YTNkYTJjMDJiZGQ=
     expiration-time: 86400000
+    allowedOrigins: http://localhost:3000
 
 logging:
   level:
