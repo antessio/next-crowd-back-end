@@ -1,0 +1,41 @@
+meta {
+  name: Create projects
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/admin/projects
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{token}}
+}
+
+body:json {
+  {
+    "title": "Project 45 - Solar Initiative 237",
+    "projectStartDate": "2024-05-01T00:00:00Z",
+    "projectEndDate": "2024-11-01T00:00:00Z",
+    "projectVideoUrl": "https://example.com/video45.mp4",
+    "owner": {
+      "name": "Owner 45 - Solar Innovate",
+      "imageUrl": "https://example.com/owners/solar_innovate_45.png"
+    },
+    "currency": "USD",
+    "requestedAmount": 128500,
+    "description": "Description for Solar Project 45",
+    "longDescription": "Long description for Solar Project 45, aiming to install solar panels on residential homes to promote renewable energy use and reduce utility costs.",
+    "imageUrl": "https://example.com/image45.png",
+    "rewards": [
+      {
+        "name": "Reward 45 - Solar Guide",
+        "description": "Guide on how to install and maintain solar panels for Project 45, providing best practices and tips for long-lasting performance.",
+        "imageUrl": "https://example.com/guide45.png"
+      }
+    ]
+  }
+  
+}
