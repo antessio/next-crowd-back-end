@@ -2,8 +2,13 @@ package nextcrowd.crowdfunding.infrastructure;
 
 import static org.springframework.security.config.Customizer.withDefaults;
 
+import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Predicate;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,12 +34,17 @@ import nextcrowd.crowdfunding.infrastructure.security.persistence.UserRepository
 @Configuration
 @EnableWebSecurity
 public class SecurityConfiguration {
+
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public CorsConfigurationSource corsConfigurationSource(@Value("${security.allowedOrigins}") String allowedOrigins) {
         CorsConfiguration configuration = new CorsConfiguration();
 
         // Set allowed origins
-        configuration.setAllowedOrigins(List.of("http://localhost:3000")); // Replace with the actual origin
+        configuration.setAllowedOrigins(Optional.ofNullable(allowedOrigins)
+                                                .filter(Predicate.not(String::isBlank))
+                                                .map(s -> s.split(","))
+                                                .map(List::of)
+                                                .orElseGet(List::of));
 
         // Allow credentials if needed
         configuration.setAllowCredentials(true);
@@ -49,6 +59,7 @@ public class SecurityConfiguration {
         source.registerCorsConfiguration("/**", configuration);
         return source;
     }
+
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
