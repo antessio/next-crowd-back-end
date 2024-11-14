@@ -8,14 +8,12 @@ spring:
     name: next-crowd-back-end
   datasource:
     type: com.zaxxer.hikari.HikariDataSource
-    url: ${SPRING_DATASOURCE_URL}
-    username: ${SPRING_DATASOURCE_USERNAME}
-    password: ${SPRING_DATASOURCE_PASSWORD}
+    url: jdbc:postgresql://localhost:5432/nextcrowd_db
+    username: nextcrowd_root
+    password: nextcrowd_pwd
     hikari:
       poolName: Hikari
       auto-commit: false
-  profiles:
-    active: dev
 
   jpa:
     properties:
@@ -23,21 +21,15 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   liquibase:
     change-log: classpath:liquibase/master.xml
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,configprops,env,metrics
 security:
   jwt:
-    secret-key: ${SECURITY_JWT_SECRET_KEY}
+    secret-key: Mzg4NTUwMGEzN2ExZmFjYTMzNmY5MzNjZTYxNzY5NTIwNjBhYTg1OTM5ODA4YzEwMWJiZjk1MTA0OTIxMzVmYjhkMzZiZjFhNmY1NjgyYmQ3MTZiNDNkY2M4YWIyNDRhNTUwNzJiYTEzNzY0NDE4YWJhMzg1YTNkYTJjMDJiZGQ=
     expiration-time: 86400000
-  allowedOrigins: ${SECURITY_ALLOWED_ORIGINS}
+  allowedOrigins: http://localhost:3000
 
 storage:
-  directory: ${STORAGE_DIRECTORY}
-  baseUrl: ${STORAGE_BASEURL}
+  directory: /tmp/.next-crowd-files/
+  baseUrl: http://localhost:8080/public/
 
 logging:
   level:
