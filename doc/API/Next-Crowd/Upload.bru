@@ -1,12 +1,12 @@
 meta {
-  name: Create projects
+  name: Upload
   type: http
-  seq: 3
+  seq: 5
 }
 
 post {
-  url: {{baseUrl}}/admin/projects
-  body: json
+  url: {{baseUrl}}/admin/upload
+  body: multipartForm
   auth: none
 }
 
@@ -38,4 +38,8 @@ body:json {
     ]
   }
   
+}
+
+body:multipart-form {
+  file: @file(/Users/antoniodalessio/Downloads/next_crowd.mp4)
 }
