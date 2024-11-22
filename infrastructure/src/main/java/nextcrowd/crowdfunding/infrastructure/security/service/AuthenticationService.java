@@ -33,8 +33,7 @@ public class AuthenticationService {
 
     public String authenticate(String username, String password) {
         Authentication authenticate = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(username, password)
-        );
+                new UsernamePasswordAuthenticationToken(username, password));
         return jwtService.generateToken(authenticate.getName());
 
     }
