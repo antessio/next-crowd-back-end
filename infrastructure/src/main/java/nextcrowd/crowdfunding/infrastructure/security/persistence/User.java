@@ -58,6 +58,9 @@ public class User implements UserDetails {
     @Column(name = "updated_at")
     private Date updatedAt;
 
+    @Column(name = "is_verified")
+    private boolean isVerified;
+
     @JsonIgnore
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
@@ -100,7 +103,7 @@ public class User implements UserDetails {
 
     @Override
     public boolean isEnabled() {
-        return true;
+        return isVerified;
     }
 
 

@@ -34,7 +34,7 @@ public class JwtService {
     }
 
     public String generateToken(String username) {
-        return generateToken(new HashMap<>(), username);
+        return generateToken(new HashMap<>(),   username);
     }
 
     public String generateToken(Map<String, Object> extraClaims, String username) {
