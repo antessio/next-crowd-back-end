@@ -18,6 +18,7 @@ import nextcrowd.crowdfunding.admin.api.model.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.admin.api.model.CancelInvestmentCommand;
 import nextcrowd.crowdfunding.admin.api.model.ConfirmInvestmentCommand;
 import nextcrowd.crowdfunding.admin.api.model.CrowdfundingProject;
+import nextcrowd.crowdfunding.admin.api.model.EditCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.admin.api.model.FileUploadResponse;
 import nextcrowd.crowdfunding.admin.api.model.Investment;
 import nextcrowd.crowdfunding.admin.api.model.PaginatedInvestmentsResponse;
@@ -52,6 +53,16 @@ public class AdminProjectController implements AdminApi {
                        .map(id -> new ProjectCreated().id(id))
                        .map(ResponseEntity::ok)
                        .orElseThrow();
+    }
+
+    @Override
+    public ResponseEntity<Void> adminProjectsProjectIdEditPut(String projectId, EditCrowdfundingProjectCommand editCrowdfundingProjectCommand) {
+        nextcrowd.crowdfunding.project.command.EditCrowdfundingProjectCommand domainCommand = Optional.of(editCrowdfundingProjectCommand)
+                                                                                                      .map(ApiConverter::toDomain)
+                                                                                                      .orElseThrow();
+        projectServicePort.editProject(new nextcrowd.crowdfunding.project.model.ProjectId(projectId), domainCommand);
+        return ResponseEntity.ok().build();
+
     }
 
     @Override

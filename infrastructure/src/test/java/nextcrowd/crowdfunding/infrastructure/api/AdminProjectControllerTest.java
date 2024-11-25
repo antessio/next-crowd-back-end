@@ -10,6 +10,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -40,6 +41,7 @@ import nextcrowd.crowdfunding.admin.api.model.AddInvestmentCommand;
 import nextcrowd.crowdfunding.admin.api.model.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.admin.api.model.CancelInvestmentCommand;
 import nextcrowd.crowdfunding.admin.api.model.ConfirmInvestmentCommand;
+import nextcrowd.crowdfunding.admin.api.model.EditCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.admin.api.model.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.infrastructure.SecurityConfiguration;
 import nextcrowd.crowdfunding.infrastructure.TestUtils;
@@ -174,12 +176,12 @@ class AdminProjectControllerTest {
                    .andExpect(jsonPath("$.owner.id").value(project.getOwner().getId()))
                    .andExpect(jsonPath("$.owner.name").value(project.getOwner().getName()))
                    .andExpect(jsonPath("$.owner.imageUrl").value(project.getOwner().getImageUrl()))
-                    .andExpect(jsonPath("$.numberOfBackers").value(project.getNumberOfBackers().orElseThrow()))
-                    .andExpect(jsonPath("$.rewards").isArray())
-                    .andExpect(jsonPath("$.rewards.length()").value(project.getRewards().size()))
-                    .andExpect(jsonPath("$.rewards[*].name").isArray())
+                   .andExpect(jsonPath("$.numberOfBackers").value(project.getNumberOfBackers().orElseThrow()))
+                   .andExpect(jsonPath("$.rewards").isArray())
+                   .andExpect(jsonPath("$.rewards.length()").value(project.getRewards().size()))
+                   .andExpect(jsonPath("$.rewards[*].name").isArray())
                    .andExpect(jsonPath("$.rewards[*].imageUrl").isArray())
-                    .andExpect(jsonPath("$.rewards[*].description").isArray());
+                   .andExpect(jsonPath("$.rewards[*].description").isArray());
         }
 
         @Test
@@ -275,6 +277,49 @@ class AdminProjectControllerTest {
                                     .content(TestUtils.objectMapper().writeValueAsBytes(submitCommandApi)))
                    .andExpect(status().isBadRequest())
                    .andExpect(jsonPath("$.message").value("Validation error"));
+        }
+
+        @Test
+        @DisplayName("Edit a project successfully")
+        void testEditProject() throws Exception {
+            String projectId = "test-project-id";
+            EditCrowdfundingProjectCommand editCommandApi = buildRandomEditCrowdfundingProjectCommand();
+            doNothing().when(projectServicePort).editProject(eq(new ProjectId(projectId)), any());
+
+            mockMvc.perform(put("/admin/projects/{id}/edit", projectId)
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(TestUtils.objectMapper().writeValueAsBytes(editCommandApi)))
+                   .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("Edit a project when project not found")
+        void testEditProjectNotFound() throws Exception {
+            String projectId = "test-project-id";
+            EditCrowdfundingProjectCommand editCommandApi = buildRandomEditCrowdfundingProjectCommand();
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND))
+                    .when(projectServicePort).editProject(eq(new ProjectId(projectId)), any());
+
+            mockMvc.perform(put("/admin/projects/{id}/edit", projectId)
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(TestUtils.objectMapper().writeValueAsBytes(editCommandApi)))
+                   .andExpect(status().isBadRequest());
+        }
+        @Test
+        @DisplayName("Edit a project when request is invalid")
+        void testEditProjectRequestInvalid() throws Exception {
+            String projectId = "test-project-id";
+            EditCrowdfundingProjectCommand editCommandApi = buildRandomEditCrowdfundingProjectCommand();
+            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS))
+                    .when(projectServicePort).editProject(eq(new ProjectId(projectId)), any());
+
+            mockMvc.perform(put("/admin/projects/{id}/edit", projectId)
+                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
+                                    .contentType(MediaType.APPLICATION_JSON)
+                                    .content(TestUtils.objectMapper().writeValueAsBytes(editCommandApi)))
+                   .andExpect(status().isBadRequest());
         }
 
         @Test
@@ -555,6 +600,23 @@ class AdminProjectControllerTest {
                 .owner(new nextcrowd.crowdfunding.admin.api.model.ProjectOwner()
                                .imageUrl(TestUtils.getFaker().internet().url())
                                .name(TestUtils.getFaker().lebowski().character()));
+    }
+
+    private EditCrowdfundingProjectCommand buildRandomEditCrowdfundingProjectCommand() {
+        return new EditCrowdfundingProjectCommand()
+                .title(TestUtils.getFaker().company().name())
+                .description(TestUtils.getFaker().lorem().sentence(10))
+                .requestedAmount(TestUtils.getRandomAmount().doubleValue())
+                .currency("EUR")
+                .projectStartDate(TestUtils.buildRandomOffsetDateTime())
+                .projectEndDate(TestUtils.buildRandomOffsetDateTime())
+                .owner(new nextcrowd.crowdfunding.admin.api.model.ProjectOwner()
+                               .imageUrl(TestUtils.getFaker().internet().url())
+                               .name(TestUtils.getFaker().lebowski().character()))
+                .rewards(List.of(new nextcrowd.crowdfunding.admin.api.model.ProjectReward()
+                                         .description(TestUtils.getFaker().lorem().sentence(10))
+                                         .imageUrl(TestUtils.getFaker().internet().url())
+                                         .name(TestUtils.getFaker().lebowski().character())));
     }
 
 }

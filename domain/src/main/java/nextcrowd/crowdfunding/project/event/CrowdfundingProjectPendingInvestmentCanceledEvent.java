@@ -8,9 +8,15 @@ import nextcrowd.crowdfunding.project.model.BakerId;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 
 @Value
-@Builder
-public class CrowdfundingProjectPendingInvestmentCanceledEvent {
-    private ProjectId projectId;
+public class CrowdfundingProjectPendingInvestmentCanceledEvent extends CrowdfundingProjectEvent {
     private BigDecimal amount;
     private BakerId bakerId;
+
+    @Builder
+    public CrowdfundingProjectPendingInvestmentCanceledEvent(ProjectId projectId, BigDecimal amount, BakerId bakerId) {
+        super(projectId);
+        this.amount = amount;
+        this.bakerId = bakerId;
+    }
+
 }

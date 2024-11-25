@@ -7,6 +7,7 @@ import nextcrowd.crowdfunding.project.command.AddInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.CancelInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ConfirmInvestmentCommand;
+import nextcrowd.crowdfunding.project.command.EditCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.Investment;
@@ -26,6 +27,8 @@ public interface ProjectServicePort {
     Stream<Investment> getAcceptedInvestments(ProjectId projectId, InvestmentId startingFrom);
 
     ProjectId submitProject(SubmitCrowdfundingProjectCommand projectCreationCommand);
+
+    void editProject(ProjectId projectId, EditCrowdfundingProjectCommand editCrowdfundingProjectCommand);
 
     void approve(ProjectId projectId, ApproveCrowdfundingProjectCommand command);
 

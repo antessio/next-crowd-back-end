@@ -10,6 +10,7 @@ import nextcrowd.crowdfunding.project.command.AddInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.CancelInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ConfirmInvestmentCommand;
+import nextcrowd.crowdfunding.project.command.EditCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.exception.CrowdfundingProjectException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
@@ -22,6 +23,7 @@ import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
 import nextcrowd.crowdfunding.project.port.EventPublisher;
 import nextcrowd.crowdfunding.project.port.TransactionalManager;
 import nextcrowd.crowdfunding.project.service.ProjectApprovalService;
+import nextcrowd.crowdfunding.project.service.ProjectEditingService;
 import nextcrowd.crowdfunding.project.service.ProjectInvestmentService;
 import nextcrowd.crowdfunding.project.service.ProjectIssuingService;
 import nextcrowd.crowdfunding.project.service.ProjectRejectionService;
@@ -39,6 +41,7 @@ public class ProjectService implements ProjectServicePort {
     private final ProjectIssuingService projectIssuingService;
     private final TransactionalManager transactionalManager;
     private static final Set<CrowdfundingProject.Status> PUBLISHED_STATUSES = Set.of(CrowdfundingProject.Status.APPROVED, CrowdfundingProject.Status.COMPLETED);
+    private final ProjectEditingService projectEditingService;
 
     public ProjectService(
             ProjectValidationService validationService,
@@ -53,6 +56,7 @@ public class ProjectService implements ProjectServicePort {
         this.projectRejectionService = new ProjectRejectionService(eventPublisher, repository);
         this.projectInvestment = new ProjectInvestmentService(eventPublisher, repository);
         this.projectIssuingService = new ProjectIssuingService(eventPublisher, repository);
+        this.projectEditingService = new ProjectEditingService(repository);
     }
 
     @Override
@@ -89,6 +93,19 @@ public class ProjectService implements ProjectServicePort {
         }
         CrowdfundingProject project = transactionalManager.executeInTransaction(() -> projectSubmissionService.submit(projectCreationCommand));
         return project.getId();
+    }
+
+    @Override
+    public void editProject(ProjectId projectId, EditCrowdfundingProjectCommand editCrowdfundingProjectCommand) {
+        List<ProjectValidationService.ValidationFailure> failedValidations = validationService.validateProjectEdit(editCrowdfundingProjectCommand);
+        if (!failedValidations.isEmpty()) {
+            throw new ValidationException(
+                    failedValidations.stream().map(ProjectValidationService.ValidationFailure::reason)
+                                     .collect(Collectors.joining("\n")));
+        }
+        CrowdfundingProject project = repository.findById(projectId)
+                                                .orElseThrow(() -> new CrowdfundingProjectException(CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND));
+        transactionalManager.executeInTransaction(() -> projectEditingService.edit(editCrowdfundingProjectCommand, project));
     }
 
     @Override
