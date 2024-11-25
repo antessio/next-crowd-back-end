@@ -1,5 +1,6 @@
 package nextcrowd.crowdfunding.infrastructure.project.persistence.adapter;
 
+import java.math.BigDecimal;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -55,9 +56,9 @@ public class CrowdfundingProjectAdapter {
                                                                     .description(project.getDescription())
                                                                     .longDescription(project.getLongDescription())
                                                                     .projectVideoUrl(project.getProjectVideoUrl())
-                                                                    .risk(project.getRisk())
-                                                                    .expectedProfit(project.getExpectedProfit())
-                                                                    .minimumInvestment(project.getMinimumInvestment())
+                                                                    .risk(project.getRisk().orElse(null))
+                                                                    .expectedProfit(project.getExpectedProfit().orElse(null))
+                                                                    .minimumInvestment(project.getMinimumInvestment().orElse(null))
                                                                     .rewards(new HashSet<>())
                                                                     .investments(Optional.ofNullable(project.getInvestments())
                                                                                          .stream()

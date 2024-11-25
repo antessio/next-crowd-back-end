@@ -22,7 +22,7 @@ import nextcrowd.crowdfunding.admin.api.model.FileUploadResponse;
 import nextcrowd.crowdfunding.admin.api.model.Investment;
 import nextcrowd.crowdfunding.admin.api.model.PaginatedInvestmentsResponse;
 import nextcrowd.crowdfunding.admin.api.model.PaginatedProjectsResponse;
-import nextcrowd.crowdfunding.admin.api.model.ProjectId;
+import nextcrowd.crowdfunding.admin.api.model.ProjectCreated;
 import nextcrowd.crowdfunding.admin.api.model.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.infrastructure.api.ApiError;
 import nextcrowd.crowdfunding.infrastructure.api.admin.adapter.ApiConverter;
@@ -44,12 +44,12 @@ public class AdminProjectController implements AdminApi {
     }
 
     @Override
-    public ResponseEntity<ProjectId> adminProjectsPost(SubmitCrowdfundingProjectCommand submitCrowdfundingProjectCommand) {
+    public ResponseEntity<ProjectCreated> adminProjectsPost(SubmitCrowdfundingProjectCommand submitCrowdfundingProjectCommand) {
         return Optional.of(submitCrowdfundingProjectCommand)
                        .map(ApiConverter::toDomain)
                        .map(projectServicePort::submitProject)
                        .map(nextcrowd.crowdfunding.project.model.ProjectId::id)
-                       .map(id -> new ProjectId().id(id))
+                       .map(id -> new ProjectCreated().id(id))
                        .map(ResponseEntity::ok)
                        .orElseThrow();
     }
@@ -101,7 +101,8 @@ public class AdminProjectController implements AdminApi {
 
     @Override
     public ResponseEntity<PaginatedProjectsResponse> adminProjectsPendingReviewGet(String cursor, Integer limit) {
-        List<CrowdfundingProject> results = new ArrayList<>(projectServicePort.getPendingReviewProjects(new nextcrowd.crowdfunding.project.model.ProjectId(cursor))
+        List<CrowdfundingProject> results = new ArrayList<>(projectServicePort.getPendingReviewProjects(new nextcrowd.crowdfunding.project.model.ProjectId(
+                                                                                      cursor))
                                                                               .limit(limit + 1)
                                                                               .map(ApiConverter::toApi)
                                                                               .toList());
@@ -127,8 +128,9 @@ public class AdminProjectController implements AdminApi {
         InvestmentId startingFrom = Optional.ofNullable(cursor)
                                             .map(InvestmentId::new)
                                             .orElse(null);
-        List<Investment> results = projectServicePort.getAcceptedInvestments(new nextcrowd.crowdfunding.project.model.ProjectId(
-                                                         projectId), startingFrom)
+        List<Investment> results = projectServicePort.getAcceptedInvestments(
+                                                             new nextcrowd.crowdfunding.project.model.ProjectId(
+                                                                     projectId), startingFrom)
                                                      .limit(limit + 1)
                                                      .map(ApiConverter::toApi)
                                                      .toList();
@@ -146,8 +148,9 @@ public class AdminProjectController implements AdminApi {
         InvestmentId startingFrom = Optional.ofNullable(cursor)
                                             .map(InvestmentId::new)
                                             .orElse(null);
-        List<Investment> results = new ArrayList<>(projectServicePort.getPendingInvestments(new nextcrowd.crowdfunding.project.model.ProjectId(
-                                                                         projectId), startingFrom)
+        List<Investment> results = new ArrayList<>(projectServicePort.getPendingInvestments(
+                                                                             new nextcrowd.crowdfunding.project.model.ProjectId(
+                                                                                     projectId), startingFrom)
                                                                      .limit(limit + 1)
                                                                      .map(ApiConverter::toApi)
                                                                      .toList());

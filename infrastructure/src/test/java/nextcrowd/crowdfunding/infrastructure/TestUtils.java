@@ -73,6 +73,10 @@ public class TestUtils {
                                                          .currency("USD")  // Set to "USD" or randomize if needed
                                                          .numberOfBackers(random.nextInt(1000))  // Random number of backers up to 1000
                                                          .owner(projectOwner)
+                                                         .risk(random.nextInt(5))
+                                                         .minimumInvestment(BigDecimal.valueOf(random.nextInt(1000)
+                                                                                               + 100))  // Random amount between 100 and 1000
+                                                         .expectedProfit(BigDecimal.valueOf(random.nextInt(100)))
                                                          .rewards(List.of(
                                                                  buildRandomProjectReward(),
                                                                  buildRandomProjectReward(),

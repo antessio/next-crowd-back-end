@@ -317,9 +317,9 @@ class ProjectServiceTest {
             verify(crowdfundingProjectRepository).save(captor.capture());
             assertThat(captor.getValue())
                     .matches(p -> p.getStatus() == CrowdfundingProject.Status.APPROVED)
-                    .matches(p -> p.getRisk() == command.getRisk())
-                    .matches(p -> p.getMinimumInvestment().equals(command.getMinimumInvestment()))
-                    .matches(p -> p.getExpectedProfit().equals(command.getExpectedProfit()));
+                    .matches(p -> p.getRisk().orElseThrow() == command.getRisk())
+                    .matches(p -> p.getMinimumInvestment().orElseThrow().equals(command.getMinimumInvestment()))
+                    .matches(p -> p.getExpectedProfit().orElseThrow().equals(command.getExpectedProfit()));
             verify(eventPublisher).publish(CrowdfundingProjectApprovedEvent.builder()
                                                                            .expectedProfit(command.getExpectedProfit())
                                                                            .risk(command.getRisk())

@@ -168,6 +168,9 @@ class AdminProjectControllerTest {
                    .andExpect(jsonPath("$.collectedAmount").value(project.getCollectedAmount().orElseThrow().doubleValue()))
                    .andExpect(jsonPath("$.projectStartDate").value(project.getProjectStartDate().toString()))
                    .andExpect(jsonPath("$.projectEndDate").value(project.getProjectEndDate().toString()))
+                   .andExpect(jsonPath("$.risk").value(project.getRisk().orElse(null)))
+                   .andExpect(jsonPath("$.expectedProfit").value(project.getExpectedProfit().map(BigDecimal::doubleValue).orElse(null)))
+                   .andExpect(jsonPath("$.minimumInvestment").value(project.getMinimumInvestment().map(BigDecimal::doubleValue).orElse(null)))
                    .andExpect(jsonPath("$.owner.id").value(project.getOwner().getId()))
                    .andExpect(jsonPath("$.owner.name").value(project.getOwner().getName()))
                    .andExpect(jsonPath("$.owner.imageUrl").value(project.getOwner().getImageUrl()));
