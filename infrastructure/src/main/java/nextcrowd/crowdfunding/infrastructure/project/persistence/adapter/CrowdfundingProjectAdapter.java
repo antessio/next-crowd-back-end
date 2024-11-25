@@ -52,7 +52,7 @@ public class CrowdfundingProjectAdapter {
                                                                     .projectOwner(ProjectOwnerAdapter.toEntity(project.getOwner()))
                                                                     .projectStartDate(project.getProjectStartDate())
                                                                     .projectEndDate(project.getProjectEndDate())
-                                                                    .numberOfBackers(project.getNumberOfBackers())
+                                                                    .numberOfBackers(project.getNumberOfBackers().orElse(null))
                                                                     .description(project.getDescription())
                                                                     .longDescription(project.getLongDescription())
                                                                     .projectVideoUrl(project.getProjectVideoUrl())

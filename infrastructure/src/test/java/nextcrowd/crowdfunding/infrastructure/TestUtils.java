@@ -77,6 +77,7 @@ public class TestUtils {
                                                          .minimumInvestment(BigDecimal.valueOf(random.nextInt(1000)
                                                                                                + 100))  // Random amount between 100 and 1000
                                                          .expectedProfit(BigDecimal.valueOf(random.nextInt(100)))
+                                                         .numberOfBackers(random.nextInt(1000))  // Random number of backers up to 1000
                                                          .rewards(List.of(
                                                                  buildRandomProjectReward(),
                                                                  buildRandomProjectReward(),

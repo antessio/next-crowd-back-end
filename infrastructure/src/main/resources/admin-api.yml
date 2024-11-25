@@ -336,6 +336,10 @@ components:
         minimumInvestment:
           type: number
           format: double
+        rewards:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectReward'
 
     Investment:
       type: object
@@ -349,7 +353,7 @@ components:
           format: double
         status:
           type: string
-          enum: [PENDING, ACCEPTED]
+          enum: [ PENDING, ACCEPTED ]
         moneyTransferId:
           type: string
 

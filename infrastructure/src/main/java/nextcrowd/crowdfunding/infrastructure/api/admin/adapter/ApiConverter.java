@@ -107,7 +107,16 @@ public final class ApiConverter {
                 .minimumInvestment(project.getMinimumInvestment().map(BigDecimal::doubleValue).orElse(null))
                 .expectedProfit(project.getExpectedProfit().map(BigDecimal::doubleValue).orElse(null))
                 .risk(project.getRisk().orElse(null))
-                .owner(projectOwnerToApi(project.getOwner()));
+                .owner(projectOwnerToApi(project.getOwner()))
+                .numberOfBackers(project.getNumberOfBackers().orElse(null))
+                .rewards(project.getRewards().stream().map(ApiConverter::projectRewardToApi).toList());
+    }
+
+    private static nextcrowd.crowdfunding.admin.api.model.ProjectReward projectRewardToApi(ProjectReward projectReward) {
+        return new nextcrowd.crowdfunding.admin.api.model.ProjectReward()
+                .name(projectReward.getName())
+                .description(projectReward.getDescription())
+                .imageUrl(projectReward.getImageUrl());
     }
 
     private static nextcrowd.crowdfunding.admin.api.model.ProjectOwner projectOwnerToApi(ProjectOwner owner) {
