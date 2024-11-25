@@ -43,6 +43,9 @@ public class CrowdfundingProject {
     public Optional<Integer> getRisk() {
         return Optional.ofNullable(risk);
     }
+    public Optional<Integer> getNumberOfBackers() {
+        return Optional.ofNullable(numberOfBackers);
+    }
 
     public List<Investment> getAcceptedInvestments() {
         return investments.stream().filter(Investment::isAccepted).toList();

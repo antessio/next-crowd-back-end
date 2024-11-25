@@ -173,7 +173,13 @@ class AdminProjectControllerTest {
                    .andExpect(jsonPath("$.minimumInvestment").value(project.getMinimumInvestment().map(BigDecimal::doubleValue).orElse(null)))
                    .andExpect(jsonPath("$.owner.id").value(project.getOwner().getId()))
                    .andExpect(jsonPath("$.owner.name").value(project.getOwner().getName()))
-                   .andExpect(jsonPath("$.owner.imageUrl").value(project.getOwner().getImageUrl()));
+                   .andExpect(jsonPath("$.owner.imageUrl").value(project.getOwner().getImageUrl()))
+                    .andExpect(jsonPath("$.numberOfBackers").value(project.getNumberOfBackers().orElseThrow()))
+                    .andExpect(jsonPath("$.rewards").isArray())
+                    .andExpect(jsonPath("$.rewards.length()").value(project.getRewards().size()))
+                    .andExpect(jsonPath("$.rewards[*].name").isArray())
+                   .andExpect(jsonPath("$.rewards[*].imageUrl").isArray())
+                    .andExpect(jsonPath("$.rewards[*].description").isArray());
         }
 
         @Test

@@ -20,6 +20,7 @@ public class ApiConverter {
                 .longDescription(project.getLongDescription())
                 .projectVideoUrl(project.getProjectVideoUrl())
                 .owner(convertProjectOwner(project.getOwner()))
+                .numberOfBackers(project.getNumberOfBackers().orElse(null))
                 .rewards(project.getRewards().stream().map(ApiConverter::convertProjectReward).toList());
     }
 
