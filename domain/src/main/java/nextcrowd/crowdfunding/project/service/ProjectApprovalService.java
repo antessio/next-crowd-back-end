@@ -30,9 +30,9 @@ public class ProjectApprovalService {
         repository.save(approved);
         eventPublisher.publish(CrowdfundingProjectApprovedEvent.builder()
                                                                .projectId(approved.getId())
-                                                               .minimumInvestment(approved.getMinimumInvestment())
-                                                               .risk(approved.getRisk())
-                                                               .expectedProfit(approved.getExpectedProfit())
+                                                               .minimumInvestment(approved.getMinimumInvestment().orElse(null))
+                                                               .risk(approved.getRisk().orElseThrow())
+                                                               .expectedProfit(approved.getExpectedProfit().orElse(null))
                                                                .build());
     }
     private static void checkStatus(CrowdfundingProject project) {

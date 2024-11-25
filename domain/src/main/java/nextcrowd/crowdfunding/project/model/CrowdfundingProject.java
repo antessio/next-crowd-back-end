@@ -32,6 +32,18 @@ public class CrowdfundingProject {
     private BigDecimal minimumInvestment;
     private List<Investment> investments;
 
+    public Optional<BigDecimal> getMinimumInvestment() {
+        return Optional.ofNullable(minimumInvestment);
+    }
+
+    public Optional<BigDecimal> getExpectedProfit() {
+        return Optional.ofNullable(expectedProfit);
+    }
+
+    public Optional<Integer> getRisk() {
+        return Optional.ofNullable(risk);
+    }
+
     public List<Investment> getAcceptedInvestments() {
         return investments.stream().filter(Investment::isAccepted).toList();
     }

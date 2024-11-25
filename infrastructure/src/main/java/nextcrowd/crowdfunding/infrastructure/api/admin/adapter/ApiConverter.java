@@ -104,6 +104,9 @@ public final class ApiConverter {
                 .description(project.getDescription())
                 .longDescription(project.getLongDescription())
                 .projectVideoUrl(project.getProjectVideoUrl())
+                .minimumInvestment(project.getMinimumInvestment().map(BigDecimal::doubleValue).orElse(null))
+                .expectedProfit(project.getExpectedProfit().map(BigDecimal::doubleValue).orElse(null))
+                .risk(project.getRisk().orElse(null))
                 .owner(projectOwnerToApi(project.getOwner()));
     }
 
