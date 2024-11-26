@@ -5,7 +5,11 @@ import lombok.Value;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 
 @Value
-@Builder
-public class CrowdfundingProjectRejectedEvent {
-    private ProjectId projectId;
+public class CrowdfundingProjectRejectedEvent extends CrowdfundingProjectEvent {
+
+    @Builder
+    public CrowdfundingProjectRejectedEvent(ProjectId projectId) {
+        super(projectId);
+    }
+
 }

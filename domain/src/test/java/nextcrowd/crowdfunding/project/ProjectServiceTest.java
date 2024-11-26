@@ -36,6 +36,7 @@ import nextcrowd.crowdfunding.project.command.AddInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.CancelInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ConfirmInvestmentCommand;
+import nextcrowd.crowdfunding.project.command.EditCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectApprovedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectPendingInvestmentAddedEvent;
@@ -175,11 +176,12 @@ class ProjectServiceTest {
         void shouldNotCreateProjectValidationFails() {
             // given
             Instant now = Instant.now();
-            SubmitCrowdfundingProjectCommand projectCreationCommand = buildSubmitCommand(now, ProjectOwner.builder()
-                                                                                                          .id("1")
-                                                                                                          .imageUrl("ownerImageUrl")
-                                                                                                          .name("owner1")
-                                                                                                          .build());
+            SubmitCrowdfundingProjectCommand projectCreationCommand = buildSubmitCommand(
+                    now, ProjectOwner.builder()
+                                     .id("1")
+                                     .imageUrl("ownerImageUrl")
+                                     .name("owner1")
+                                     .build());
             when(validationService.validateProjectSubmission(projectCreationCommand)).thenReturn(buildValidationFailureList());
 
             // when
@@ -215,25 +217,80 @@ class ProjectServiceTest {
 
     }
 
-    private static ArgumentMatcher<CrowdfundingProject> getCrowdfundingProjectArgumentMatcher(SubmitCrowdfundingProjectCommand projectCreationCommand) {
-        return p -> p.getId() != null &&
-                    p.getImageUrl().equals(projectCreationCommand.getImageUrl()) &&
-                    p.getStatus().equals(CrowdfundingProject.Status.SUBMITTED)
-                    && p.getRequestedAmount().doubleValue() == projectCreationCommand.getRequestedAmount()
-                    && p.getCollectedAmount().isEmpty()
-                    && p.getCurrency().equals(projectCreationCommand.getCurrency())
-                    && p.getProjectStartDate().equals(projectCreationCommand.getProjectStartDate())
-                    && p.getProjectEndDate().equals(projectCreationCommand.getProjectEndDate())
-                    && p.getDescription().equals(projectCreationCommand.getDescription())
-                    && p.getTitle().equals(projectCreationCommand.getTitle())
-                    && p.getLongDescription().equals(projectCreationCommand.getLongDescription())
-                    && p.getRewards().equals(projectCreationCommand.getRewards())
-                    && p.getOwner().equals(projectCreationCommand.getOwner());
-    }
+    @Nested
+    @DisplayName("project editing")
+    class ProjectEditingTest {
 
-    private static List<ProjectValidationService.ValidationFailure> buildValidationFailureList() {
-        return List.of(new ProjectValidationService.ValidationFailure(
-                "reason"));
+        @Test
+        @DisplayName("should fail if any validation fails")
+        void shouldFailIfValidationFails() {
+            // given
+            Instant now = Instant.now();
+            ProjectId projectId = randomProjectId();
+            EditCrowdfundingProjectCommand projectCreationCommand = buildEditCommand(
+                    now, ProjectOwner.builder()
+                                     .id("1")
+                                     .imageUrl("ownerImageUrl")
+                                     .name("owner1")
+                                     .build());
+            when(validationService.validateProjectEdit(projectCreationCommand)).thenReturn(buildValidationFailureList());
+
+            // when
+            // then
+            assertThatExceptionOfType(ValidationException.class)
+                    .isThrownBy(() -> projectServicePort.editProject(projectId, projectCreationCommand));
+
+        }
+
+
+        @Test
+        @DisplayName("should fail if project status is not submitted")
+        void shouldFailIfProjectStatusNotSubmitted() {
+            // given
+            Instant now = Instant.now();
+            ProjectId projectId = randomProjectId();
+            CrowdfundingProject existingProject = buildProjectApproved(projectId, new BigDecimal(0), Collections.emptyList(), List.of(), List.of());
+            EditCrowdfundingProjectCommand projectCreationCommand = buildEditCommand(
+                    now, ProjectOwner.builder()
+                                     .id("1")
+                                     .imageUrl("ownerImageUrl")
+                                     .name("owner1")
+                                     .build());
+            when(validationService.validateProjectEdit(projectCreationCommand)).thenReturn(Collections.emptyList());
+            when(crowdfundingProjectRepository.findById(projectId)).thenReturn(Optional.of(existingProject));
+
+            // when
+            // then
+            assertThatExceptionOfType(CrowdfundingProjectException.class)
+                    .isThrownBy(() -> projectServicePort.editProject(projectId, projectCreationCommand))
+                    .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS);
+
+        }
+
+        @Test
+        @DisplayName("should update a project")
+        void shouldStoreProjectAndPublishEvent() {
+            // given
+            Instant now = Instant.now();
+            ProjectId projectId = randomProjectId();
+            CrowdfundingProject existingProject = buildProjectSubmitted(projectId);
+            EditCrowdfundingProjectCommand editCrowdfundingProjectCommand = buildEditCommand(
+                    now, ProjectOwner.builder()
+                                     .id("1")
+                                     .imageUrl("ownerImageUrl")
+                                     .name("owner1")
+                                     .build());
+            when(validationService.validateProjectEdit(editCrowdfundingProjectCommand)).thenReturn(Collections.emptyList());
+            when(crowdfundingProjectRepository.findById(projectId)).thenReturn(Optional.of(existingProject));
+            when(crowdfundingProjectRepository.save(argThat(getCrowdfundingProjectArgumentMatcher(editCrowdfundingProjectCommand)))).thenAnswer(returnsFirstArg());
+
+            // when
+            projectServicePort.editProject(projectId, editCrowdfundingProjectCommand);
+            //then
+            verify(crowdfundingProjectRepository).save(argThat(getCrowdfundingProjectArgumentMatcher(editCrowdfundingProjectCommand)));
+            verifyNoInteractions(eventPublisher);
+        }
+
     }
 
     @Nested
@@ -650,24 +707,6 @@ class ProjectServiceTest {
 
     }
 
-    private static Investment buildPendingInvestment(BakerId bakerId, BigDecimal amount) {
-        return Investment.builder()
-                         .id(new InvestmentId(UuidCreator.getTimeOrderedEpoch().toString()))
-                         .bakerId(bakerId)
-                         .amount(amount)
-                         .status(InvestmentStatus.PENDING)
-                         .build();
-    }
-
-    private static Investment buildAcceptedInvestment(BakerId bakerId, BigDecimal amount) {
-        return Investment.builder()
-                         .id(new InvestmentId(UuidCreator.getTimeOrderedEpoch().toString()))
-                         .bakerId(bakerId)
-                         .amount(amount)
-                         .moneyTransferId(randomMoneyTransferId())
-                         .status(InvestmentStatus.ACCEPTED)
-                         .build();
-    }
 
     @Nested
     @DisplayName("investment cancellation")
@@ -1028,5 +1067,91 @@ class ProjectServiceTest {
                 .build();
     }
 
+    private static EditCrowdfundingProjectCommand buildEditCommand(Instant now, ProjectOwner projectOwner) {
+        return EditCrowdfundingProjectCommand
+                .builder()
+                .projectStartDate(now.plus(4, ChronoUnit.DAYS))
+                .projectEndDate(now.plus(160, ChronoUnit.DAYS))
+                .projectVideoUrl("videoUrl2")
+                .owner(projectOwner)
+                .title("projectTitle2")
+                .currency("EUR")
+                .requestedAmount(100_000d)
+                .description("aShortDescription2")
+                .longDescription("aLongDescription2")
+                .imageUrl("projectImageUrl2")
+                .rewards(List.of(
+                        ProjectReward.builder()
+                                     .description("aRewardDescription1")
+                                     .imageUrl("rewardImageUrl1")
+                                     .name("rewardName1")
+                                     .build(),
+                        ProjectReward.builder()
+                                     .description("aRewardDescription2")
+                                     .imageUrl("rewardImageUrl2")
+                                     .name("rewardName2")
+                                     .build(),
+                        ProjectReward.builder()
+                                     .description("aRewardDescription3")
+                                     .imageUrl("rewardImageUrl3")
+                                     .name("rewardName3")
+                                     .build()))
+                .build();
+    }
+
+    private static ArgumentMatcher<CrowdfundingProject> getCrowdfundingProjectArgumentMatcher(SubmitCrowdfundingProjectCommand projectCreationCommand) {
+        return p -> p.getId() != null &&
+                    p.getImageUrl().equals(projectCreationCommand.getImageUrl()) &&
+                    p.getStatus().equals(CrowdfundingProject.Status.SUBMITTED)
+                    && p.getRequestedAmount().doubleValue() == projectCreationCommand.getRequestedAmount()
+                    && p.getCollectedAmount().isEmpty()
+                    && p.getCurrency().equals(projectCreationCommand.getCurrency())
+                    && p.getProjectStartDate().equals(projectCreationCommand.getProjectStartDate())
+                    && p.getProjectEndDate().equals(projectCreationCommand.getProjectEndDate())
+                    && p.getDescription().equals(projectCreationCommand.getDescription())
+                    && p.getTitle().equals(projectCreationCommand.getTitle())
+                    && p.getLongDescription().equals(projectCreationCommand.getLongDescription())
+                    && p.getRewards().equals(projectCreationCommand.getRewards())
+                    && p.getOwner().equals(projectCreationCommand.getOwner());
+    }
+    private static ArgumentMatcher<CrowdfundingProject> getCrowdfundingProjectArgumentMatcher(EditCrowdfundingProjectCommand projectCreationCommand) {
+        return p -> p.getId() != null &&
+                    p.getImageUrl().equals(projectCreationCommand.getImageUrl()) &&
+                    p.getStatus().equals(CrowdfundingProject.Status.SUBMITTED)
+                    && p.getRequestedAmount().doubleValue() == projectCreationCommand.getRequestedAmount()
+                    && p.getCollectedAmount().isEmpty()
+                    && p.getCurrency().equals(projectCreationCommand.getCurrency())
+                    && p.getProjectStartDate().equals(projectCreationCommand.getProjectStartDate())
+                    && p.getProjectEndDate().equals(projectCreationCommand.getProjectEndDate())
+                    && p.getDescription().equals(projectCreationCommand.getDescription())
+                    && p.getTitle().equals(projectCreationCommand.getTitle())
+                    && p.getLongDescription().equals(projectCreationCommand.getLongDescription())
+                    && p.getRewards().equals(projectCreationCommand.getRewards())
+                    && p.getOwner().equals(projectCreationCommand.getOwner());
+    }
+
+    private static List<ProjectValidationService.ValidationFailure> buildValidationFailureList() {
+        return List.of(new ProjectValidationService.ValidationFailure(
+                "reason"));
+    }
+
+    private static Investment buildPendingInvestment(BakerId bakerId, BigDecimal amount) {
+        return Investment.builder()
+                         .id(new InvestmentId(UuidCreator.getTimeOrderedEpoch().toString()))
+                         .bakerId(bakerId)
+                         .amount(amount)
+                         .status(InvestmentStatus.PENDING)
+                         .build();
+    }
+
+    private static Investment buildAcceptedInvestment(BakerId bakerId, BigDecimal amount) {
+        return Investment.builder()
+                         .id(new InvestmentId(UuidCreator.getTimeOrderedEpoch().toString()))
+                         .bakerId(bakerId)
+                         .amount(amount)
+                         .moneyTransferId(randomMoneyTransferId())
+                         .status(InvestmentStatus.ACCEPTED)
+                         .build();
+    }
 
 }

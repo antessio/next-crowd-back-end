@@ -6,8 +6,13 @@ import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
 
 @Value
-@Builder
-public class CrowdfundingProjectSubmittedEvent {
-    private ProjectId projectId;
+public class CrowdfundingProjectSubmittedEvent extends CrowdfundingProjectEvent {
     private ProjectOwner projectOwner;
+
+    @Builder
+    public CrowdfundingProjectSubmittedEvent(ProjectId projectId, ProjectOwner projectOwner) {
+        super(projectId);
+        this.projectOwner = projectOwner;
+    }
+
 }

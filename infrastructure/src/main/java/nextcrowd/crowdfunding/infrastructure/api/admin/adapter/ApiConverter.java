@@ -7,6 +7,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
+import nextcrowd.crowdfunding.project.command.EditCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.AddInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.CancelInvestmentCommand;
@@ -141,6 +142,25 @@ public final class ApiConverter {
 
     private static BigDecimal convertBigDecimal(Double approveCrowdfundingProjectCommand) {
         return BigDecimal.valueOf(approveCrowdfundingProjectCommand);
+    }
+
+    public static EditCrowdfundingProjectCommand toDomain(nextcrowd.crowdfunding.admin.api.model.EditCrowdfundingProjectCommand editCrowdfundingProjectCommand) {
+        return EditCrowdfundingProjectCommand.builder()
+                                             .title(editCrowdfundingProjectCommand.getTitle())
+                                             .imageUrl(editCrowdfundingProjectCommand.getImageUrl())
+                                             .requestedAmount(editCrowdfundingProjectCommand.getRequestedAmount())
+                                             .currency(editCrowdfundingProjectCommand.getCurrency())
+                                             .projectStartDate(editCrowdfundingProjectCommand.getProjectStartDate().toInstant())
+                                             .projectEndDate(editCrowdfundingProjectCommand.getProjectEndDate().toInstant())
+                                             .description(editCrowdfundingProjectCommand.getDescription())
+                                             .longDescription(editCrowdfundingProjectCommand.getLongDescription())
+                                             .projectVideoUrl(editCrowdfundingProjectCommand.getProjectVideoUrl())
+                                             .owner(convertProjectOwner(editCrowdfundingProjectCommand.getOwner()))
+                                             .rewards(Optional.ofNullable(editCrowdfundingProjectCommand.getRewards()).orElseGet(List::of)
+                                                              .stream()
+                                                              .map(ApiConverter::convertProjectReward)
+                                                              .toList())
+                                             .build();
     }
 
 }

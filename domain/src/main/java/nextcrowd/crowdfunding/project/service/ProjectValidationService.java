@@ -4,6 +4,7 @@ import java.time.Clock;
 import java.util.List;
 
 import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
+import nextcrowd.crowdfunding.project.command.EditCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 
 public class ProjectValidationService {
@@ -20,6 +21,10 @@ public class ProjectValidationService {
     }
 
     public List<ValidationFailure> validateProjectApproval(ApproveCrowdfundingProjectCommand command) {
+        return List.of();
+    }
+
+    public List<ValidationFailure> validateProjectEdit(EditCrowdfundingProjectCommand command) {
         return List.of();
     }
 
