@@ -6,6 +6,7 @@ import static org.mockito.AdditionalAnswers.returnsFirstArg;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -13,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -21,6 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Supplier;
 import java.util.stream.Stream;
+
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,6 +41,7 @@ import nextcrowd.crowdfunding.project.command.CancelInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ConfirmInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.EditCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
+import nextcrowd.crowdfunding.project.command.TimelineEventCommand;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectApprovedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectPendingInvestmentAddedEvent;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectIssuedEvent;
@@ -56,6 +60,9 @@ import nextcrowd.crowdfunding.project.model.MoneyTransferId;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
 import nextcrowd.crowdfunding.project.model.ProjectReward;
+import nextcrowd.crowdfunding.project.model.Timeline;
+import nextcrowd.crowdfunding.project.model.TimelineEvent;
+import nextcrowd.crowdfunding.project.model.TimelineEventId;
 import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
 import nextcrowd.crowdfunding.project.port.EventPublisher;
 import nextcrowd.crowdfunding.project.port.TransactionalManager;
@@ -216,6 +223,234 @@ class ProjectServiceTest {
         }
 
     }
+
+    @Nested
+    @DisplayName("project timeline")
+    class CreateProjectTimeline {
+
+        @Test
+        @DisplayName("should create project timeline")
+        void shouldCreateProjectTimeline() {
+            // given
+            ProjectId projectId = randomProjectId();
+            CrowdfundingProject project = buildProjectApproved(projectId, new BigDecimal(0), Collections.emptyList(), List.of(), List.of());
+            List<TimelineEventCommand> timelineEventCommands = List.of(
+                    TimelineEventCommand.builder()
+                                        .date(LocalDate.of(2024, 12, 12))
+                                        .description("event 1 description")
+                                        .title("event1")
+                                        .build(),
+                    TimelineEventCommand.builder()
+                                        .date(LocalDate.of(2025, 01, 12))
+                                        .description("event 2 description")
+                                        .title("event2")
+                                        .build()
+            );
+            when(crowdfundingProjectRepository.findById(projectId)).thenReturn(Optional.of(project));
+            when(crowdfundingProjectRepository.findTimelineEvents(projectId)).thenReturn(Collections.emptySet());
+            doNothing().when(crowdfundingProjectRepository).saveTimelineEvents(eq(projectId), any());
+
+            // when
+            projectServicePort.createProjectTimeline(projectId, timelineEventCommands);
+
+            // then
+            this.verifyTimelineEventCommandsSaved(projectId, timelineEventCommands);
+        }
+
+        private void verifyTimelineEventCommandsSaved(ProjectId projectId, List<TimelineEventCommand> timelineEventCommands) {
+            verify(crowdfundingProjectRepository).saveTimelineEvents(eq(projectId), argThat(getArgumentMatcherTimelineEvent(timelineEventCommands)));
+        }
+
+        private void verifyTimelineEventSaved(ProjectId projectId, List<TimelineEvent> timelineEvents) {
+            verify(crowdfundingProjectRepository).saveTimelineEvents(eq(projectId), eq(timelineEvents));
+        }
+
+        @Test
+        @DisplayName("should fail project timeline - project doesn't exist")
+        void shouldFailCreatingIfProjectNotExists() {
+            // given
+            ProjectId projectId = randomProjectId();
+            List<TimelineEventCommand> timelineEventCommands = List.of(
+                    TimelineEventCommand.builder()
+                                        .date(LocalDate.of(2024, 12, 12))
+                                        .description("event 1 description")
+                                        .title("event1")
+                                        .build(),
+                    TimelineEventCommand.builder()
+                                        .date(LocalDate.of(2025, 01, 12))
+                                        .description("event 2 description")
+                                        .title("event2")
+                                        .build()
+            );
+            when(crowdfundingProjectRepository.findById(projectId)).thenReturn(Optional.empty());
+
+            // when
+            assertThatExceptionOfType(CrowdfundingProjectException.class)
+                    .isThrownBy(() -> projectServicePort.createProjectTimeline(projectId, timelineEventCommands))
+                    .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND);
+
+        }
+
+        @Test
+        @DisplayName("should update project timeline")
+        void shouldUpdateTimeline() {
+            // given
+            ProjectId projectId = randomProjectId();
+            CrowdfundingProject project = buildProjectApproved(projectId, new BigDecimal(0), Collections.emptyList(), List.of(), List.of());
+            when(crowdfundingProjectRepository.findById(projectId)).thenReturn(Optional.of(project));
+            TimelineEventId targetEventId = TimelineEventId.generate();
+            TimelineEvent event1 = TimelineEvent.builder()
+                                                .id(TimelineEventId.generate())
+                                                .date(LocalDate.of(2023, 12, 12))
+                                                .description("event 1 description")
+                                                .title("event1")
+                                                .build();
+            TimelineEvent event2 = TimelineEvent.builder()
+                                                .id(targetEventId)
+                                                .date(LocalDate.of(2024, 01, 12))
+                                                .description("event 2 description")
+                                                .title("event2")
+                                                .build();
+            Set<TimelineEvent> existingTimelineEvents = Set.of(event1, event2);
+            TimelineEventCommand update = TimelineEventCommand.builder()
+                                                              .date(LocalDate.of(2025, 1, 12))
+                                                              .description("event 3 description")
+                                                              .title("event3")
+                                                              .build();
+            List<TimelineEvent> expectedTimelineEvents = List.of(
+                    event1,
+                    TimelineEvent.builder()
+                                 .id(targetEventId)
+                                 .date(update.getDate())
+                                 .description(update.getDescription())
+                                 .title(update.getTitle())
+                                 .build()
+            );
+            when(crowdfundingProjectRepository.findTimelineEvents(projectId)).thenReturn(existingTimelineEvents);
+            doNothing().when(crowdfundingProjectRepository).saveTimelineEvents(eq(projectId), any());
+
+            // when
+
+            projectServicePort.updateProjectTimelineEvent(
+                    projectId, targetEventId,
+                    update);
+
+            // then
+            verifyTimelineEventSaved(projectId, expectedTimelineEvents);
+        }
+
+        @Test
+        @DisplayName("should get project timeline")
+        void shouldGetProjectTimeline() {
+            // given
+            ProjectId projectId = randomProjectId();
+            CrowdfundingProject project = buildProjectApproved(projectId, new BigDecimal(0), Collections.emptyList(), List.of(), List.of());
+            Set<TimelineEvent> expectedTimelineEvent = Set.of(
+                    TimelineEvent.builder()
+                                 .date(LocalDate.of(2024, 12, 12))
+                                 .description("event 1 description")
+                                 .title("event1")
+                                 .build(),
+                    TimelineEvent.builder()
+                                 .date(LocalDate.of(2025, 01, 12))
+                                 .description("event 2 description")
+                                 .title("event2")
+                                 .build()
+            );
+            when(crowdfundingProjectRepository.findById(projectId)).thenReturn(Optional.of(project));
+            when(crowdfundingProjectRepository.findTimelineEvents(projectId)).thenReturn(expectedTimelineEvent);
+            // when
+            Timeline timeline = projectServicePort.getProjectTimeline(projectId);
+            // then
+            assertThat(timeline.getProjectId()).isEqualTo(projectId);
+            assertThat(timeline.getEvents()).isEqualTo(expectedTimelineEvent);
+        }
+
+        @Test
+        @DisplayName("should fail getting project timeline - project doesn't exist")
+        void shouldFailGettingProjectTimelineIfProjectNotExists() {
+            // given
+            ProjectId projectId = randomProjectId();
+
+            when(crowdfundingProjectRepository.findById(projectId)).thenReturn(Optional.empty());
+            // when
+            assertThatExceptionOfType(CrowdfundingProjectException.class)
+                    .isThrownBy(() -> projectServicePort.getProjectTimeline(projectId))
+                    .matches(e -> e.getReason() == CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND);
+        }
+
+        @Test
+        @DisplayName("should delete project timeline event")
+        void shouldAddEventTimeline() {
+            // given
+            ProjectId projectId = randomProjectId();
+            CrowdfundingProject project = buildProjectApproved(projectId, new BigDecimal(0), Collections.emptyList(), List.of(), List.of());
+            TimelineEventCommand timelineEventCommand = TimelineEventCommand.builder()
+                                                                            .date(LocalDate.of(2024, 12, 12))
+                                                                            .description("event 3 description")
+                                                                            .title("event3")
+                                                                            .build();
+            Set<TimelineEvent> existingTimelineEvents = Set.of(
+                    TimelineEvent.builder()
+                                 .id(TimelineEventId.generate())
+                                 .date(LocalDate.of(2024, 12, 12))
+                                 .description("event 1 description")
+                                 .title("event1")
+                                 .build(),
+                    TimelineEvent.builder()
+                                 .id(TimelineEventId.generate())
+                                 .date(LocalDate.of(2025, 01, 12))
+                                 .description("event 2 description")
+                                 .title("event2")
+                                 .build()
+            );
+
+            when(crowdfundingProjectRepository.findById(projectId)).thenReturn(Optional.of(project));
+            when(crowdfundingProjectRepository.findTimelineEvents(projectId)).thenReturn(existingTimelineEvents);
+            doNothing().when(crowdfundingProjectRepository).saveTimelineEvents(eq(projectId), any());
+
+            // when
+            projectServicePort.addProjectTimelineEvent(projectId, timelineEventCommand);
+
+            // then
+            verifyTimelineEventCommandsSaved(projectId, List.of(timelineEventCommand));
+
+        }
+
+        @Test
+        @DisplayName("should delete an element from project timeline")
+        void shouldDeleteTimelineEvent() {
+            // given
+            ProjectId projectId = randomProjectId();
+            CrowdfundingProject project = buildProjectApproved(projectId, new BigDecimal(0), Collections.emptyList(), List.of(), List.of());
+            TimelineEventId targetEventId = TimelineEventId.generate();
+            TimelineEvent event1 = TimelineEvent.builder()
+                                                .id(TimelineEventId.generate())
+                                                .date(LocalDate.of(2024, 12, 12))
+                                                .description("event 1 description")
+                                                .title("event1")
+                                                .build();
+            TimelineEvent event2 = TimelineEvent.builder()
+                                                .id(targetEventId)
+                                                .date(LocalDate.of(2025, 01, 12))
+                                                .description("event 2 description")
+                                                .title("event2")
+                                                .build();
+            Set<TimelineEvent> existingTimelineEvents = Set.of(event1, event2);
+
+            when(crowdfundingProjectRepository.findById(projectId)).thenReturn(Optional.of(project));
+            when(crowdfundingProjectRepository.findTimelineEvents(projectId)).thenReturn(existingTimelineEvents);
+            doNothing().when(crowdfundingProjectRepository).saveTimelineEvents(eq(projectId), any());
+
+            // when
+            projectServicePort.deleteProjectTimelineEvent(projectId, targetEventId);
+
+            // then
+            verifyTimelineEventSaved(projectId, List.of(event1));
+        }
+
+    }
+
 
     @Nested
     @DisplayName("project editing")
@@ -1114,6 +1349,7 @@ class ProjectServiceTest {
                     && p.getRewards().equals(projectCreationCommand.getRewards())
                     && p.getOwner().equals(projectCreationCommand.getOwner());
     }
+
     private static ArgumentMatcher<CrowdfundingProject> getCrowdfundingProjectArgumentMatcher(EditCrowdfundingProjectCommand projectCreationCommand) {
         return p -> p.getId() != null &&
                     p.getImageUrl().equals(projectCreationCommand.getImageUrl()) &&
@@ -1152,6 +1388,11 @@ class ProjectServiceTest {
                          .moneyTransferId(randomMoneyTransferId())
                          .status(InvestmentStatus.ACCEPTED)
                          .build();
+    }
+
+    private static ArgumentMatcher<List<TimelineEvent>> getArgumentMatcherTimelineEvent(List<TimelineEventCommand> timelineEventCommands) {
+        return timelineEvents1 -> timelineEvents1.stream().map(e -> e.getTitle() + e.getDescription() + e.getDate()).toList()
+                                                 .equals(timelineEventCommands.stream().map(e -> e.getTitle() + e.getDescription() + e.getDate()).toList());
     }
 
 }

@@ -1,5 +1,6 @@
 package nextcrowd.crowdfunding.project;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.stream.Stream;
 
@@ -7,12 +8,15 @@ import nextcrowd.crowdfunding.project.command.AddInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.CancelInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ConfirmInvestmentCommand;
+import nextcrowd.crowdfunding.project.command.TimelineEventCommand;
 import nextcrowd.crowdfunding.project.command.EditCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.Investment;
 import nextcrowd.crowdfunding.project.model.InvestmentId;
 import nextcrowd.crowdfunding.project.model.ProjectId;
+import nextcrowd.crowdfunding.project.model.Timeline;
+import nextcrowd.crowdfunding.project.model.TimelineEventId;
 
 public interface ProjectServicePort {
 
@@ -41,5 +45,15 @@ public interface ProjectServicePort {
     void cancelInvestment(ProjectId projectId, CancelInvestmentCommand command);
 
     void issue(ProjectId projectId);
+
+    Timeline getProjectTimeline(ProjectId projectId);
+
+    void createProjectTimeline(ProjectId projectId, List<TimelineEventCommand> events);
+
+    void addProjectTimelineEvent(ProjectId projectId, TimelineEventCommand event);
+
+    void updateProjectTimelineEvent(ProjectId projectId, TimelineEventId timelineEventId, TimelineEventCommand event);
+
+    void deleteProjectTimelineEvent(ProjectId projectId, TimelineEventId timelineEventId);
 
 }

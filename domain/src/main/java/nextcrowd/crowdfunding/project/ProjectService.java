@@ -1,5 +1,6 @@
 package nextcrowd.crowdfunding.project;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -12,6 +13,7 @@ import nextcrowd.crowdfunding.project.command.CancelInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ConfirmInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.EditCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
+import nextcrowd.crowdfunding.project.command.TimelineEventCommand;
 import nextcrowd.crowdfunding.project.exception.CrowdfundingProjectException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
@@ -19,6 +21,9 @@ import nextcrowd.crowdfunding.project.model.Investment;
 import nextcrowd.crowdfunding.project.model.InvestmentId;
 import nextcrowd.crowdfunding.project.model.InvestmentStatus;
 import nextcrowd.crowdfunding.project.model.ProjectId;
+import nextcrowd.crowdfunding.project.model.Timeline;
+import nextcrowd.crowdfunding.project.model.TimelineEvent;
+import nextcrowd.crowdfunding.project.model.TimelineEventId;
 import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
 import nextcrowd.crowdfunding.project.port.EventPublisher;
 import nextcrowd.crowdfunding.project.port.TransactionalManager;
@@ -28,6 +33,7 @@ import nextcrowd.crowdfunding.project.service.ProjectInvestmentService;
 import nextcrowd.crowdfunding.project.service.ProjectIssuingService;
 import nextcrowd.crowdfunding.project.service.ProjectRejectionService;
 import nextcrowd.crowdfunding.project.service.ProjectSubmissionService;
+import nextcrowd.crowdfunding.project.service.ProjectTimelineService;
 import nextcrowd.crowdfunding.project.service.ProjectValidationService;
 
 public class ProjectService implements ProjectServicePort {
@@ -42,6 +48,7 @@ public class ProjectService implements ProjectServicePort {
     private final TransactionalManager transactionalManager;
     private static final Set<CrowdfundingProject.Status> PUBLISHED_STATUSES = Set.of(CrowdfundingProject.Status.APPROVED, CrowdfundingProject.Status.COMPLETED);
     private final ProjectEditingService projectEditingService;
+    private final ProjectTimelineService projectTimelineService;
 
     public ProjectService(
             ProjectValidationService validationService,
@@ -57,6 +64,7 @@ public class ProjectService implements ProjectServicePort {
         this.projectInvestment = new ProjectInvestmentService(eventPublisher, repository);
         this.projectIssuingService = new ProjectIssuingService(eventPublisher, repository);
         this.projectEditingService = new ProjectEditingService(repository);
+        this.projectTimelineService = new ProjectTimelineService(repository);
     }
 
     @Override
@@ -78,6 +86,7 @@ public class ProjectService implements ProjectServicePort {
     public Stream<Investment> getPendingInvestments(ProjectId projectId, InvestmentId startingFrom) {
         return repository.findInvestmentsByStatusesOrderByDesc(projectId, startingFrom, Set.of(InvestmentStatus.PENDING));
     }
+
     @Override
     public Stream<Investment> getAcceptedInvestments(ProjectId projectId, InvestmentId startingFrom) {
         return repository.findInvestmentsByStatusesOrderByDesc(projectId, startingFrom, Set.of(InvestmentStatus.ACCEPTED));
@@ -161,6 +170,54 @@ public class ProjectService implements ProjectServicePort {
                                                 .orElseThrow(() -> new CrowdfundingProjectException(CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND));
         transactionalManager.executeInTransaction(() -> projectIssuingService.issue(project));
     }
+
+    @Override
+    public Timeline getProjectTimeline(ProjectId projectId) {
+        return repository.findById(projectId)
+                         .map(CrowdfundingProject::getId)
+                         .map(id -> new Timeline(id, repository.findTimelineEvents(id)))
+                         .orElseThrow(() -> new CrowdfundingProjectException(CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND));
+
+    }
+
+    @Override
+    public void createProjectTimeline(ProjectId projectId, List<TimelineEventCommand> events) {
+
+        Timeline existingTimeline = getProjectTimeline(projectId);
+        transactionalManager.executeInTransaction(() -> projectTimelineService.updateTimeline(
+                existingTimeline, events.stream()
+                                        .map(projectTimelineService::createNewEvent)
+                                        .toList()));
+
+    }
+
+
+    @Override
+    public void addProjectTimelineEvent(ProjectId projectId, TimelineEventCommand event) {
+        Timeline existingTimeline = getProjectTimeline(projectId);
+        transactionalManager.executeInTransaction(() -> projectTimelineService.updateTimeline(
+                existingTimeline,
+                List.of(projectTimelineService.createNewEvent(event))));
+    }
+
+    @Override
+    public void updateProjectTimelineEvent(ProjectId projectId, TimelineEventId timelineEventId, TimelineEventCommand event) {
+        Timeline existingTimeline = getProjectTimeline(projectId);
+        List<TimelineEvent> events = projectTimelineService.replace(timelineEventId, event, existingTimeline);
+        transactionalManager.executeInTransaction(() -> projectTimelineService.updateTimeline(existingTimeline, events));
+
+    }
+
+
+
+    @Override
+    public void deleteProjectTimelineEvent(ProjectId projectId, TimelineEventId timelineEventId) {
+        Timeline existingTimeline = getProjectTimeline(projectId);
+        List<TimelineEvent> events = projectTimelineService.remove(timelineEventId, existingTimeline);
+        transactionalManager.executeInTransaction(() -> projectTimelineService.updateTimeline(existingTimeline, events));
+    }
+
+
 
 
 }
