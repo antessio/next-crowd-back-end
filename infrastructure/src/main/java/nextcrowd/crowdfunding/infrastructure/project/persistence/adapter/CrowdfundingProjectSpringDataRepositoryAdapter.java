@@ -18,6 +18,7 @@ import nextcrowd.crowdfunding.project.model.InvestmentId;
 import nextcrowd.crowdfunding.project.model.InvestmentStatus;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
+import nextcrowd.crowdfunding.project.model.TimelineEvent;
 import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
 
 @Component
@@ -103,6 +104,16 @@ public class CrowdfundingProjectSpringDataRepositoryAdapter implements Crowdfund
     public Optional<ProjectOwner> findOwnerById(String id) {
         return projectOwnerRepository.findById(UUID.fromString(id))
                                      .map(ProjectOwnerAdapter::toDomain);
+    }
+
+    @Override
+    public Set<TimelineEvent> findTimelineEvents(ProjectId projectId) {
+        return Set.of();
+    }
+
+    @Override
+    public void saveTimelineEvents(ProjectId projectId, List<TimelineEvent> events) {
+
     }
 
 }
