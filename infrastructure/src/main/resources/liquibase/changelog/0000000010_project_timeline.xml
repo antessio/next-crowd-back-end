@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd
+                        http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd">
+    <changeSet id="0000000010-project-timeline" author="antessio">
+        <createTable tableName="project_timeline">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="project_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <createTable tableName="project_timeline_event">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="project_timeline_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="event_date" type="TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="event_description" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="event_title" type="VARCHAR(255)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>

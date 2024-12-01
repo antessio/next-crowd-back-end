@@ -18,4 +18,5 @@
     <include file="changelog/security/0000000006_users.xml" relativeToChangelogFile="true"/>
     <include file="changelog/security/0000000007_users_verification.xml" relativeToChangelogFile="true"/>
     <include file="changelog/0000000009_project_long_description_type.xml" relativeToChangelogFile="true"/>
+    <include file="changelog/0000000010_project_timeline.xml" relativeToChangelogFile="true"/>
 </databaseChangeLog>

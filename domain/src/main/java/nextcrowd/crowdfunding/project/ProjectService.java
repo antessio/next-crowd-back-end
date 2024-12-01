@@ -182,13 +182,20 @@ public class ProjectService implements ProjectServicePort {
 
     @Override
     public void createProjectTimeline(ProjectId projectId, List<TimelineEventCommand> events) {
+        if (events.stream().anyMatch(e -> e.getId().isPresent())) {
+            throw new CrowdfundingProjectException("Cannot create timeline events with existing IDs", CrowdfundingProjectException.Reason.INVALID_COMMAND);
+        }
+        updateProjectTimeline(projectId, events);
+    }
 
+    @Override
+    public void updateProjectTimeline(ProjectId projectId, List<TimelineEventCommand> events) {
         Timeline existingTimeline = getProjectTimeline(projectId);
         transactionalManager.executeInTransaction(() -> projectTimelineService.updateTimeline(
-                existingTimeline, events.stream()
-                                        .map(projectTimelineService::createNewEvent)
-                                        .toList()));
-
+                existingTimeline,
+                events.stream()
+                      .map(projectTimelineService::createNewEvent)
+                      .toList()));
     }
 
 

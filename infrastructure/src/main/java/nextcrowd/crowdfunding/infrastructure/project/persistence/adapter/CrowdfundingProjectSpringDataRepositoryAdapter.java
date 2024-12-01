@@ -6,12 +6,15 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.springframework.stereotype.Component;
 
 import nextcrowd.crowdfunding.infrastructure.project.persistence.InvestmentRepository;
 import nextcrowd.crowdfunding.infrastructure.project.persistence.ProjectOwnerRepository;
+import nextcrowd.crowdfunding.infrastructure.project.persistence.ProjectTimelineEntity;
+import nextcrowd.crowdfunding.infrastructure.project.persistence.ProjectTimelineRepository;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.Investment;
 import nextcrowd.crowdfunding.project.model.InvestmentId;
@@ -27,14 +30,17 @@ public class CrowdfundingProjectSpringDataRepositoryAdapter implements Crowdfund
     private final nextcrowd.crowdfunding.infrastructure.project.persistence.CrowdfundingProjectRepository crowdfundingProjectRepository;
     private final ProjectOwnerRepository projectOwnerRepository;
     private final InvestmentRepository investmentRepository;
+    private final ProjectTimelineRepository projectTimelineRepository;
 
     public CrowdfundingProjectSpringDataRepositoryAdapter(
             nextcrowd.crowdfunding.infrastructure.project.persistence.CrowdfundingProjectRepository crowdfundingProjectRepository,
             ProjectOwnerRepository projectOwnerRepository,
-            InvestmentRepository investmentRepository) {
+            InvestmentRepository investmentRepository,
+            ProjectTimelineRepository projectTimelineRepository) {
         this.crowdfundingProjectRepository = crowdfundingProjectRepository;
         this.projectOwnerRepository = projectOwnerRepository;
         this.investmentRepository = investmentRepository;
+        this.projectTimelineRepository = projectTimelineRepository;
     }
 
 
@@ -108,12 +114,22 @@ public class CrowdfundingProjectSpringDataRepositoryAdapter implements Crowdfund
 
     @Override
     public Set<TimelineEvent> findTimelineEvents(ProjectId projectId) {
-        return Set.of();
+        return projectTimelineRepository.findByProjectId(ProjectIdAdapter.toEntity(projectId))
+                                        .map(ProjectTimelineEntity::getEvents)
+                                        .map(events -> events
+                                                .stream()
+                                                .map(TimelineEventAdapter::toDomain)
+                                                .collect(Collectors.toSet()))
+                                        .orElseGet(Set::of);
+
     }
 
     @Override
     public void saveTimelineEvents(ProjectId projectId, List<TimelineEvent> events) {
-
+        ProjectTimelineEntity timelineEntity = projectTimelineRepository.findByProjectId(ProjectIdAdapter.toEntity(projectId))
+                                                                        .orElseGet(() -> ProjectTimelineEntity.builder().projectId(ProjectIdAdapter.toEntity(projectId)).build());
+        timelineEntity.setEvents(events.stream().map(timelineEvent -> TimelineEventAdapter.toEntity(timelineEvent, timelineEntity.getId())).collect(Collectors.toSet()));
+        projectTimelineRepository.save(timelineEntity);
     }
 
 }

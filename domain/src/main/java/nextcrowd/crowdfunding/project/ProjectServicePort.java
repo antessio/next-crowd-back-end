@@ -49,6 +49,7 @@ public interface ProjectServicePort {
     Timeline getProjectTimeline(ProjectId projectId);
 
     void createProjectTimeline(ProjectId projectId, List<TimelineEventCommand> events);
+    void updateProjectTimeline(ProjectId projectId, List<TimelineEventCommand> events);
 
     void addProjectTimelineEvent(ProjectId projectId, TimelineEventCommand event);
 

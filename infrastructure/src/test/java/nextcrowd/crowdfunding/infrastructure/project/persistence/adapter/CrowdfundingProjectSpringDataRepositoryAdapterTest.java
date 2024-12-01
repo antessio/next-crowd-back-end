@@ -6,11 +6,15 @@ import static nextcrowd.crowdfunding.infrastructure.TestUtils.buildRandomProject
 import static nextcrowd.crowdfunding.infrastructure.TestUtils.getRandomStatus;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -19,14 +23,9 @@ import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ContextConfiguration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javafaker.Faker;
 
 import nextcrowd.crowdfunding.infrastructure.BaseTestWithTestcontainers;
@@ -34,10 +33,14 @@ import nextcrowd.crowdfunding.infrastructure.project.persistence.CrowdfundingPro
 import nextcrowd.crowdfunding.infrastructure.project.persistence.InvestmentRepository;
 import nextcrowd.crowdfunding.infrastructure.project.persistence.ProjectOwnerEntity;
 import nextcrowd.crowdfunding.infrastructure.project.persistence.ProjectOwnerRepository;
+import nextcrowd.crowdfunding.infrastructure.project.persistence.ProjectTimelineEntity;
+import nextcrowd.crowdfunding.infrastructure.project.persistence.ProjectTimelineRepository;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.Investment;
 import nextcrowd.crowdfunding.project.model.InvestmentStatus;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
+import nextcrowd.crowdfunding.project.model.TimelineEvent;
+import nextcrowd.crowdfunding.project.model.TimelineEventId;
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)  // Prevent replacing with an embedded DB
@@ -51,6 +54,8 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest extends BaseTest
     private ProjectOwnerRepository projectOwnerRepository;
     @Autowired
     private InvestmentRepository investmentRepository;
+    @Autowired
+    private ProjectTimelineRepository projectTimelineRepository;
     private static final Random random = new Random();
     private static final Faker faker = new Faker();
     private List<ProjectOwnerEntity> projectOwnerEntities;
@@ -60,18 +65,18 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest extends BaseTest
     @BeforeEach
     public void setUp() {
         // Initialize a test CrowdfundingProject entity
-        repositoryAdapter = new CrowdfundingProjectSpringDataRepositoryAdapter(repository, projectOwnerRepository, investmentRepository);
+        repositoryAdapter = new CrowdfundingProjectSpringDataRepositoryAdapter(
+                repository,
+                projectOwnerRepository,
+                investmentRepository,
+                projectTimelineRepository);
         projectOwnerEntities = List.of(
                 buildRandomProjectOwnerEntity(),
                 buildRandomProjectOwnerEntity(),
                 buildRandomProjectOwnerEntity(),
                 buildRandomProjectOwnerEntity()
         );
-        try {
-            System.out.println("dataSource = " + dataSource.getConnection().getMetaData().getURL());
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
+
         projectOwnerRepository.saveAll(projectOwnerEntities);
 
     }
@@ -239,5 +244,64 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest extends BaseTest
                 .containsExactlyInAnyOrderElementsOf(project1.getAcceptedInvestments());
     }
 
+    @Test
+    public void shouldFindTimelineEvents() {
+        // given
+        CrowdfundingProject project = buildRandomProject(getRandomProjectOwnerFromExisting());
+        List<TimelineEvent> events = IntStream.range(0, 10)
+                                              .mapToObj(_ -> buildRandomEvent())
+                                              .toList();
+
+        ProjectTimelineEntity timelineEntity = buildRandomTimeline(project, events);
+        projectTimelineRepository.save(timelineEntity);
+        repositoryAdapter.save(project);
+
+        // when
+        Set<TimelineEvent> foundEvents = repositoryAdapter.findTimelineEvents(project.getId());
+
+        // then
+        assertThat(foundEvents).containsExactlyInAnyOrderElementsOf(events);
+    }
+
+    @Test
+    public void shouldSaveTimelineEvents() {
+        // given
+        CrowdfundingProject project = buildRandomProject(getRandomProjectOwnerFromExisting());
+        List<TimelineEvent> events = IntStream.range(0, 10)
+                                              .mapToObj(_ -> buildRandomEvent())
+                                              .toList();
+        ProjectTimelineEntity timelineEntity = buildRandomTimeline(project, events);
+        projectTimelineRepository.save(timelineEntity);
+        repositoryAdapter.save(project);
+
+        // when
+        Set<TimelineEvent> foundEvents = repositoryAdapter.findTimelineEvents(project.getId());
+
+        // then
+        assertThat(foundEvents).containsExactlyInAnyOrderElementsOf(events);
+    }
+
+    private TimelineEvent buildRandomEvent() {
+        return TimelineEvent.builder()
+                            .id(TimelineEventId.generate())
+                            .title(faker.lorem().sentence())
+                            .description(faker.lorem().paragraph(3))
+                            .date(convertDateToLocalDate(faker.date().birthday()))
+                            .build();
+    }
+
+    private static ProjectTimelineEntity buildRandomTimeline(CrowdfundingProject project, List<TimelineEvent> events) {
+        UUID timelineId = UUID.randomUUID();
+        return ProjectTimelineEntity.builder()
+                                    .id(timelineId)
+                                    .projectId(ProjectIdAdapter.toEntity(project.getId()))
+                                    .events(events.stream().map(timelineEvent -> TimelineEventAdapter.toEntity(timelineEvent, timelineId)).collect(Collectors.toSet()))
+                                    .build();
+    }
+
+    // convert date to local date
+    public LocalDate convertDateToLocalDate(Date date) {
+        return date.toInstant().atZone(ZoneId.of("UTC")).toLocalDate();
+    }
 
 }

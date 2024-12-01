@@ -24,7 +24,7 @@ public class ProjectTimelineService {
 
     public  TimelineEvent createNewEvent(TimelineEventCommand event) {
         return new TimelineEvent(
-                TimelineEventId.generate(),
+                event.getId().orElseGet(TimelineEventId::generate),
                 event.getDate(),
                 event.getDescription(),
                 event.getTitle());

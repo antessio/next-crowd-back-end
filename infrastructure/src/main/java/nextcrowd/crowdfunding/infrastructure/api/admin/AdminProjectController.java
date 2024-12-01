@@ -24,7 +24,9 @@ import nextcrowd.crowdfunding.admin.api.model.Investment;
 import nextcrowd.crowdfunding.admin.api.model.PaginatedInvestmentsResponse;
 import nextcrowd.crowdfunding.admin.api.model.PaginatedProjectsResponse;
 import nextcrowd.crowdfunding.admin.api.model.ProjectCreated;
+import nextcrowd.crowdfunding.admin.api.model.ProjectTimeline;
 import nextcrowd.crowdfunding.admin.api.model.SubmitCrowdfundingProjectCommand;
+import nextcrowd.crowdfunding.admin.api.model.UpdateTimelineCommand;
 import nextcrowd.crowdfunding.infrastructure.api.ApiError;
 import nextcrowd.crowdfunding.infrastructure.api.admin.adapter.ApiConverter;
 import nextcrowd.crowdfunding.infrastructure.storage.FileStorageService;
@@ -32,6 +34,8 @@ import nextcrowd.crowdfunding.project.ProjectServicePort;
 import nextcrowd.crowdfunding.project.exception.CrowdfundingProjectException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
 import nextcrowd.crowdfunding.project.model.InvestmentId;
+import nextcrowd.crowdfunding.project.model.ProjectId;
+import nextcrowd.crowdfunding.project.model.Timeline;
 
 @Controller
 public class AdminProjectController implements AdminApi {
@@ -200,6 +204,41 @@ public class AdminProjectController implements AdminApi {
 
     }
 
+    @Override
+    public ResponseEntity<ProjectTimeline> adminProjectsProjectIdTimelineGet(String projectId) {
+
+        Timeline timeline = projectServicePort.getProjectTimeline(new ProjectId(projectId));
+
+        return ResponseEntity.ok(ApiConverter.toApi(timeline));
+    }
+
+    @Override
+    public ResponseEntity<Void> adminProjectsProjectIdTimelinePost(String projectId, UpdateTimelineCommand updateTimelineCommand) {
+        projectServicePort.updateProjectTimeline(
+                new ProjectId(projectId),
+                ApiConverter.toDomain(updateTimelineCommand));
+        return ResponseEntity.ok().build();
+    }
+
+    @Override
+    public ResponseEntity<Void> adminProjectsProjectIdTimelinePut(String projectId, UpdateTimelineCommand updateTimelineCommand) {
+        projectServicePort.updateProjectTimeline(
+                new ProjectId(projectId),
+                ApiConverter.toDomain(updateTimelineCommand));
+        return ResponseEntity.ok().build();
+    }
+
+
+    @ExceptionHandler(ValidationException.class)
+    public ResponseEntity<ApiError> handleValidationException(ValidationException ex) {
+        return ResponseEntity.badRequest().body(new ApiError(ex.getMessage()));
+    }
+
+    @ExceptionHandler(CrowdfundingProjectException.class)
+    public ResponseEntity<ApiError> handleCrowdfundingProjectException(CrowdfundingProjectException ex) {
+        return ResponseEntity.badRequest().body(new ApiError(ex.getMessage()));
+    }
+
     private URI getStoreFile(MultipartFile multipartFile) {
         return fileStorageService.storeFile(getMultipartFileFunction(multipartFile), multipartFile.getContentType());
     }
@@ -210,16 +249,6 @@ public class AdminProjectController implements AdminApi {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    @ExceptionHandler(ValidationException.class)
-    public ResponseEntity<ApiError> handleValidationException(ValidationException ex) {
-        return ResponseEntity.badRequest().body(new ApiError(ex.getMessage()));
-    }
-
-    @ExceptionHandler(CrowdfundingProjectException.class)
-    public ResponseEntity<ApiError> handleCrowdfundingProjectException(CrowdfundingProjectException ex) {
-        return ResponseEntity.badRequest().body(new ApiError(ex.getMessage()));
     }
 
 }

@@ -2,23 +2,30 @@ package nextcrowd.crowdfunding.infrastructure.api.admin.adapter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
+import nextcrowd.crowdfunding.admin.api.model.ProjectTimeline;
+import nextcrowd.crowdfunding.admin.api.model.ProjectTimelineEventsInner;
+import nextcrowd.crowdfunding.admin.api.model.UpdateTimelineCommand;
 import nextcrowd.crowdfunding.project.command.EditCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.AddInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.CancelInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ConfirmInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
+import nextcrowd.crowdfunding.project.command.TimelineEventCommand;
 import nextcrowd.crowdfunding.project.model.BakerId;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.Investment;
 import nextcrowd.crowdfunding.project.model.MoneyTransferId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
 import nextcrowd.crowdfunding.project.model.ProjectReward;
+import nextcrowd.crowdfunding.project.model.Timeline;
+import nextcrowd.crowdfunding.project.model.TimelineEvent;
 
 public final class ApiConverter {
 
@@ -161,6 +168,34 @@ public final class ApiConverter {
                                                               .map(ApiConverter::convertProjectReward)
                                                               .toList())
                                              .build();
+    }
+
+    public static ProjectTimeline toApi(Timeline timeline) {
+        return new ProjectTimeline()
+                .events(timeline.getEvents().stream().map(ApiConverter::toApi).toList());
+    }
+
+    private static ProjectTimelineEventsInner toApi(TimelineEvent timelineEvent) {
+        return new ProjectTimelineEventsInner()
+                .date(convertToOffsetDateTime(timelineEvent.getDate()))
+                .description(timelineEvent.getDescription())
+                .title(timelineEvent.getTitle());
+    }
+
+    private static OffsetDateTime convertToOffsetDateTime(LocalDate localDate) {
+        return localDate == null ? null : OffsetDateTime.of(localDate, Instant.EPOCH.atZone(UTC).toLocalTime(), UTC);
+    }
+
+    public static List<TimelineEventCommand> toDomain(UpdateTimelineCommand updateTimelineCommand) {
+        return updateTimelineCommand.getEvents()
+                                    .stream()
+                                    .map(e -> new TimelineEventCommand(
+                                            null,
+                                            e.getTitle(),
+                                            e.getDescription(),
+                                            e.getDate().toLocalDate()))
+                                    .toList();
+
     }
 
 }
