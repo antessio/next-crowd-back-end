@@ -28,6 +28,8 @@ public interface ProjectServicePort {
 
     ProjectId submitProject(SubmitCrowdfundingProjectCommand projectCreationCommand);
 
+    CrowdfundingProject saveProject(CrowdfundingProject project);
+
     void editProject(ProjectId projectId, EditCrowdfundingProjectCommand editCrowdfundingProjectCommand);
 
     void approve(ProjectId projectId, ApproveCrowdfundingProjectCommand command);

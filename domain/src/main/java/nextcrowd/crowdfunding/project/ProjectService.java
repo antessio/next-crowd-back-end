@@ -95,6 +95,12 @@ public class ProjectService implements ProjectServicePort {
         return project.getId();
     }
 
+    // TODO: the infrastructure listen to the CMS webhook and creates this project
+    @Override
+    public CrowdfundingProject saveProject(CrowdfundingProject project) {
+        return null;
+    }
+
     @Override
     public void editProject(ProjectId projectId, EditCrowdfundingProjectCommand editCrowdfundingProjectCommand) {
         List<ProjectValidationService.ValidationFailure> failedValidations = validationService.validateProjectEdit(editCrowdfundingProjectCommand);
