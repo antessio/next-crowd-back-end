@@ -13,23 +13,18 @@ import lombok.Value;
 public class CrowdfundingProject {
 
     private ProjectId id;
-    private String title;
     private Status status;
-    private BigDecimal requestedAmount;
-    private BigDecimal collectedAmount;
     private String currency;
-    private String imageUrl;
+    private BigDecimal collectedAmount;
     private ProjectOwner owner;
+    private BigDecimal requestedAmount;
     private Instant projectStartDate;
     private Instant projectEndDate;
     private Integer  numberOfBackers;
-    private String description;
-    private String longDescription;
-    private List<ProjectReward> rewards;
-    private String projectVideoUrl;
     private Integer risk;
     private BigDecimal expectedProfit;
     private BigDecimal minimumInvestment;
+
     private List<Investment> investments;
 
     public Optional<BigDecimal> getMinimumInvestment() {
@@ -82,7 +77,9 @@ public class CrowdfundingProject {
                    .build();
     }
 
-
+    public boolean isReadyToBeSubmitted(){
+        return status == Status.APPROVED && expectedProfit != null && minimumInvestment != null && risk != null;
+    }
     public enum Status {
         SUBMITTED,
         APPROVED,

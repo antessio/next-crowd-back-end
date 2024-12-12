@@ -35,7 +35,22 @@ public class MultipleStorageService implements FileStorageService {
                              .map(storageResource -> new StorageResource(storageResource.content(), storageResource.contentType()));
     }
 
+    @Override
+    public Optional<StorageResource> loadFromUrl(String url) {
+        return Stream.of(StorageUtils.StorageLocation.FS, StorageUtils.StorageLocation.S3)
+                     .map(storageServices::get)
+                     .filter(storageService -> storageService.isValidUrl(url))
+                     .findFirst()
+                     .flatMap(storageService -> storageService.loadFromUrl(url));
 
+    }
+
+    @Override
+    public boolean isValidUrl(String url) {
+        return Stream.of(StorageUtils.StorageLocation.FS, StorageUtils.StorageLocation.S3)
+                     .map(storageServices::get)
+                     .anyMatch(storageService -> storageService.isValidUrl(url));
+    }
 
 
 }

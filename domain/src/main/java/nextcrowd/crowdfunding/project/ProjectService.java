@@ -1,5 +1,6 @@
 package nextcrowd.crowdfunding.project;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -18,7 +19,9 @@ import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.Investment;
 import nextcrowd.crowdfunding.project.model.InvestmentId;
 import nextcrowd.crowdfunding.project.model.InvestmentStatus;
+import nextcrowd.crowdfunding.project.model.ProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectId;
+import nextcrowd.crowdfunding.project.port.CmsPort;
 import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
 import nextcrowd.crowdfunding.project.port.EventPublisher;
 import nextcrowd.crowdfunding.project.port.TransactionalManager;
@@ -42,21 +45,29 @@ public class ProjectService implements ProjectServicePort {
     private final TransactionalManager transactionalManager;
     private static final Set<CrowdfundingProject.Status> PUBLISHED_STATUSES = Set.of(CrowdfundingProject.Status.APPROVED, CrowdfundingProject.Status.COMPLETED);
     private final ProjectEditingService projectEditingService;
+    private final CmsPort cms;
 
     public ProjectService(
             ProjectValidationService validationService,
             CrowdfundingProjectRepository repository,
             EventPublisher eventPublisher,
+            CmsPort cms,
             TransactionalManager transactionalManager) {
         this.validationService = validationService;
         this.repository = repository;
         this.transactionalManager = transactionalManager;
+        this.cms = cms;
         this.projectSubmissionService = new ProjectSubmissionService(eventPublisher, repository);
         this.projectApprovalService = new ProjectApprovalService(eventPublisher, repository);
         this.projectRejectionService = new ProjectRejectionService(eventPublisher, repository);
         this.projectInvestment = new ProjectInvestmentService(eventPublisher, repository);
         this.projectIssuingService = new ProjectIssuingService(eventPublisher, repository);
         this.projectEditingService = new ProjectEditingService(repository);
+    }
+
+    @Override
+    public Optional<ProjectContent> getContentById(ProjectId projectId) {
+        return cms.getProjectContent(projectId);
     }
 
     @Override
@@ -78,6 +89,7 @@ public class ProjectService implements ProjectServicePort {
     public Stream<Investment> getPendingInvestments(ProjectId projectId, InvestmentId startingFrom) {
         return repository.findInvestmentsByStatusesOrderByDesc(projectId, startingFrom, Set.of(InvestmentStatus.PENDING));
     }
+
     @Override
     public Stream<Investment> getAcceptedInvestments(ProjectId projectId, InvestmentId startingFrom) {
         return repository.findInvestmentsByStatusesOrderByDesc(projectId, startingFrom, Set.of(InvestmentStatus.ACCEPTED));
@@ -91,14 +103,28 @@ public class ProjectService implements ProjectServicePort {
                     failedValidations.stream().map(ProjectValidationService.ValidationFailure::reason)
                                      .collect(Collectors.joining("\n")));
         }
-        CrowdfundingProject project = transactionalManager.executeInTransaction(() -> projectSubmissionService.submit(projectCreationCommand));
-        return project.getId();
-    }
+        CrowdfundingProject project = transactionalManager.executeInTransaction(() -> {
+            CrowdfundingProject p = projectSubmissionService.submit(projectCreationCommand);
+            ProjectContent projectContent = ProjectContent.builder()
+                                                          .currency(projectCreationCommand.getCurrency())
+                                                          .owner(p.getOwner())
+                                                          .requestedAmount(BigDecimal.valueOf(projectCreationCommand.getRequestedAmount()))
+                                                          .projectStartDate(projectCreationCommand.getProjectStartDate())
+                                                          .projectEndDate(projectCreationCommand.getProjectEndDate())
+                                                          .longDescription(projectCreationCommand.getLongDescription())
+                                                          .description(projectCreationCommand.getDescription())
+                                                          .rewards(projectCreationCommand.getRewards())
+                                                          .projectVideoUrl(projectCreationCommand.getProjectVideoUrl())
+                                                          .title(projectCreationCommand.getTitle())
+                                                          .imageUrl(projectCreationCommand.getImageUrl())
+                                                          .projectId(p.getId())
+                                                          .build();
+            cms.saveContent(projectContent);
+            return p;
+        });
+        // TODO: async on ProjectSubmittedEvent
 
-    // TODO: the infrastructure listen to the CMS webhook and creates this project
-    @Override
-    public CrowdfundingProject saveProject(CrowdfundingProject project) {
-        return null;
+        return project.getId();
     }
 
     @Override

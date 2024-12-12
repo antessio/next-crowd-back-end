@@ -1,20 +1,21 @@
 package nextcrowd.crowdfunding.project.port;
 
-import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
-import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
+import java.util.Optional;
+
+import nextcrowd.crowdfunding.project.model.ProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 
 public interface CmsPort {
 
     /**
-     * Submits the project to the CMS and attach the generate projectId to it
+     * Save the project content to the CMS
      *
      * @param command
      *
-     * @return
      */
-    ProjectId publishProject(SubmitCrowdfundingProjectCommand command);
+    void saveContent(ProjectContent command);
 
-    CrowdfundingProject getProjectContent(ProjectId projectId);
+
+    Optional<ProjectContent> getProjectContent(ProjectId projectId);
 
 }

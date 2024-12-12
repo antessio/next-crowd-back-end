@@ -12,10 +12,12 @@ import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.Investment;
 import nextcrowd.crowdfunding.project.model.InvestmentId;
+import nextcrowd.crowdfunding.project.model.ProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 
 public interface ProjectServicePort {
 
+    Optional<ProjectContent> getContentById(ProjectId projectId);
     Optional<CrowdfundingProject> getById(ProjectId projectId);
 
     Stream<CrowdfundingProject> getPublishedProjects(ProjectId startingFrom);
@@ -27,8 +29,6 @@ public interface ProjectServicePort {
     Stream<Investment> getAcceptedInvestments(ProjectId projectId, InvestmentId startingFrom);
 
     ProjectId submitProject(SubmitCrowdfundingProjectCommand projectCreationCommand);
-
-    CrowdfundingProject saveProject(CrowdfundingProject project);
 
     void editProject(ProjectId projectId, EditCrowdfundingProjectCommand editCrowdfundingProjectCommand);
 
