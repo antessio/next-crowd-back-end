@@ -36,3 +36,7 @@ logging:
 storage:
   directory: /tmp/.next-crowd-files/
   baseUrl: http://localhost:8080/public/
+
+strapi:
+  base-url: http://localhost:1337
+  token: faketoken
