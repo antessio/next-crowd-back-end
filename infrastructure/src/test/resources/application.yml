@@ -40,3 +40,4 @@ storage:
 strapi:
   base-url: http://localhost:1337
   token: faketoken
+  public-url: http://localhost:1337

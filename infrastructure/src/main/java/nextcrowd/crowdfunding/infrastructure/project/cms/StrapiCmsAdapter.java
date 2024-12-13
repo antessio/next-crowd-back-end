@@ -61,14 +61,17 @@ public class StrapiCmsAdapter implements CmsPort {
     private final String token;
     private final OkHttpClient strapiOkHttpClient;
     private final ObjectMapper strapiObjectMapper;
+    private final String strapiPublicUrl;
 
     public StrapiCmsAdapter(
             FileStorageService fileStorageService,
+            @Value("${strapi.public-url}") String strapiPublicUrl,
             @Value("${strapi.base-url}") String baseUrl,
             @Value("${strapi.token}") String token) {
         this.fileStorageService = fileStorageService;
         this.baseUrl = baseUrl;
         this.token = token;
+        this.strapiPublicUrl = strapiPublicUrl;
         this.strapiOkHttpClient = new OkHttpClient().newBuilder()
                                                     .connectTimeout(10, TimeUnit.SECONDS)
                                                     .callTimeout(10, TimeUnit.SECONDS)
@@ -430,7 +433,7 @@ public class StrapiCmsAdapter implements CmsPort {
     private String addBaseUrl(UploadedFile uploadedFile) {
         return Optional.ofNullable(uploadedFile)
                        .map(UploadedFile::getUrl)
-                       .map(url -> this.baseUrl + url)
+                       .map(url -> this.strapiPublicUrl + url)
                        .orElse(null);
     }
 
