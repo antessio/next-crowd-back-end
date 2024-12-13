@@ -47,3 +47,4 @@ logging:
 strapi:
   baseUrl: ${STRAPI_BASEURL}
   token: ${STRAPI_TOKEN}
+  publicUrl: ${STRAPI_PUBLIC_URL}
