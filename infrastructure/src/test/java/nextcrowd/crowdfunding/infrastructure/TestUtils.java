@@ -27,6 +27,7 @@ import nextcrowd.crowdfunding.project.model.Investment;
 import nextcrowd.crowdfunding.project.model.InvestmentId;
 import nextcrowd.crowdfunding.project.model.InvestmentStatus;
 import nextcrowd.crowdfunding.project.model.MoneyTransferId;
+import nextcrowd.crowdfunding.project.model.ProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
 import nextcrowd.crowdfunding.project.model.ProjectReward;
@@ -66,8 +67,6 @@ public class TestUtils {
         CrowdfundingProject project = CrowdfundingProject.builder()
                                                          .id(ProjectId.generateId())
                                                          .status(getRandomStatus())
-                                                         .title(faker.company().name())  // Random project title
-                                                         .description(faker.lorem().sentence(10))  // Random project description
                                                          .requestedAmount(BigDecimal.valueOf(random.nextInt(100000)
                                                                                              + 1000))  // Random amount between 1000 and 100000
                                                          .currency("USD")  // Set to "USD" or randomize if needed
@@ -78,13 +77,19 @@ public class TestUtils {
                                                                                                + 100))  // Random amount between 100 and 1000
                                                          .expectedProfit(BigDecimal.valueOf(random.nextInt(100)))
                                                          .numberOfBackers(random.nextInt(1000))  // Random number of backers up to 1000
-                                                         .rewards(List.of(
-                                                                 buildRandomProjectReward(),
-                                                                 buildRandomProjectReward(),
-                                                                 buildRandomProjectReward()
-                                                         ))
                                                          .build();
         return project.updateInvestments(investments);
+    }
+
+    public static ProjectContent buildRandomProjectContent() {
+        return ProjectContent.builder()
+                             .title(faker.company().name())
+                             .description(faker.lorem().sentence(10))
+                             .risk(random.nextInt(5))
+                             .minimumInvestment(BigDecimal.valueOf(random.nextInt(1000) + 100))
+                             .expectedProfit(BigDecimal.valueOf(random.nextInt(100)))
+                             .rewards(List.of(buildRandomProjectReward()))
+                             .build();
     }
 
     public static CrowdfundingProject.Status getRandomStatus(CrowdfundingProject.Status... excluding) {

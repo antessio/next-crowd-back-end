@@ -44,3 +44,6 @@ logging:
     org:
       springframework:
         web: DEBUG
+strapi:
+  baseUrl: ${STRAPI_BASEURL}
+  token: ${STRAPI_TOKEN}

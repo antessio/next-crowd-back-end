@@ -5,6 +5,7 @@ import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+import nextcrowd.crowdfunding.infrastructure.project.cms.StrapiCmsAdapter;
 import nextcrowd.crowdfunding.infrastructure.project.eventpublisher.DatabaseEventPublisher;
 import nextcrowd.crowdfunding.infrastructure.project.persistence.adapter.CrowdfundingProjectSpringDataRepositoryAdapter;
 import nextcrowd.crowdfunding.infrastructure.transaction.SpringTransactionAdapter;
@@ -25,11 +26,13 @@ public class DomainConfiguration {
             Clock clock,
             CrowdfundingProjectSpringDataRepositoryAdapter crowdfundingProjectSpringDataRepositoryAdapter,
             DatabaseEventPublisher databaseEventPublisher,
+            StrapiCmsAdapter strapiCmsAdapter,
             SpringTransactionAdapter springTransactionAdapter) {
         return new ProjectService(
                 new ProjectValidationService(clock),
                 crowdfundingProjectSpringDataRepositoryAdapter,
                 databaseEventPublisher,
+                strapiCmsAdapter,
                 springTransactionAdapter);
     }
 

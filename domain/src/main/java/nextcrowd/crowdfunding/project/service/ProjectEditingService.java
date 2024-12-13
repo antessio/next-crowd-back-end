@@ -23,24 +23,14 @@ public class ProjectEditingService {
             throw new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS);
         }
         CrowdfundingProject editedProject = project.toBuilder()
-                                                   .title(projectCreationCommand.getTitle())
-                                                   .description(projectCreationCommand.getDescription())
-                                                   .description(projectCreationCommand.getDescription())
                                                    .owner(projectCreationCommand.getOwner())
                                                    .currency(projectCreationCommand.getCurrency())
-                                                   .imageUrl(projectCreationCommand.getImageUrl())
-                                                   .longDescription(projectCreationCommand.getLongDescription())
                                                    .requestedAmount(BigDecimal.valueOf(projectCreationCommand.getRequestedAmount()))
                                                    .projectStartDate(projectCreationCommand.getProjectStartDate())
                                                    .projectEndDate(projectCreationCommand.getProjectEndDate())
-                                                   .projectVideoUrl(projectCreationCommand.getProjectVideoUrl())
-                                                   .rewards(projectCreationCommand.getRewards())
+                                                   .status(project.isReadyToBeSubmitted() ? CrowdfundingProject.Status.SUBMITTED : project.getStatus())
                                                    .build();
+
         return repository.save(editedProject);
     }
-
-    private ProjectId generateId() {
-        return new ProjectId(UuidCreator.getTimeOrderedEpoch().toString());
-    }
-
 }

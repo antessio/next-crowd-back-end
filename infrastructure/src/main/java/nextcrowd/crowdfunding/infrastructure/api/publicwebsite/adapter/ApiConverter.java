@@ -10,18 +10,13 @@ public class ApiConverter {
     public static nextcrowd.crowdfunding.websitepublic.api.model.CrowdfundingProject toApi(CrowdfundingProject project) {
         return new nextcrowd.crowdfunding.websitepublic.api.model.CrowdfundingProject()
                 .id(project.getId().id())
-                .title(project.getTitle())
-                .imageUrl(project.getImageUrl())
                 .requestedAmount(project.getRequestedAmount().doubleValue())
                 .currency(project.getCurrency())
                 .projectStartDate(project.getProjectStartDate().atOffset(ZoneOffset.UTC))
                 .projectEndDate(project.getProjectEndDate().atOffset(ZoneOffset.UTC))
-                .description(project.getDescription())
-                .longDescription(project.getLongDescription())
-                .projectVideoUrl(project.getProjectVideoUrl())
                 .owner(convertProjectOwner(project.getOwner()))
                 .numberOfBackers(project.getNumberOfBackers().orElse(null))
-                .rewards(project.getRewards().stream().map(ApiConverter::convertProjectReward).toList());
+                ;
     }
 
     private static nextcrowd.crowdfunding.websitepublic.api.model.ProjectReward convertProjectReward(nextcrowd.crowdfunding.project.model.ProjectReward projectReward) {

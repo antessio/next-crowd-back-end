@@ -1,6 +1,5 @@
 package nextcrowd.crowdfunding.infrastructure.storage;
 
-import static nextcrowd.crowdfunding.infrastructure.storage.StorageUtils.contentTypeToExtension;
 import static nextcrowd.crowdfunding.infrastructure.storage.StorageUtils.extensionToContentType;
 import static nextcrowd.crowdfunding.infrastructure.storage.StorageUtils.getFileExtension;
 
@@ -31,7 +30,7 @@ public class FileSystemStorageService implements FileStorageService {
                     StorageUtils.StorageLocation.FS,
                     contentType,
                     UuidCreator.getRandomBased().toString());
-            String id =  storageId.toString();
+            String id = storageId.toString();
             Path filePath = storageDirectory.resolve(id);
             Files.write(filePath, file);
             return URI.create(baseUrl + id);
@@ -55,6 +54,26 @@ public class FileSystemStorageService implements FileStorageService {
         } catch (IOException e) {
             throw new RuntimeException("Failed to load image", e);
         }
+    }
+
+    @Override
+    public Optional<StorageResource> loadFromUrl(String url) {
+        return Optional.of(url)
+                       .map(u -> u.replace(baseUrl, ""))
+                       // take only the last part of the url
+                       //.map(u -> u.substring(u.lastIndexOf('/') + 1))
+                       .flatMap(this::load);
+    }
+
+    @Override
+    public boolean isValidUrl(String url) {
+        return Optional.of(url)
+                       .map(u -> u.replace(baseUrl, ""))
+                       .map(u -> u.substring(u.lastIndexOf('/') + 1))
+                       .map(StorageUtils.StorageId::parse)
+                       .map(StorageUtils.StorageId::location)
+                       .filter(StorageUtils.StorageLocation.FS::equals)
+                       .isPresent();
     }
 
 

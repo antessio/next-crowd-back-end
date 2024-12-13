@@ -17,6 +17,7 @@ import nextcrowd.crowdfunding.project.model.BakerId;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.Investment;
 import nextcrowd.crowdfunding.project.model.MoneyTransferId;
+import nextcrowd.crowdfunding.project.model.ProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
 import nextcrowd.crowdfunding.project.model.ProjectReward;
 
@@ -91,26 +92,46 @@ public final class ApiConverter {
                                    .build();
     }
 
-    public static nextcrowd.crowdfunding.admin.api.model.CrowdfundingProject toApi(CrowdfundingProject project) {
+    /*public static nextcrowd.crowdfunding.admin.api.model.CrowdfundingProject toApi(CrowdfundingProject project) {
         return new nextcrowd.crowdfunding.admin.api.model.CrowdfundingProject()
                 .id(project.getId().id())
-                .title(project.getTitle())
                 .status(project.getStatus().name())
-                .imageUrl(project.getImageUrl())
                 .requestedAmount(project.getRequestedAmount().doubleValue())
                 .collectedAmount(project.getCollectedAmount().map(BigDecimal::doubleValue).orElse(null))
                 .currency(project.getCurrency())
                 .projectStartDate(convertToOffsetDateTime(project.getProjectStartDate()))
                 .projectEndDate(convertToOffsetDateTime(project.getProjectEndDate()))
-                .description(project.getDescription())
-                .longDescription(project.getLongDescription())
-                .projectVideoUrl(project.getProjectVideoUrl())
+                .minimumInvestment(project.getMinimumInvestment().map(BigDecimal::doubleValue).orElse(null))
+                .expectedProfit(project.getExpectedProfit().map(BigDecimal::doubleValue).orElse(null))
+                .risk(project.getRisk().orElse(null))
+                .owner(projectOwnerToApi(project.getOwner()))
+                .numberOfBackers(project.getNumberOfBackers().orElse(null));
+    }*/
+    public static nextcrowd.crowdfunding.admin.api.model.CrowdfundingProject toApi(CrowdfundingProject project, ProjectContent projectContent) {
+        return new nextcrowd.crowdfunding.admin.api.model.CrowdfundingProject()
+                .id(project.getId().id())
+                .status(project.getStatus().name())
+                .requestedAmount(project.getRequestedAmount().doubleValue())
+                .collectedAmount(project.getCollectedAmount().map(BigDecimal::doubleValue).orElse(null))
+                .currency(project.getCurrency())
+                .projectStartDate(convertToOffsetDateTime(project.getProjectStartDate()))
+                .projectEndDate(convertToOffsetDateTime(project.getProjectEndDate()))
                 .minimumInvestment(project.getMinimumInvestment().map(BigDecimal::doubleValue).orElse(null))
                 .expectedProfit(project.getExpectedProfit().map(BigDecimal::doubleValue).orElse(null))
                 .risk(project.getRisk().orElse(null))
                 .owner(projectOwnerToApi(project.getOwner()))
                 .numberOfBackers(project.getNumberOfBackers().orElse(null))
-                .rewards(project.getRewards().stream().map(ApiConverter::projectRewardToApi).toList());
+                .title(Optional.ofNullable(projectContent).map(ProjectContent::getTitle).orElse(null))
+                .description(Optional.ofNullable(projectContent).map(ProjectContent::getDescription).orElse(null))
+                .longDescription(Optional.ofNullable(projectContent).map(ProjectContent::getLongDescription).orElse(null))
+                .imageUrl(Optional.ofNullable(projectContent).map(ProjectContent::getImageUrl).orElse(null))
+                .projectVideoUrl(Optional.ofNullable(projectContent).map(ProjectContent::getProjectVideoUrl).orElse(null))
+                .rewards(Optional.ofNullable(projectContent).map(ProjectContent::getRewards).orElseGet(List::of)
+                        .stream()
+                        .map(ApiConverter::projectRewardToApi)
+                        .toList())
+                ;
+
     }
 
     private static nextcrowd.crowdfunding.admin.api.model.ProjectReward projectRewardToApi(ProjectReward projectReward) {

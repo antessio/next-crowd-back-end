@@ -8,6 +8,7 @@ import com.github.f4b6a3.uuid.UuidCreator;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.event.CrowdfundingProjectSubmittedEvent;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
+import nextcrowd.crowdfunding.project.model.ProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
 import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
@@ -30,15 +31,9 @@ public class ProjectSubmissionService {
                                                          .owner(owner)
                                                          .projectStartDate(projectCreationCommand.getProjectStartDate())
                                                          .projectEndDate(projectCreationCommand.getProjectEndDate())
-                                                         .projectVideoUrl(projectCreationCommand.getProjectVideoUrl())
                                                          .requestedAmount(BigDecimal.valueOf(projectCreationCommand.getRequestedAmount()))
                                                          .currency(projectCreationCommand.getCurrency())
-                                                         .description(projectCreationCommand.getDescription())
-                                                         .title(projectCreationCommand.getTitle())
-                                                         .longDescription(projectCreationCommand.getLongDescription())
-                                                         .rewards(projectCreationCommand.getRewards())
                                                          .status(CrowdfundingProject.Status.SUBMITTED)
-                                                         .imageUrl(projectCreationCommand.getImageUrl())
                                                          .build();
         repository.save(project);
         eventPublisher.publish(CrowdfundingProjectSubmittedEvent.builder()

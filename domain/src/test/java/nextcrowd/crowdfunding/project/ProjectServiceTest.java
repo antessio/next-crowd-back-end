@@ -53,9 +53,11 @@ import nextcrowd.crowdfunding.project.model.Investment;
 import nextcrowd.crowdfunding.project.model.InvestmentId;
 import nextcrowd.crowdfunding.project.model.InvestmentStatus;
 import nextcrowd.crowdfunding.project.model.MoneyTransferId;
+import nextcrowd.crowdfunding.project.model.ProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
 import nextcrowd.crowdfunding.project.model.ProjectReward;
+import nextcrowd.crowdfunding.project.port.CmsPort;
 import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
 import nextcrowd.crowdfunding.project.port.EventPublisher;
 import nextcrowd.crowdfunding.project.port.TransactionalManager;
@@ -67,12 +69,14 @@ class ProjectServiceTest {
     private CrowdfundingProjectRepository crowdfundingProjectRepository;
     private EventPublisher eventPublisher;
     private ProjectServicePort projectServicePort;
+    private CmsPort cmsPort;
 
     @BeforeEach
     void setUp() {
         validationService = Mockito.mock(ProjectValidationService.class);
         eventPublisher = Mockito.mock(EventPublisher.class);
         crowdfundingProjectRepository = Mockito.mock(CrowdfundingProjectRepository.class);
+        cmsPort = Mockito.mock(CmsPort.class);
         TransactionalManager fakeTransactionalManager = new TransactionalManager() {
             @Override
             public void executeInTransaction(Runnable runnable) {
@@ -84,7 +88,7 @@ class ProjectServiceTest {
                 return supplier.get();
             }
         };
-        projectServicePort = new ProjectService(validationService, crowdfundingProjectRepository, eventPublisher, fakeTransactionalManager);
+        projectServicePort = new ProjectService(validationService, crowdfundingProjectRepository, eventPublisher, cmsPort, fakeTransactionalManager);
     }
 
     @Nested
@@ -116,7 +120,11 @@ class ProjectServiceTest {
         void shouldReturnPendingReviewProjects() {
             // given
             ProjectId startingFrom = ProjectId.generateId();
-            CrowdfundingProject project = buildProjectSubmitted(randomProjectId());
+            CrowdfundingProject project = buildProjectSubmitted(randomProjectId(), ProjectOwner.builder()
+                                                                                               .name("ownerName")
+                                                                                               .imageUrl("ownerImageUrl")
+                                                                                               .id("ownerId")
+                                                                                               .build());
             when(crowdfundingProjectRepository.findByStatusesOrderByAsc(Set.of(CrowdfundingProject.Status.SUBMITTED), startingFrom))
                     .thenReturn(Stream.of(project));
 
@@ -192,7 +200,7 @@ class ProjectServiceTest {
         }
 
         @Test
-        @DisplayName("should create a project and send an event")
+        @DisplayName("should create a project, save on CMS, and send an event")
         void shouldStoreProjectAndPublishEvent() {
             // given
             Instant now = Instant.now();
@@ -204,7 +212,8 @@ class ProjectServiceTest {
             SubmitCrowdfundingProjectCommand projectCreationCommand = buildSubmitCommand(now, projectOwner);
             when(validationService.validateProjectSubmission(projectCreationCommand)).thenReturn(Collections.emptyList());
             when(crowdfundingProjectRepository.findOwnerById(projectOwner.getId())).thenReturn(Optional.of(projectOwner));
-            when(crowdfundingProjectRepository.save(argThat(getCrowdfundingProjectArgumentMatcher(projectCreationCommand)))).thenAnswer(returnsFirstArg());
+            CrowdfundingProject expectedProject = buildProjectSubmitted(randomProjectId(), projectOwner);
+            when(crowdfundingProjectRepository.save(argThat(getCrowdfundingProjectArgumentMatcher(projectCreationCommand)))).thenReturn(expectedProject);
 
             // when
             ProjectId projectId = projectServicePort.submitProject(projectCreationCommand);
@@ -213,6 +222,20 @@ class ProjectServiceTest {
                                                                             .projectId(projectId)
                                                                             .projectOwner(projectOwner)
                                                                             .build());
+            verify(cmsPort).saveContent(ProjectContent.builder()
+                                                      .currency(projectCreationCommand.getCurrency())
+                                                      .owner(expectedProject.getOwner())
+                                                      .requestedAmount(BigDecimal.valueOf(projectCreationCommand.getRequestedAmount()))
+                                                      .projectStartDate(projectCreationCommand.getProjectStartDate())
+                                                      .projectEndDate(projectCreationCommand.getProjectEndDate())
+                                                      .longDescription(projectCreationCommand.getLongDescription())
+                                                      .description(projectCreationCommand.getDescription())
+                                                      .rewards(projectCreationCommand.getRewards())
+                                                      .projectVideoUrl(projectCreationCommand.getProjectVideoUrl())
+                                                      .title(projectCreationCommand.getTitle())
+                                                      .imageUrl(projectCreationCommand.getImageUrl())
+                                                      .projectId(projectId)
+                                                      .build());
         }
 
     }
@@ -273,7 +296,11 @@ class ProjectServiceTest {
             // given
             Instant now = Instant.now();
             ProjectId projectId = randomProjectId();
-            CrowdfundingProject existingProject = buildProjectSubmitted(projectId);
+            CrowdfundingProject existingProject = buildProjectSubmitted(projectId, ProjectOwner.builder()
+                                                                                               .name("ownerName")
+                                                                                               .imageUrl("ownerImageUrl")
+                                                                                               .id("ownerId")
+                                                                                               .build());
             EditCrowdfundingProjectCommand editCrowdfundingProjectCommand = buildEditCommand(
                     now, ProjectOwner.builder()
                                      .id("1")
@@ -339,7 +366,11 @@ class ProjectServiceTest {
             // given
             ProjectId projectId = randomProjectId();
             when(crowdfundingProjectRepository.findById(projectId))
-                    .thenReturn(Optional.of(buildProjectSubmitted(projectId)));
+                    .thenReturn(Optional.of(buildProjectSubmitted(projectId, ProjectOwner.builder()
+                                                                                         .name("ownerName")
+                                                                                         .imageUrl("ownerImageUrl")
+                                                                                         .id("ownerId")
+                                                                                         .build())));
             ApproveCrowdfundingProjectCommand command = ApproveCrowdfundingProjectCommand.builder()
                                                                                          .risk(3)
                                                                                          .expectedProfit(new BigDecimal("10.00"))
@@ -358,7 +389,11 @@ class ProjectServiceTest {
             // given
             ProjectId projectId = randomProjectId();
             when(crowdfundingProjectRepository.findById(projectId))
-                    .thenReturn(Optional.of(buildProjectSubmitted(projectId)));
+                    .thenReturn(Optional.of(buildProjectSubmitted(projectId, ProjectOwner.builder()
+                                                                                         .name("ownerName")
+                                                                                         .imageUrl("ownerImageUrl")
+                                                                                         .id("ownerId")
+                                                                                         .build())));
             ApproveCrowdfundingProjectCommand command = ApproveCrowdfundingProjectCommand.builder()
                                                                                          .risk(3)
                                                                                          .expectedProfit(new BigDecimal("10.00"))
@@ -446,7 +481,11 @@ class ProjectServiceTest {
             // given
             ProjectId projectId = randomProjectId();
             when(crowdfundingProjectRepository.findById(projectId))
-                    .thenReturn(Optional.of(buildProjectSubmitted(projectId)));
+                    .thenReturn(Optional.of(buildProjectSubmitted(projectId, ProjectOwner.builder()
+                                                                                         .name("ownerName")
+                                                                                         .imageUrl("ownerImageUrl")
+                                                                                         .id("ownerId")
+                                                                                         .build())));
 
             // when
             projectServicePort.reject(projectId);
@@ -860,7 +899,11 @@ class ProjectServiceTest {
             // given
             ProjectId projectId = randomProjectId();
             when(crowdfundingProjectRepository.findById(projectId))
-                    .thenReturn(Optional.of(buildProjectSubmitted(projectId)));
+                    .thenReturn(Optional.of(buildProjectSubmitted(projectId, ProjectOwner.builder()
+                                                                                         .name("ownerName")
+                                                                                         .imageUrl("ownerImageUrl")
+                                                                                         .id("ownerId")
+                                                                                         .build())));
 
             // when
             // then
@@ -893,35 +936,15 @@ class ProjectServiceTest {
 
     }
 
-    private static CrowdfundingProject buildProjectSubmitted(ProjectId projectId) {
+    private static CrowdfundingProject buildProjectSubmitted(ProjectId projectId, ProjectOwner projectOwner) {
         return CrowdfundingProject.builder()
                                   .id(projectId)
                                   .status(CrowdfundingProject.Status.SUBMITTED)
                                   .projectStartDate(Instant.now().plus(1, ChronoUnit.DAYS))
                                   .projectEndDate(Instant.now().plus(60, ChronoUnit.DAYS))
-                                  .projectVideoUrl("videoUrl")
-                                  .owner(ProjectOwner.builder()
-                                                     .name("ownerName")
-                                                     .imageUrl("ownerImageUrl")
-                                                     .id("ownerId")
-                                                     .build())
-                                  .title("projectTitle")
+                                  .owner(projectOwner)
                                   .currency("EUR")
                                   .requestedAmount(new BigDecimal(300_000))
-                                  .description("aShortDescription")
-                                  .longDescription("aLongDescription")
-                                  .imageUrl("projectImageUrl")
-                                  .rewards(List.of(
-                                          ProjectReward.builder()
-                                                       .description("aRewardDescription1")
-                                                       .imageUrl("rewardImageUrl1")
-                                                       .name("rewardName1")
-                                                       .build(),
-                                          ProjectReward.builder()
-                                                       .description("aRewardDescription2")
-                                                       .imageUrl("rewardImageUrl2")
-                                                       .name("rewardName2")
-                                                       .build()))
                                   .build();
     }
 
@@ -931,29 +954,13 @@ class ProjectServiceTest {
                                   .status(CrowdfundingProject.Status.REJECTED)
                                   .projectStartDate(Instant.now().plus(1, ChronoUnit.DAYS))
                                   .projectEndDate(Instant.now().plus(60, ChronoUnit.DAYS))
-                                  .projectVideoUrl("videoUrl")
                                   .owner(ProjectOwner.builder()
                                                      .name("ownerName")
                                                      .imageUrl("ownerImageUrl")
                                                      .id("ownerId")
                                                      .build())
-                                  .title("projectTitle")
                                   .currency("EUR")
                                   .requestedAmount(new BigDecimal(300_000))
-                                  .description("aShortDescription")
-                                  .longDescription("aLongDescription")
-                                  .imageUrl("projectImageUrl")
-                                  .rewards(List.of(
-                                          ProjectReward.builder()
-                                                       .description("aRewardDescription1")
-                                                       .imageUrl("rewardImageUrl1")
-                                                       .name("rewardName1")
-                                                       .build(),
-                                          ProjectReward.builder()
-                                                       .description("aRewardDescription2")
-                                                       .imageUrl("rewardImageUrl2")
-                                                       .name("rewardName2")
-                                                       .build()))
                                   .build();
     }
 
@@ -973,30 +980,14 @@ class ProjectServiceTest {
                                   .minimumInvestment(new BigDecimal(3000))
                                   .projectStartDate(Instant.now().plus(1, ChronoUnit.DAYS))
                                   .projectEndDate(Instant.now().plus(60, ChronoUnit.DAYS))
-                                  .projectVideoUrl("videoUrl")
                                   .owner(ProjectOwner.builder()
                                                      .name("ownerName")
                                                      .imageUrl("ownerImageUrl")
                                                      .id("ownerId")
                                                      .build())
-                                  .title("projectTitle")
                                   .currency("EUR")
                                   .requestedAmount(new BigDecimal(300_000))
                                   .collectedAmount(collectedAmount)
-                                  .description("aShortDescription")
-                                  .longDescription("aLongDescription")
-                                  .imageUrl("projectImageUrl")
-                                  .rewards(List.of(
-                                          ProjectReward.builder()
-                                                       .description("aRewardDescription1")
-                                                       .imageUrl("rewardImageUrl1")
-                                                       .name("rewardName1")
-                                                       .build(),
-                                          ProjectReward.builder()
-                                                       .description("aRewardDescription2")
-                                                       .imageUrl("rewardImageUrl2")
-                                                       .name("rewardName2")
-                                                       .build()))
                                   .investments(investments)
                                   .build();
     }
@@ -1010,29 +1001,13 @@ class ProjectServiceTest {
                                   .minimumInvestment(new BigDecimal(3000))
                                   .projectStartDate(Instant.now().plus(1, ChronoUnit.DAYS))
                                   .projectEndDate(Instant.now().plus(60, ChronoUnit.DAYS))
-                                  .projectVideoUrl("videoUrl")
                                   .owner(ProjectOwner.builder()
                                                      .name("ownerName")
                                                      .imageUrl("ownerImageUrl")
                                                      .id("ownerId")
                                                      .build())
-                                  .title("projectTitle")
                                   .currency("EUR")
                                   .requestedAmount(new BigDecimal(300_000))
-                                  .description("aShortDescription")
-                                  .longDescription("aLongDescription")
-                                  .imageUrl("projectImageUrl")
-                                  .rewards(List.of(
-                                          ProjectReward.builder()
-                                                       .description("aRewardDescription1")
-                                                       .imageUrl("rewardImageUrl1")
-                                                       .name("rewardName1")
-                                                       .build(),
-                                          ProjectReward.builder()
-                                                       .description("aRewardDescription2")
-                                                       .imageUrl("rewardImageUrl2")
-                                                       .name("rewardName2")
-                                                       .build()))
                                   .build();
     }
 
@@ -1101,32 +1076,23 @@ class ProjectServiceTest {
 
     private static ArgumentMatcher<CrowdfundingProject> getCrowdfundingProjectArgumentMatcher(SubmitCrowdfundingProjectCommand projectCreationCommand) {
         return p -> p.getId() != null &&
-                    p.getImageUrl().equals(projectCreationCommand.getImageUrl()) &&
                     p.getStatus().equals(CrowdfundingProject.Status.SUBMITTED)
                     && p.getRequestedAmount().doubleValue() == projectCreationCommand.getRequestedAmount()
                     && p.getCollectedAmount().isEmpty()
                     && p.getCurrency().equals(projectCreationCommand.getCurrency())
                     && p.getProjectStartDate().equals(projectCreationCommand.getProjectStartDate())
                     && p.getProjectEndDate().equals(projectCreationCommand.getProjectEndDate())
-                    && p.getDescription().equals(projectCreationCommand.getDescription())
-                    && p.getTitle().equals(projectCreationCommand.getTitle())
-                    && p.getLongDescription().equals(projectCreationCommand.getLongDescription())
-                    && p.getRewards().equals(projectCreationCommand.getRewards())
                     && p.getOwner().equals(projectCreationCommand.getOwner());
     }
+
     private static ArgumentMatcher<CrowdfundingProject> getCrowdfundingProjectArgumentMatcher(EditCrowdfundingProjectCommand projectCreationCommand) {
         return p -> p.getId() != null &&
-                    p.getImageUrl().equals(projectCreationCommand.getImageUrl()) &&
                     p.getStatus().equals(CrowdfundingProject.Status.SUBMITTED)
                     && p.getRequestedAmount().doubleValue() == projectCreationCommand.getRequestedAmount()
                     && p.getCollectedAmount().isEmpty()
                     && p.getCurrency().equals(projectCreationCommand.getCurrency())
                     && p.getProjectStartDate().equals(projectCreationCommand.getProjectStartDate())
                     && p.getProjectEndDate().equals(projectCreationCommand.getProjectEndDate())
-                    && p.getDescription().equals(projectCreationCommand.getDescription())
-                    && p.getTitle().equals(projectCreationCommand.getTitle())
-                    && p.getLongDescription().equals(projectCreationCommand.getLongDescription())
-                    && p.getRewards().equals(projectCreationCommand.getRewards())
                     && p.getOwner().equals(projectCreationCommand.getOwner());
     }
 
