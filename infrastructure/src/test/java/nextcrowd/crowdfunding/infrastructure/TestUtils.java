@@ -81,15 +81,17 @@ public class TestUtils {
         return project.updateInvestments(investments);
     }
 
-    public static ProjectContent buildRandomProjectContent(){
+    public static ProjectContent buildRandomProjectContent() {
         return ProjectContent.builder()
                              .title(faker.company().name())
                              .description(faker.lorem().sentence(10))
                              .risk(random.nextInt(5))
                              .minimumInvestment(BigDecimal.valueOf(random.nextInt(1000) + 100))
                              .expectedProfit(BigDecimal.valueOf(random.nextInt(100)))
+                             .rewards(List.of(buildRandomProjectReward()))
                              .build();
     }
+
     public static CrowdfundingProject.Status getRandomStatus(CrowdfundingProject.Status... excluding) {
         Set<CrowdfundingProject.Status> excludedStatuses = Set.of(excluding);
         List<CrowdfundingProject.Status> availableStatuses = Stream.of(CrowdfundingProject.Status.values())

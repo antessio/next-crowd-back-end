@@ -121,6 +121,7 @@ public class StrapiCmsAdapter implements CmsPort {
             String projectId = saveProject(ownerId, maybeImageId.orElse(null), maybeVideoId.orElse(null), rewardIds, command);
             logger.info("Project saved with id: {}", projectId);
         } catch (InterruptedException | ExecutionException e) {
+            logger.error("Failed to save project", e);
             throw new RuntimeException(e);
         }
     }
@@ -168,6 +169,7 @@ public class StrapiCmsAdapter implements CmsPort {
                     .build();
             return strapiObjectMapper.readValue(executeRequest(request), ProjectResponse.class).getId();
         } catch (Exception e) {
+            logger.error("something went wrong while saving project", e);
             throw new RuntimeException(e);
         }
     }
@@ -205,6 +207,7 @@ public class StrapiCmsAdapter implements CmsPort {
                     .build();
             return strapiObjectMapper.readValue(executeRequest(request), ContentRefResponse.class).getData().getId();
         } catch (Exception e) {
+            logger.error("something went wrong while saving reward", e);
             throw new RuntimeException(e);
         }
 
@@ -246,6 +249,7 @@ public class StrapiCmsAdapter implements CmsPort {
                     .build();
             return strapiObjectMapper.readValue(executeRequest(request), ContentRefResponse.class).getData();
         } catch (Exception e) {
+            logger.error("something went wrong while saving owner", e);
             throw new RuntimeException(e);
         }
     }
@@ -274,6 +278,7 @@ public class StrapiCmsAdapter implements CmsPort {
         try {
             return strapiObjectMapper.readValue(responseBody, cls);
         } catch (JsonProcessingException e) {
+            logger.error("Failed to convert json", e);
             throw new RuntimeException(e);
         }
     }
@@ -291,6 +296,7 @@ public class StrapiCmsAdapter implements CmsPort {
             }
             return maybeResponseBodyStr;
         } catch (IOException e) {
+            logger.error("Failed to execute request", e);
             throw new RuntimeException(e);
         }
     }
@@ -308,6 +314,7 @@ public class StrapiCmsAdapter implements CmsPort {
             logger.info("the request was {} response body {}", request.url(), maybeResponseBodyStr.orElseThrow());
             return maybeResponseBodyStr.orElseThrow(() -> new IllegalStateException("expected a json body in response"));
         } catch (IOException e) {
+            logger.error("Failed to execute request", e);
             throw new RuntimeException(e);
         }
     }
@@ -320,6 +327,7 @@ public class StrapiCmsAdapter implements CmsPort {
                            try {
                                return body.string();
                            } catch (IOException e) {
+                               logger.error("Failed to get response body", e);
                                throw new RuntimeException(e);
                            }
                        });

@@ -54,6 +54,7 @@ import nextcrowd.crowdfunding.project.ProjectServicePort;
 import nextcrowd.crowdfunding.project.exception.CrowdfundingProjectException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
+import nextcrowd.crowdfunding.project.model.ProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 
 @WebMvcTest
@@ -150,8 +151,10 @@ class AdminProjectControllerTest {
                                                    .projectStartDate(buildRandomInstant().truncatedTo(ChronoUnit.SECONDS))
                                                    .projectEndDate(buildRandomInstant().truncatedTo(ChronoUnit.SECONDS))
                                                    .build();
+            ProjectContent projectContent = TestUtils.buildRandomProjectContent();
             ProjectId projectId = project.getId();
             when(projectServicePort.getById(projectId)).thenReturn(Optional.of(project));
+            when(projectServicePort.getContentById(projectId)).thenReturn(Optional.of(projectContent));
 
             // Act & Assert
 
@@ -159,13 +162,13 @@ class AdminProjectControllerTest {
                                     .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername())))
                    .andExpect(status().isOk())
                    .andExpect(jsonPath("$.id").value(projectId.id()))
-                   .andExpect(jsonPath("$.title").value(project.getTitle()))
+                   .andExpect(jsonPath("$.title").value(projectContent.getTitle()))
                    .andExpect(jsonPath("$.status").value(project.getStatus().toString()))
-                   .andExpect(jsonPath("$.imageUrl").value(project.getImageUrl()))
+                   .andExpect(jsonPath("$.imageUrl").value(projectContent.getImageUrl()))
                    .andExpect(jsonPath("$.currency").value(project.getCurrency()))
-                   .andExpect(jsonPath("$.longDescription").value(project.getLongDescription()))
-                   .andExpect(jsonPath("$.projectVideoUrl").value(project.getProjectVideoUrl()))
-                   .andExpect(jsonPath("$.description").value(project.getDescription()))
+                   .andExpect(jsonPath("$.longDescription").value(projectContent.getLongDescription()))
+                   .andExpect(jsonPath("$.projectVideoUrl").value(projectContent.getProjectVideoUrl()))
+                   .andExpect(jsonPath("$.description").value(projectContent.getDescription()))
                    .andExpect(jsonPath("$.requestedAmount").value(project.getRequestedAmount().doubleValue()))
                    .andExpect(jsonPath("$.collectedAmount").value(project.getCollectedAmount().orElseThrow().doubleValue()))
                    .andExpect(jsonPath("$.projectStartDate").value(project.getProjectStartDate().toString()))
@@ -178,7 +181,7 @@ class AdminProjectControllerTest {
                    .andExpect(jsonPath("$.owner.imageUrl").value(project.getOwner().getImageUrl()))
                    .andExpect(jsonPath("$.numberOfBackers").value(project.getNumberOfBackers().orElseThrow()))
                    .andExpect(jsonPath("$.rewards").isArray())
-                   .andExpect(jsonPath("$.rewards.length()").value(project.getRewards().size()))
+                   .andExpect(jsonPath("$.rewards.length()").value(projectContent.getRewards().size()))
                    .andExpect(jsonPath("$.rewards[*].name").isArray())
                    .andExpect(jsonPath("$.rewards[*].imageUrl").isArray())
                    .andExpect(jsonPath("$.rewards[*].description").isArray());
