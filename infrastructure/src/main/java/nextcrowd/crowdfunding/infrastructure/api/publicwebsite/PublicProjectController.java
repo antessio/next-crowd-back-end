@@ -31,7 +31,9 @@ public class PublicProjectController implements PublicApi {
     @Override
     public ResponseEntity<CrowdfundingProject> publicProjectsProjectIdGet(String projectId) {
         return projectServicePort.getById(new nextcrowd.crowdfunding.project.model.ProjectId(projectId))
-                                 .map(ApiConverter::toApi)
+                                 .map(project -> projectServicePort.getContentById(project.getId())
+                                                                   .map(content -> ApiConverter.toApi(project, content))
+                                                                   .orElseGet(() -> ApiConverter.toApi(project)))
                                  .map(ResponseEntity::ok)
                                  .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -41,7 +43,9 @@ public class PublicProjectController implements PublicApi {
         List<nextcrowd.crowdfunding.websitepublic.api.model.CrowdfundingProject>
                 results = new ArrayList<>(projectServicePort.getPublishedProjects(new nextcrowd.crowdfunding.project.model.ProjectId(cursor))
                                                             .limit(limit + 1)
-                                                            .map(ApiConverter::toApi)
+                                                            .map(project -> projectServicePort.getContentById(project.getId())
+                                                                                              .map(content -> ApiConverter.toApi(project, content))
+                                                                                              .orElseGet(() -> ApiConverter.toApi(project)))
                                                             .toList());
         boolean hasMore = results.size() > limit;
         if (hasMore) {
