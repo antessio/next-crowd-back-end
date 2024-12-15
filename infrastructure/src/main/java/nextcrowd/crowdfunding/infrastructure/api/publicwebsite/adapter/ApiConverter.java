@@ -30,7 +30,7 @@ public class ApiConverter {
                 .currency(project.getCurrency())
                 .projectStartDate(project.getProjectStartDate().atOffset(ZoneOffset.UTC))
                 .projectEndDate(project.getProjectEndDate().atOffset(ZoneOffset.UTC))
-                .owner(convertProjectOwner(project.getOwner()))
+                .owner(convertProjectOwner(projectContent.getOwner()))
                 .numberOfBackers(project.getNumberOfBackers().orElse(null))
                 .title(projectContent.getTitle())
                 .description(projectContent.getDescription())

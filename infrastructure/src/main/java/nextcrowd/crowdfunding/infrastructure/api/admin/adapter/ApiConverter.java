@@ -91,22 +91,6 @@ public final class ApiConverter {
                                    .bakerId(new BakerId(addInvestmentCommand.getBakerId()))
                                    .build();
     }
-
-    /*public static nextcrowd.crowdfunding.admin.api.model.CrowdfundingProject toApi(CrowdfundingProject project) {
-        return new nextcrowd.crowdfunding.admin.api.model.CrowdfundingProject()
-                .id(project.getId().id())
-                .status(project.getStatus().name())
-                .requestedAmount(project.getRequestedAmount().doubleValue())
-                .collectedAmount(project.getCollectedAmount().map(BigDecimal::doubleValue).orElse(null))
-                .currency(project.getCurrency())
-                .projectStartDate(convertToOffsetDateTime(project.getProjectStartDate()))
-                .projectEndDate(convertToOffsetDateTime(project.getProjectEndDate()))
-                .minimumInvestment(project.getMinimumInvestment().map(BigDecimal::doubleValue).orElse(null))
-                .expectedProfit(project.getExpectedProfit().map(BigDecimal::doubleValue).orElse(null))
-                .risk(project.getRisk().orElse(null))
-                .owner(projectOwnerToApi(project.getOwner()))
-                .numberOfBackers(project.getNumberOfBackers().orElse(null));
-    }*/
     public static nextcrowd.crowdfunding.admin.api.model.CrowdfundingProject toApi(CrowdfundingProject project, ProjectContent projectContent) {
         return new nextcrowd.crowdfunding.admin.api.model.CrowdfundingProject()
                 .id(project.getId().id())
