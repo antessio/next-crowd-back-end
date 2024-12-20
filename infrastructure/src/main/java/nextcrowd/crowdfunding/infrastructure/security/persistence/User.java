@@ -32,6 +32,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 @Table(name = "users")
 @Entity
@@ -40,6 +41,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode(exclude = "roles")
+@ToString(exclude = "roles")
 public class User implements UserDetails {
     @Id
     @Column(nullable = false)
