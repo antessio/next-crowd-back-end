@@ -16,8 +16,11 @@ spring:
       auto-commit: false
 
   jpa:
+    show-sql: true
+
     properties:
       hibernate:
+        format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
   liquibase:
     change-log: classpath:liquibase/master.xml
@@ -38,5 +41,5 @@ logging:
         web: DEBUG
 strapi:
   baseUrl: http://localhost:1337
-  token: 8877ac54d0dec222049abf94da4befa55c058b0ab3dddba299f9b74d1a0f8d9e51a636791d4e0787bbdb8ef38d94d5c773ad0d7ffcc48b51e98732ddb4a4fe5de36afd6953fa07a42c3091f2b1892c5cc917973ac1964e073a7339ce80e0bff9f6a2f518a6f8c523176d6be0030e603c4db13aeb0ae78c54867e51666a8ce09d
+  token: 05fa3264c489615e205456bebd34da9ad8d5ceea1662c51527de748ac506053443474b2c3eafbcfb4204b218d4a2b1a3cca36514a2f1a4b195202436e52602d5e7f70faa680943be88264d3348577fe3f773a7fb417d65a810ee0aadb7bf3f2252c67c63b3cc599a80ff29c2dbede39ef6bd83c073a6c39a3c1b5d363d83c145
   publicUrl: http://localhost:1337

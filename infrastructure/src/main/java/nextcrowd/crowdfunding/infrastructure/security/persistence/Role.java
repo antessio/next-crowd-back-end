@@ -3,9 +3,13 @@ package nextcrowd.crowdfunding.infrastructure.security.persistence;
 
 import java.util.UUID;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,8 +31,10 @@ public class Role {
     @Id
     @Column(name="id", nullable = false)
     private UUID id;
-    @Column(name = "user_id", nullable = false)
-    private UUID userId;
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnore // To prevent circular serialization
+    private User user;
 
     @Column(nullable = false)
     private String role;

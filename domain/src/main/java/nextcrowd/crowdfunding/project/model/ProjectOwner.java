@@ -7,7 +7,7 @@ import lombok.extern.jackson.Jacksonized;
 @Value
 @Builder
 public class ProjectOwner {
-    private String id;
+    private ProjectOwnerId id;
     private String name;
     private String imageUrl;
 }

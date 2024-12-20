@@ -31,4 +31,11 @@ public interface CrowdfundingProjectRepository extends JpaRepository<Crowdfundin
             @Param("startingFrom") UUID startingFrom,
             @Param("size") int size);
 
+    @Query(value = "SELECT * FROM crowdfunding_project c WHERE c.owner_id = :owner_id AND c.status IN :statuses AND c.id > :startingFrom ORDER BY c.id ASC LIMIT :size", nativeQuery = true)
+    List<CrowdfundingProjectEntity> findByOwnerIdAndStatusInOrderByIdAsc(
+            @Param("owner_id") UUID ownerId,
+            @Param("statuses") List<String> statuses,
+            @Param("startingFrom") UUID startingFrom,
+            @Param("size") int size);
+
 }

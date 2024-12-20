@@ -18,6 +18,7 @@ import nextcrowd.crowdfunding.project.model.InvestmentId;
 import nextcrowd.crowdfunding.project.model.InvestmentStatus;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
+import nextcrowd.crowdfunding.project.model.ProjectOwnerId;
 import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
 
 @Component
@@ -100,9 +101,30 @@ public class CrowdfundingProjectSpringDataRepositoryAdapter implements Crowdfund
 
 
     @Override
-    public Optional<ProjectOwner> findOwnerById(String id) {
-        return projectOwnerRepository.findById(UUID.fromString(id))
+    public Optional<ProjectOwner> findOwnerById(ProjectOwnerId id) {
+        return projectOwnerRepository.findById(UUID.fromString(id.id()))
                                      .map(ProjectOwnerAdapter::toDomain);
+    }
+
+    @Override
+    public Stream<CrowdfundingProject> findByStatusesOrderByAsc(
+            ProjectOwnerId projectOwnerId,
+            Set<CrowdfundingProject.Status> statuses,
+            ProjectId startingFrom) {
+        final int batchSize = 20;
+        List<String> statusesString = statuses.stream().map(Enum::name).toList();
+        return Stream.iterate(
+                             Optional.ofNullable(startingFrom)
+                                     .map(ProjectId::id)
+                                     .map(UUID::fromString)
+                                     .map(cursor -> crowdfundingProjectRepository.findByStatusInOrderByIdAsc(statusesString, cursor, batchSize))
+                                     .orElseGet(() -> crowdfundingProjectRepository.findByStatusInOrderByIdAsc(statusesString, batchSize)),
+                             Predicate.not(List::isEmpty), l -> {
+                                 UUID lastId = l.getLast().getId();
+                                 return crowdfundingProjectRepository.findByStatusInOrderByIdAsc(statusesString, lastId, batchSize);
+                             })
+                     .flatMap(Collection::stream)
+                     .map(CrowdfundingProjectAdapter::toDomain);
     }
 
 }

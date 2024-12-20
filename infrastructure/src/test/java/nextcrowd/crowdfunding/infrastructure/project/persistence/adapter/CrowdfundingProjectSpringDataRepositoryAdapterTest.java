@@ -231,5 +231,29 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest extends BaseTest
                 .containsExactlyInAnyOrderElementsOf(project1.getAcceptedInvestments());
     }
 
+    @Test
+    public void shouldFindProjectsByStatusAndProjectOwnerId() {
+        // given
+        CrowdfundingProject.Status targetStatus = getRandomStatus();
+        ProjectOwner projectOwner = getRandomProjectOwnerFromExisting();
+        List<CrowdfundingProject> expected = IntStream.range(0, 30)
+                                                      .mapToObj(_ -> buildRandomProject(projectOwner).toBuilder()
+                                                                                                      .status(targetStatus)
+                                                                                                      .build())
+                                                      .map(repositoryAdapter::save)
+                                                      .toList();
+        IntStream.range(0, 20)
+                 .mapToObj(_ -> buildRandomProject(getRandomProjectOwnerFromExisting()).toBuilder()
+                                                                                       .status(getRandomStatus(targetStatus))
+                                                                                       .build())
+                 .map(repositoryAdapter::save)
+                 .forEach(repositoryAdapter::save);
+
+        // when
+        List<CrowdfundingProject> pendingReviewProjects = repositoryAdapter.findByStatusesOrderByAsc(projectOwner.getId(), Set.of(targetStatus), null).toList();
+
+        // then
+        assertThat(pendingReviewProjects).containsExactly(expected.toArray(new CrowdfundingProject[0]));
+    }
 
 }

@@ -14,6 +14,7 @@ import nextcrowd.crowdfunding.project.model.Investment;
 import nextcrowd.crowdfunding.project.model.InvestmentId;
 import nextcrowd.crowdfunding.project.model.ProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectId;
+import nextcrowd.crowdfunding.project.model.ProjectOwnerId;
 
 public interface ProjectServicePort {
 
@@ -23,6 +24,8 @@ public interface ProjectServicePort {
     Stream<CrowdfundingProject> getPublishedProjects(ProjectId startingFrom);
 
     Stream<CrowdfundingProject> getPendingReviewProjects(ProjectId startingFrom);
+
+    Stream<CrowdfundingProject> getPendingReviewProjectsByProjectOwnerId(ProjectOwnerId projectOwnerId, ProjectId startingFrom);
 
     Stream<Investment> getPendingInvestments(ProjectId projectId, InvestmentId startingFrom);
 

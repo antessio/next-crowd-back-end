@@ -21,6 +21,7 @@ import nextcrowd.crowdfunding.project.model.InvestmentId;
 import nextcrowd.crowdfunding.project.model.InvestmentStatus;
 import nextcrowd.crowdfunding.project.model.ProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectId;
+import nextcrowd.crowdfunding.project.model.ProjectOwnerId;
 import nextcrowd.crowdfunding.project.port.CmsPort;
 import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
 import nextcrowd.crowdfunding.project.port.EventPublisher;
@@ -83,6 +84,11 @@ public class ProjectService implements ProjectServicePort {
     @Override
     public Stream<CrowdfundingProject> getPendingReviewProjects(ProjectId startingFrom) {
         return repository.findByStatusesOrderByAsc(Set.of(CrowdfundingProject.Status.SUBMITTED), startingFrom);
+    }
+
+    @Override
+    public Stream<CrowdfundingProject> getPendingReviewProjectsByProjectOwnerId(ProjectOwnerId projectOwnerId, ProjectId startingFrom) {
+        return repository.findByStatusesOrderByAsc(projectOwnerId, Set.of(CrowdfundingProject.Status.SUBMITTED), startingFrom);
     }
 
     @Override

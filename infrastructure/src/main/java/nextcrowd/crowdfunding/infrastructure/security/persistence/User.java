@@ -30,6 +30,7 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 
 @Table(name = "users")
@@ -38,6 +39,7 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
+@EqualsAndHashCode(exclude = "roles")
 public class User implements UserDetails {
     @Id
     @Column(nullable = false)
@@ -64,7 +66,7 @@ public class User implements UserDetails {
     private boolean isVerified;
 
     @JsonIgnore
-    @OneToMany(mappedBy = "userId", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
     @BatchSize(size = 20)
     @Builder.Default
     private Set<Role> roles = new HashSet<>();
@@ -80,7 +82,7 @@ public class User implements UserDetails {
     }
 
     public void addRole(String role) {
-        this.roles.add(new Role(UUID.randomUUID(), this.id, role));
+        this.roles.add(new Role(UUID.randomUUID(), this, role));
     }
 
     @Override
@@ -107,6 +109,8 @@ public class User implements UserDetails {
     public boolean isEnabled() {
         return isVerified;
     }
+
+
 
 
 }
