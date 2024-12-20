@@ -26,6 +26,6 @@ public interface CrowdfundingProjectRepository {
 
     Optional<ProjectOwner> findOwnerById(ProjectOwnerId id);
 
-    Stream<CrowdfundingProject> findByStatusesOrderByAsc(ProjectOwnerId projectOwnerId, Set<CrowdfundingProject.Status> statuses, ProjectId startingFrom);
+    Stream<CrowdfundingProject> findByOwnerIdOrderByAsc(ProjectOwnerId projectOwnerId, ProjectId startingFrom);
 
 }

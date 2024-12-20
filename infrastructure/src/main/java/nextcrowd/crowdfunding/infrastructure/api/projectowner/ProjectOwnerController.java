@@ -46,7 +46,7 @@ public class ProjectOwnerController implements ProjectOwnerApi {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
 
-        List<nextcrowd.crowdfunding.project.model.CrowdfundingProject> result = new ArrayList<>(projectServicePort.getPendingReviewProjectsByProjectOwnerId(
+        List<nextcrowd.crowdfunding.project.model.CrowdfundingProject> result = new ArrayList<>(projectServicePort.getProjectsByProjectOwnerId(
                                                                                                                           new ProjectOwnerId(user.getId().toString()),
                                                                                                                           new ProjectId(cursor))
                                                                                                                   .limit(limit + 1)

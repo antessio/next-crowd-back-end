@@ -25,7 +25,7 @@ public interface ProjectServicePort {
 
     Stream<CrowdfundingProject> getPendingReviewProjects(ProjectId startingFrom);
 
-    Stream<CrowdfundingProject> getPendingReviewProjectsByProjectOwnerId(ProjectOwnerId projectOwnerId, ProjectId startingFrom);
+    Stream<CrowdfundingProject> getProjectsByProjectOwnerId(ProjectOwnerId projectOwnerId, ProjectId startingFrom);
 
     Stream<Investment> getPendingInvestments(ProjectId projectId, InvestmentId startingFrom);
 

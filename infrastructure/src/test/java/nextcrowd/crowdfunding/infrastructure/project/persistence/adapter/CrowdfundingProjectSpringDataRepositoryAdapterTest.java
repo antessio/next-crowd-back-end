@@ -19,14 +19,9 @@ import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ContextConfiguration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javafaker.Faker;
 
 import nextcrowd.crowdfunding.infrastructure.BaseTestWithTestcontainers;
@@ -250,7 +245,7 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest extends BaseTest
                  .forEach(repositoryAdapter::save);
 
         // when
-        List<CrowdfundingProject> pendingReviewProjects = repositoryAdapter.findByStatusesOrderByAsc(projectOwner.getId(), Set.of(targetStatus), null).toList();
+        List<CrowdfundingProject> pendingReviewProjects = repositoryAdapter.findByOwnerIdOrderByAsc(projectOwner.getId(), null).toList();
 
         // then
         assertThat(pendingReviewProjects).containsExactly(expected.toArray(new CrowdfundingProject[0]));

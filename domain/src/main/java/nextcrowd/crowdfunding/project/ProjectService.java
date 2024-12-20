@@ -87,8 +87,8 @@ public class ProjectService implements ProjectServicePort {
     }
 
     @Override
-    public Stream<CrowdfundingProject> getPendingReviewProjectsByProjectOwnerId(ProjectOwnerId projectOwnerId, ProjectId startingFrom) {
-        return repository.findByStatusesOrderByAsc(projectOwnerId, Set.of(CrowdfundingProject.Status.SUBMITTED), startingFrom);
+    public Stream<CrowdfundingProject> getProjectsByProjectOwnerId(ProjectOwnerId projectOwnerId, ProjectId startingFrom) {
+        return repository.findByOwnerIdOrderByAsc(projectOwnerId, startingFrom);
     }
 
     @Override

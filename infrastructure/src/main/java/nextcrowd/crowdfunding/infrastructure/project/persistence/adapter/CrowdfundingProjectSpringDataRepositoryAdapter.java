@@ -107,21 +107,19 @@ public class CrowdfundingProjectSpringDataRepositoryAdapter implements Crowdfund
     }
 
     @Override
-    public Stream<CrowdfundingProject> findByStatusesOrderByAsc(
+    public Stream<CrowdfundingProject> findByOwnerIdOrderByAsc(
             ProjectOwnerId projectOwnerId,
-            Set<CrowdfundingProject.Status> statuses,
             ProjectId startingFrom) {
         final int batchSize = 20;
-        List<String> statusesString = statuses.stream().map(Enum::name).toList();
         return Stream.iterate(
                              Optional.ofNullable(startingFrom)
                                      .map(ProjectId::id)
                                      .map(UUID::fromString)
-                                     .map(cursor -> crowdfundingProjectRepository.findByStatusInOrderByIdAsc(statusesString, cursor, batchSize))
-                                     .orElseGet(() -> crowdfundingProjectRepository.findByStatusInOrderByIdAsc(statusesString, batchSize)),
+                                     .map(cursor -> crowdfundingProjectRepository.findByOwnerIdInOrderByIdAsc(UUID.fromString(projectOwnerId.id()),  cursor, batchSize))
+                                     .orElseGet(() -> crowdfundingProjectRepository.findByOwnerIdInOrderByIdAsc(UUID.fromString(projectOwnerId.id()), batchSize)),
                              Predicate.not(List::isEmpty), l -> {
                                  UUID lastId = l.getLast().getId();
-                                 return crowdfundingProjectRepository.findByStatusInOrderByIdAsc(statusesString, lastId, batchSize);
+                                 return crowdfundingProjectRepository.findByOwnerIdInOrderByIdAsc(UUID.fromString(projectOwnerId.id()), lastId, batchSize);
                              })
                      .flatMap(Collection::stream)
                      .map(CrowdfundingProjectAdapter::toDomain);
