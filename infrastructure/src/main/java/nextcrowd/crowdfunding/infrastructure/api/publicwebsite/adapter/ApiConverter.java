@@ -2,6 +2,7 @@ package nextcrowd.crowdfunding.infrastructure.api.publicwebsite.adapter;
 
 import java.math.BigDecimal;
 import java.time.ZoneOffset;
+import java.util.Optional;
 
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.ProjectContent;
@@ -16,7 +17,7 @@ public class ApiConverter {
                 .currency(project.getCurrency())
                 .projectStartDate(project.getProjectStartDate().atOffset(ZoneOffset.UTC))
                 .projectEndDate(project.getProjectEndDate().atOffset(ZoneOffset.UTC))
-                .owner(convertProjectOwner(project.getOwner()))
+                .owner(convertProjectOwner(project.getOwner(), project.getOwner().getImageUrl()))
                 .numberOfBackers(project.getNumberOfBackers().orElse(null))
                 .status(project.getStatus().name())
                 ;
@@ -30,7 +31,10 @@ public class ApiConverter {
                 .currency(project.getCurrency())
                 .projectStartDate(project.getProjectStartDate().atOffset(ZoneOffset.UTC))
                 .projectEndDate(project.getProjectEndDate().atOffset(ZoneOffset.UTC))
-                .owner(convertProjectOwner(projectContent.getOwner()))
+                .owner(convertProjectOwner(project.getOwner(),
+                                           Optional.ofNullable(projectContent.getOwner())
+                                                   .map(ProjectOwner::getImageUrl)
+                                                   .orElseGet(() -> project.getOwner().getImageUrl())))
                 .numberOfBackers(project.getNumberOfBackers().orElse(null))
                 .title(projectContent.getTitle())
                 .description(projectContent.getDescription())
@@ -52,11 +56,11 @@ public class ApiConverter {
                 .imageUrl(projectReward.getImageUrl());
     }
 
-    private static nextcrowd.crowdfunding.websitepublic.api.model.ProjectOwner convertProjectOwner(ProjectOwner projectOwner) {
+    private static nextcrowd.crowdfunding.websitepublic.api.model.ProjectOwner convertProjectOwner(ProjectOwner projectOwner, String imageUrl) {
         return new nextcrowd.crowdfunding.websitepublic.api.model.ProjectOwner()
                 .id(projectOwner.getId().id())
                 .name(projectOwner.getName())
-                .imageUrl(projectOwner.getImageUrl());
+                .imageUrl(imageUrl);
     }
 
 }

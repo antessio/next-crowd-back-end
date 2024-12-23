@@ -6,6 +6,7 @@ import java.util.List;
 
 import lombok.Builder;
 import lombok.Value;
+import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 
 @Value
 @Builder(toBuilder = true)
@@ -13,14 +14,14 @@ public class ProjectContent {
 
     private String currency;
     private BigDecimal collectedAmount;
-    private ProjectOwner owner;
+    private SubmitCrowdfundingProjectCommand.ProjectOwner owner;
     private String title;
-    private String imageUrl;
+    private UploadedResource image;
     private BigDecimal requestedAmount;
     private String description;
     private String longDescription;
-    private List<ProjectReward> rewards;
-    private String projectVideoUrl;
+    private List<SubmitCrowdfundingProjectCommand.ProjectReward> rewards;
+    private UploadedResource video;
     private Instant projectStartDate;
     private Instant projectEndDate;
     private Integer  numberOfBackers;

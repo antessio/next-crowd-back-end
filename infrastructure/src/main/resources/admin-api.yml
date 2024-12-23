@@ -176,26 +176,26 @@ paths:
           description: Invalid input
   /admin/projects/{projectId}/edit:
     put:
-        summary: Edit a crowdfunding project
-        parameters:
-            - name: projectId
-              in: path
-              required: true
-              schema:
-                  type: string
-        requestBody:
-            required: true
-            content:
-              application/json:
-                  schema:
-                    $ref: '#/components/schemas/EditCrowdfundingProjectCommand'
-        responses:
-          '200':
-            description: Project edited successfully
-          '400':
-            description: Invalid input or invalid project status
-          '404':
-            description: Project not found
+      summary: Edit a crowdfunding project
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EditCrowdfundingProjectCommand'
+      responses:
+        '200':
+          description: Project edited successfully
+        '400':
+          description: Invalid input or invalid project status
+        '404':
+          description: Project not found
   /admin/projects/{projectId}/approve:
     post:
       summary: Approve a crowdfunding project
@@ -335,6 +335,8 @@ components:
           type: string
         imageUrl:
           type: string
+        image:
+          $ref: '#/components/schemas/FileUploadResponse'
         projectStartDate:
           type: string
           format: date-time
@@ -349,6 +351,8 @@ components:
           type: string
         projectVideoUrl:
           type: string
+        video:
+          $ref: '#/components/schemas/FileUploadResponse'
         risk:
           type: integer
         expectedProfit:
@@ -426,6 +430,9 @@ components:
           type: string
         imageUrl:
           type: string
+        image:
+          $ref: '#/components/schemas/FileUploadResponse'
+
         rewards:
           type: array
           items:
@@ -479,6 +486,8 @@ components:
           type: string
         imageUrl:
           type: string
+        image:
+          $ref: '#/components/schemas/FileUploadResponse'
         name:
           type: string
 
@@ -530,6 +539,18 @@ components:
     FileUploadResponse:
       type: object
       properties:
+        id:
+          type: string
+          description: Unique identifier of the uploaded file
+        path:
+          type: string
+          description: Path of the uploaded file
+        location:
+          type: string
+          description: Location of the uploaded file
+        contentType:
+          type: string
+          description: Content type of the uploaded file
         url:
           type: string
           format: uri

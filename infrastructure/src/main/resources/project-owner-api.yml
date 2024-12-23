@@ -129,6 +129,8 @@ components:
           type: string
         imageUrl:
           type: string
+        image:
+          $ref: '#/components/schemas/FileUploadResponse'
         projectStartDate:
           type: string
           format: date-time
@@ -143,6 +145,8 @@ components:
           type: string
         projectVideoUrl:
           type: string
+        projectVideo:
+            $ref: '#/components/schemas/FileUploadResponse'
         risk:
           type: integer
         expectedProfit:
@@ -242,6 +246,8 @@ components:
           type: string
         imageUrl:
           type: string
+        image:
+          $ref: '#/components/schemas/FileUploadResponse'
         name:
           type: string
 
@@ -250,3 +256,22 @@ components:
       properties:
         id:
           type: string
+    FileUploadResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the uploaded file
+        path:
+          type: string
+          description: Path of the uploaded file
+        location:
+          type: string
+          description: Location of the uploaded file
+        contentType:
+          type: string
+          description: Content type of the uploaded file
+        url:
+          type: string
+          format: uri
+          description: Public URL of the uploaded file
