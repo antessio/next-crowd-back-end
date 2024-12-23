@@ -75,30 +75,6 @@ paths:
         '404':
           description: Project not found or not owned by the user
 
-  /projectOwner/projects/{projectId}/edit:
-    put:
-      summary: Edit a crowdfunding project
-      description: Allows project owners to update the details of their project.
-      parameters:
-        - name: projectId
-          in: path
-          required: true
-          schema:
-            type: string
-          description: ID of the project to edit
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EditCrowdfundingProjectCommand'
-      responses:
-        '200':
-          description: Project edited successfully
-        '400':
-          description: Invalid input or invalid project status
-        '404':
-          description: Project not found or not owned by the user
 
 components:
   securitySchemes:
@@ -127,8 +103,8 @@ components:
           format: double
         currency:
           type: string
-        imageUrl:
-          type: string
+        image:
+          $ref: '#/components/schemas/UploadedResource'
         projectStartDate:
           type: string
           format: date-time
@@ -141,8 +117,8 @@ components:
           type: string
         longDescription:
           type: string
-        projectVideoUrl:
-          type: string
+        projectVideo:
+            $ref: '#/components/schemas/UploadedResource'
         risk:
           type: integer
         expectedProfit:
@@ -176,8 +152,9 @@ components:
         projectEndDate:
           type: string
           format: date-time
-        projectVideoUrl:
-          type: string
+
+        projectVideo: 
+          $ref: '#/components/schemas/UploadedResource'
         title:
           type: string
         currency:
@@ -189,49 +166,21 @@ components:
           type: string
         longDescription:
           type: string
-        imageUrl:
-          type: string
+        image:
+            $ref: '#/components/schemas/UploadedResource'
         rewards:
           type: array
           items:
             $ref: '#/components/schemas/ProjectReward'
 
-    EditCrowdfundingProjectCommand:
-      type: object
-      properties:
-        projectStartDate:
-          type: string
-          format: date-time
-        projectEndDate:
-          type: string
-          format: date-time
-        projectVideoUrl:
-          type: string
-        title:
-          type: string
-        currency:
-          type: string
-        requestedAmount:
-          type: number
-          format: double
-        description:
-          type: string
-        longDescription:
-          type: string
-        imageUrl:
-          type: string
-        rewards:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProjectReward'
 
     ProjectOwner:
       type: object
       properties:
         name:
           type: string
-        imageUrl:
-          type: string
+        image:
+          $ref: '#/components/schemas/UploadedResource'
         id:
           type: string
 
@@ -240,8 +189,8 @@ components:
       properties:
         description:
           type: string
-        imageUrl:
-          type: string
+        image:
+          $ref: '#/components/schemas/UploadedResource'
         name:
           type: string
 
@@ -250,3 +199,22 @@ components:
       properties:
         id:
           type: string
+    UploadedResource:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Unique identifier of the uploaded file
+        path:
+          type: string
+          description: Path of the uploaded file
+        location:
+          type: string
+          description: Location of the uploaded file
+        contentType:
+          type: string
+          description: Content type of the uploaded file
+        url:
+          type: string
+          format: uri
+          description: Public URL of the uploaded file

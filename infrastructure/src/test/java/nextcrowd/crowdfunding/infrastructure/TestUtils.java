@@ -32,6 +32,8 @@ import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
 import nextcrowd.crowdfunding.project.model.ProjectOwnerId;
 import nextcrowd.crowdfunding.project.model.ProjectReward;
+import nextcrowd.crowdfunding.project.model.UploadedResource;
+import nextcrowd.crowdfunding.project.model.UploadedResourceId;
 
 public class TestUtils {
 
@@ -58,7 +60,6 @@ public class TestUtils {
     public static ProjectOwner buildRandomProjectOwner() {
         return ProjectOwner.builder()
                            .id(new ProjectOwnerId(UuidCreator.getTimeOrderedEpoch().toString()))
-                           .imageUrl(faker.internet().url())
                            .name(faker.lebowski().character())
                            .build();
     }
@@ -90,7 +91,18 @@ public class TestUtils {
                              .minimumInvestment(BigDecimal.valueOf(random.nextInt(1000) + 100))
                              .expectedProfit(BigDecimal.valueOf(random.nextInt(100)))
                              .rewards(List.of(buildRandomProjectReward()))
+                             .image(randomImage())
+                             .video(randomImage())
+                             .owner(buildRandomProjectOwnerContent())
                              .build();
+    }
+
+    private static ProjectContent.ProjectOwner buildRandomProjectOwnerContent() {
+        return ProjectContent.ProjectOwner.builder()
+                                          .id(UUID.randomUUID().toString())
+                                          .name(faker.lebowski().character())
+                                          .image(randomImage())
+                                          .build();
     }
 
     public static CrowdfundingProject.Status getRandomStatus(CrowdfundingProject.Status... excluding) {
@@ -116,8 +128,18 @@ public class TestUtils {
         return ProjectReward.builder()
                             .description(faker.lorem().sentence(10))  // Random description
                             .name(faker.commerce().productName())
-                            .imageUrl(faker.internet().url())
+                            .image(randomImage())
                             .build();
+    }
+
+    private static UploadedResource randomImage() {
+        return UploadedResource.builder()
+                               .url(faker.internet().url())
+                               .path("/path/to/image.jpg")
+                               .contentType("image/jpeg")
+                               .location(UploadedResource.Location.LOCAL)
+                               .id(new UploadedResourceId(UUID.randomUUID().toString()))
+                               .build();
     }
 
     public static Instant buildRandomInstant() {

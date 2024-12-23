@@ -29,7 +29,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FileUploadResponse'
+                $ref: '#/components/schemas/UploadedResource'
         '400':
           description: Invalid input
   /admin/projects/{projectId}:
@@ -174,28 +174,7 @@ paths:
                 $ref: '#/components/schemas/ProjectCreated'
         '400':
           description: Invalid input
-  /admin/projects/{projectId}/edit:
-    put:
-        summary: Edit a crowdfunding project
-        parameters:
-            - name: projectId
-              in: path
-              required: true
-              schema:
-                  type: string
-        requestBody:
-            required: true
-            content:
-              application/json:
-                  schema:
-                    $ref: '#/components/schemas/EditCrowdfundingProjectCommand'
-        responses:
-          '200':
-            description: Project edited successfully
-          '400':
-            description: Invalid input or invalid project status
-          '404':
-            description: Project not found
+
   /admin/projects/{projectId}/approve:
     post:
       summary: Approve a crowdfunding project
@@ -333,8 +312,8 @@ components:
           format: double
         currency:
           type: string
-        imageUrl:
-          type: string
+        image:
+          $ref: '#/components/schemas/UploadedResource'
         projectStartDate:
           type: string
           format: date-time
@@ -347,8 +326,8 @@ components:
           type: string
         longDescription:
           type: string
-        projectVideoUrl:
-          type: string
+        video:
+          $ref: '#/components/schemas/UploadedResource'
         risk:
           type: integer
         expectedProfit:
@@ -409,8 +388,8 @@ components:
         projectEndDate:
           type: string
           format: date-time
-        projectVideoUrl:
-          type: string
+        projectVideo:
+          $ref: '#/components/schemas/UploadedResource'
         owner:
           $ref: '#/components/schemas/ProjectOwner'
         title:
@@ -424,51 +403,22 @@ components:
           type: string
         longDescription:
           type: string
-        imageUrl:
-          type: string
+        image:
+          $ref: '#/components/schemas/UploadedResource'
+
         rewards:
           type: array
           items:
             $ref: '#/components/schemas/ProjectReward'
 
-    EditCrowdfundingProjectCommand:
-      type: object
-      properties:
-        projectStartDate:
-          type: string
-          format: date-time
-        projectEndDate:
-          type: string
-          format: date-time
-        projectVideoUrl:
-          type: string
-        owner:
-          $ref: '#/components/schemas/ProjectOwner'
-        title:
-          type: string
-        currency:
-          type: string
-        requestedAmount:
-          type: number
-          format: double
-        description:
-          type: string
-        longDescription:
-          type: string
-        imageUrl:
-          type: string
-        rewards:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProjectReward'
 
     ProjectOwner:
       type: object
       properties:
         name:
           type: string
-        imageUrl:
-          type: string
+        image:
+          $ref: '#/components/schemas/UploadedResource'
         id:
           type: string
 
@@ -477,8 +427,8 @@ components:
       properties:
         description:
           type: string
-        imageUrl:
-          type: string
+        image:
+          $ref: '#/components/schemas/UploadedResource'
         name:
           type: string
 
@@ -527,9 +477,21 @@ components:
       properties:
         bakerId:
           type: string
-    FileUploadResponse:
+    UploadedResource:
       type: object
       properties:
+        id:
+          type: string
+          description: Unique identifier of the uploaded file
+        path:
+          type: string
+          description: Path of the uploaded file
+        location:
+          type: string
+          description: Location of the uploaded file
+        contentType:
+          type: string
+          description: Content type of the uploaded file
         url:
           type: string
           format: uri

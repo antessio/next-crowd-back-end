@@ -7,6 +7,6 @@ import lombok.Value;
 @Builder
 public class ProjectReward {
     private String name;
-    private String imageUrl;
+    private UploadedResource image;
     private String description;
 }

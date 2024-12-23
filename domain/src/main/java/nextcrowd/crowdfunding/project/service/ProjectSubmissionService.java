@@ -44,15 +44,16 @@ public class ProjectSubmissionService {
         return project;
     }
 
-    private ProjectOwner getOrCreateProjectOwner(ProjectOwner owner) {
+    private ProjectOwner getOrCreateProjectOwner(SubmitCrowdfundingProjectCommand.ProjectOwner owner) {
         return Optional.ofNullable(owner.getId())
+                       .map(ProjectOwnerId::new)
                        .flatMap(repository::findOwnerById)
                        .orElseGet(() -> repository.createProjectOwner(ProjectOwner.builder()
                                                                                   .id(Optional.ofNullable(owner.getId())
+                                                                                              .map(ProjectOwnerId::new)
                                                                                               .orElseGet(() -> new ProjectOwnerId(UuidCreator.getTimeOrdered()
                                                                                                                                              .toString())))
                                                                                   .name(owner.getName())
-                                                                                  .imageUrl(owner.getImageUrl())
                                                                                   .build()));
 
     }

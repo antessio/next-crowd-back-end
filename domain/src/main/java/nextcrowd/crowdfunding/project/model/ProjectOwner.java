@@ -9,6 +9,5 @@ import lombok.extern.jackson.Jacksonized;
 public class ProjectOwner {
     private ProjectOwnerId id;
     private String name;
-    private String imageUrl;
 }
 

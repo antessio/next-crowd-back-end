@@ -1,11 +1,17 @@
 package nextcrowd.crowdfunding.infrastructure.api.publicwebsite.adapter;
 
 import java.math.BigDecimal;
+import java.net.URI;
 import java.time.ZoneOffset;
+import java.util.Optional;
+
+import org.jetbrains.annotations.NotNull;
 
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.ProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
+import nextcrowd.crowdfunding.project.model.UploadedResource;
+import nextcrowd.crowdfunding.websitepublic.api.model.FileUploadResponse;
 
 public class ApiConverter {
 
@@ -16,7 +22,7 @@ public class ApiConverter {
                 .currency(project.getCurrency())
                 .projectStartDate(project.getProjectStartDate().atOffset(ZoneOffset.UTC))
                 .projectEndDate(project.getProjectEndDate().atOffset(ZoneOffset.UTC))
-                .owner(convertProjectOwner(project.getOwner()))
+                .owner(convertProjectOwner(project.getOwner(), null))
                 .numberOfBackers(project.getNumberOfBackers().orElse(null))
                 .status(project.getStatus().name())
                 ;
@@ -30,13 +36,15 @@ public class ApiConverter {
                 .currency(project.getCurrency())
                 .projectStartDate(project.getProjectStartDate().atOffset(ZoneOffset.UTC))
                 .projectEndDate(project.getProjectEndDate().atOffset(ZoneOffset.UTC))
-                .owner(convertProjectOwner(projectContent.getOwner()))
+                .owner(convertProjectOwner(project.getOwner(),
+                                           Optional.ofNullable(projectContent.getOwner())
+                                                   .orElse(null)))
                 .numberOfBackers(project.getNumberOfBackers().orElse(null))
                 .title(projectContent.getTitle())
                 .description(projectContent.getDescription())
                 .longDescription(projectContent.getLongDescription())
-                .imageUrl(projectContent.getImageUrl())
-                .projectVideoUrl(projectContent.getProjectVideoUrl())
+                .image(convertUploadResourceToApi(projectContent.getImage()))
+                .projectVideo(convertUploadResourceToApi(projectContent.getVideo()))
                 .rewards(projectContent.getRewards().stream().map(ApiConverter::convertProjectReward).toList())
                 .status(project.getStatus().name())
                 .risk(project.getRisk().orElse(null))
@@ -49,14 +57,31 @@ public class ApiConverter {
         return new nextcrowd.crowdfunding.websitepublic.api.model.ProjectReward()
                 .name(projectReward.getName())
                 .description(projectReward.getDescription())
-                .imageUrl(projectReward.getImageUrl());
+                .image(convertUploadResourceToApi(projectReward.getImage()));
     }
 
-    private static nextcrowd.crowdfunding.websitepublic.api.model.ProjectOwner convertProjectOwner(ProjectOwner projectOwner) {
+    private static nextcrowd.crowdfunding.websitepublic.api.model.ProjectOwner convertProjectOwner(ProjectOwner projectOwner, ProjectContent.ProjectOwner projectOwnerContent) {
         return new nextcrowd.crowdfunding.websitepublic.api.model.ProjectOwner()
                 .id(projectOwner.getId().id())
                 .name(projectOwner.getName())
-                .imageUrl(projectOwner.getImageUrl());
+                .image(Optional.ofNullable(projectOwnerContent).map(ProjectContent.ProjectOwner::getImage)
+                               .map(ApiConverter::convertUploadResourceToApi)
+                               .orElse(null));
+    }
+
+    private static FileUploadResponse convertUploadResourceToApi(@NotNull UploadedResource resource) {
+        return Optional.ofNullable(resource)
+                       .map(r -> {
+                           FileUploadResponse uploadedResource
+                                   = new FileUploadResponse();
+                           uploadedResource.path(r.getPath());
+                           uploadedResource.contentType(r.getContentType());
+                           uploadedResource.location(r.getLocation().name());
+                           uploadedResource.url(URI.create(r.getUrl()));
+                           uploadedResource.id(r.getId().id());
+                           return uploadedResource;
+                       })
+                       .orElse(null);
     }
 
 }
