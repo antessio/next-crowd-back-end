@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -90,6 +91,13 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest extends BaseTest
 
     private ProjectOwner getRandomProjectOwnerFromExisting() {
         return ProjectOwnerAdapter.toDomain(projectOwnerEntities.get(random.nextInt(projectOwnerEntities.size())));
+    }
+
+    private ProjectOwner getRandomProjectOwnerFromExisting(ProjectOwner ...exclude) {
+        List<ProjectOwnerEntity> existing = projectOwnerEntities.stream()
+                                                                .filter(Predicate.not(po -> List.of(exclude).contains(ProjectOwnerAdapter.toDomain(po))))
+                                                                .toList();
+        return ProjectOwnerAdapter.toDomain(existing.get(random.nextInt(existing.size())));
     }
 
     @Test
@@ -238,7 +246,7 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest extends BaseTest
                                                       .map(repositoryAdapter::save)
                                                       .toList();
         IntStream.range(0, 20)
-                 .mapToObj(_ -> buildRandomProject(getRandomProjectOwnerFromExisting()).toBuilder()
+                 .mapToObj(_ -> buildRandomProject(getRandomProjectOwnerFromExisting(projectOwner)).toBuilder()
                                                                                        .status(getRandomStatus(targetStatus))
                                                                                        .build())
                  .map(repositoryAdapter::save)
@@ -248,6 +256,7 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest extends BaseTest
         List<CrowdfundingProject> pendingReviewProjects = repositoryAdapter.findByOwnerIdOrderByAsc(projectOwner.getId(), null).toList();
 
         // then
+        assertThat(pendingReviewProjects.size()).isEqualTo(expected.size());
         assertThat(pendingReviewProjects).containsExactly(expected.toArray(new CrowdfundingProject[0]));
     }
 
