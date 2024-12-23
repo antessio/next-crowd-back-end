@@ -55,6 +55,8 @@ import nextcrowd.crowdfunding.project.exception.ValidationException;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.ProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectId;
+import nextcrowd.crowdfunding.project.model.UploadedResource;
+import nextcrowd.crowdfunding.project.model.UploadedResourceId;
 
 @WebMvcTest
 @Import({JwtService.class, SecurityConfiguration.class})
@@ -100,7 +102,21 @@ class AdminProjectControllerTest {
         @DisplayName("Upload file")
         void testUploadFile() throws Exception {
             byte[] file = TestUtils.getFaker().lorem().sentence(10).getBytes();
-            when(fileStorageService.storeFile(file, "text/plain")).thenReturn(URI.create(TestUtils.getFaker().internet().url()));
+            when(fileStorageService.uploadFile(file, "text/plain"))
+                    .thenReturn(nextcrowd.crowdfunding.project.model.UploadedResource.builder()
+                                                                                     .id(new UploadedResourceId(
+                                                                                             TestUtils.getFaker()
+                                                                                                      .idNumber()
+                                                                                                      .valid()))
+                                                                                     .url(TestUtils.getFaker()
+                                                                                                   .internet()
+                                                                                                   .url())
+                                                                                     .path("/public/testfile"
+                                                                                           + ".txt")
+                                                                                     .contentType("text/plain")
+                                                                                     .location(UploadedResource.Location.LOCAL)
+                                                                                     .build()
+                    );
             MockMultipartFile mockFile = new MockMultipartFile(
                     "file",
                     "testfile.txt",
@@ -111,7 +127,12 @@ class AdminProjectControllerTest {
                                     .file(mockFile)
                                     .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername())))
                    .andExpect(status().isOk())
-                   .andExpect(jsonPath("$.url").isString());
+                   .andExpect(jsonPath("$.url").isString())
+                   .andExpect(jsonPath("$.path").isString())
+                   .andExpect(jsonPath("$.contentType").isString())
+                   .andExpect(jsonPath("$.location").isString())
+                   .andExpect(jsonPath("$.id").isString());
+            ;
         }
 
     }
