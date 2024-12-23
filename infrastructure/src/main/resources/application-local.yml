@@ -32,7 +32,7 @@ security:
 
 storage:
   directory: /tmp/.next-crowd-files/
-  baseUrl: http://localhost:8001/public/
+  baseUrl: http://localhost:8001
 
 logging:
   level:

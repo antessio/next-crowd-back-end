@@ -12,7 +12,6 @@ public class ProjectOwnerAdapter {
         return ProjectOwner.builder()
                            .id(new ProjectOwnerId(entity.getId().toString()))
                            .name(entity.getName())
-                           .imageUrl(entity.getImageUrl())
                            .build();
     }
 
@@ -20,7 +19,6 @@ public class ProjectOwnerAdapter {
         return ProjectOwnerEntity.builder()
                                  .id(UUID.fromString(owner.getId().id()))
                                  .name(owner.getName())
-                                 .imageUrl(owner.getImageUrl())
                                  .build();
     }
 }

@@ -117,8 +117,6 @@ components:
           format: double
         currency:
           type: string
-        imageUrl:
-          type: string
         image:
           $ref: '#/components/schemas/FileUploadResponse'
         projectStartDate:
@@ -132,8 +130,6 @@ components:
         description:
           type: string
         longDescription:
-          type: string
-        projectVideoUrl:
           type: string
         projectVideo:
           $ref: '#/components/schemas/FileUploadResponse'
@@ -165,8 +161,6 @@ components:
       properties:
         name:
           type: string
-        imageUrl:
-          type: string
         image:
           $ref: '#/components/schemas/FileUploadResponse'
         id:
@@ -176,8 +170,6 @@ components:
       type: object
       properties:
         description:
-          type: string
-        imageUrl:
           type: string
         image:
           $ref: '#/components/schemas/FileUploadResponse'

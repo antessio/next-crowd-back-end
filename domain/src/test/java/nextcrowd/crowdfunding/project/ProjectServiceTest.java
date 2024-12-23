@@ -48,6 +48,7 @@ import nextcrowd.crowdfunding.project.event.CrowdfundingProjectSubmittedEvent;
 import nextcrowd.crowdfunding.project.exception.CrowdfundingProjectException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
 import nextcrowd.crowdfunding.project.model.BakerId;
+import nextcrowd.crowdfunding.project.model.CreateProjectContent;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.Investment;
 import nextcrowd.crowdfunding.project.model.InvestmentId;
@@ -58,6 +59,8 @@ import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
 import nextcrowd.crowdfunding.project.model.ProjectOwnerId;
 import nextcrowd.crowdfunding.project.model.ProjectReward;
+import nextcrowd.crowdfunding.project.model.UploadedResource;
+import nextcrowd.crowdfunding.project.model.UploadedResourceId;
 import nextcrowd.crowdfunding.project.port.CmsPort;
 import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
 import nextcrowd.crowdfunding.project.port.EventPublisher;
@@ -121,11 +124,11 @@ class ProjectServiceTest {
         void shouldReturnPendingReviewProjects() {
             // given
             ProjectId startingFrom = ProjectId.generateId();
-            CrowdfundingProject project = buildProjectSubmitted(randomProjectId(), ProjectOwner.builder()
-                                                                                               .name("ownerName")
-                                                                                               .imageUrl("ownerImageUrl")
-                                                                                               .id(new ProjectOwnerId("ownerId"))
-                                                                                               .build());
+            CrowdfundingProject project = buildProjectSubmitted(
+                    randomProjectId(), ProjectOwner.builder()
+                                                   .name("ownerName")
+                                                   .id(new ProjectOwnerId("ownerId"))
+                                                   .build());
             when(crowdfundingProjectRepository.findByStatusesOrderByAsc(Set.of(CrowdfundingProject.Status.SUBMITTED), startingFrom))
                     .thenReturn(Stream.of(project));
 
@@ -186,11 +189,17 @@ class ProjectServiceTest {
             // given
             Instant now = Instant.now();
             SubmitCrowdfundingProjectCommand projectCreationCommand = buildSubmitCommand(
-                    now, ProjectOwner.builder()
-                                     .id(new ProjectOwnerId("1"))
-                                     .imageUrl("ownerImageUrl")
-                                     .name("owner1")
-                                     .build());
+                    now, SubmitCrowdfundingProjectCommand.ProjectOwner.builder()
+                                                                      .id("1")
+                                                                      .name("owner1")
+                                                                      .image(UploadedResource.builder()
+                                                                                             .id(new UploadedResourceId("ownerImageId"))
+                                                                                             .url("https://api/cms/public/api/image/ownerImageId")
+                                                                                             .location(UploadedResource.Location.CMS)
+                                                                                             .path("api/image/ownerImageId")
+                                                                                             .contentType("image/png")
+                                                                                             .build())
+                                                                      .build());
             when(validationService.validateProjectSubmission(projectCreationCommand)).thenReturn(buildValidationFailureList());
 
             // when
@@ -205,14 +214,19 @@ class ProjectServiceTest {
         void shouldStoreProjectAndPublishEvent() {
             // given
             Instant now = Instant.now();
-            ProjectOwner projectOwner = ProjectOwner.builder()
-                                                    .id(new ProjectOwnerId("1"))
-                                                    .imageUrl("ownerImageUrl")
-                                                    .name("owner1")
-                                                    .build();
-            SubmitCrowdfundingProjectCommand projectCreationCommand = buildSubmitCommand(now, projectOwner);
+            ProjectOwnerId ownerId = new ProjectOwnerId("1");
+            SubmitCrowdfundingProjectCommand.ProjectOwner projectOwnerCommand = SubmitCrowdfundingProjectCommand.ProjectOwner.builder()
+                                                                                                                             .id(ownerId.id())
+                                                                                                                             .image(buildRandomProjectOwnerImage())
+                                                                                                                             .name("owner1")
+                                                                                                                             .build();
+
+            ProjectOwner projectOwner = buildRandomOwner();
+
+
+            SubmitCrowdfundingProjectCommand projectCreationCommand = buildSubmitCommand(now, projectOwnerCommand);
             when(validationService.validateProjectSubmission(projectCreationCommand)).thenReturn(Collections.emptyList());
-            when(crowdfundingProjectRepository.findOwnerById(projectOwner.getId())).thenReturn(Optional.of(projectOwner));
+            when(crowdfundingProjectRepository.findOwnerById(ownerId)).thenReturn(Optional.of(projectOwner));
             CrowdfundingProject expectedProject = buildProjectSubmitted(randomProjectId(), projectOwner);
             when(crowdfundingProjectRepository.save(argThat(getCrowdfundingProjectArgumentMatcher(projectCreationCommand)))).thenReturn(expectedProject);
 
@@ -223,22 +237,52 @@ class ProjectServiceTest {
                                                                             .projectId(projectId)
                                                                             .projectOwner(projectOwner)
                                                                             .build());
-            verify(cmsPort).saveContent(ProjectContent.builder()
-                                                      .currency(projectCreationCommand.getCurrency())
-                                                      .owner(expectedProject.getOwner())
-                                                      .requestedAmount(BigDecimal.valueOf(projectCreationCommand.getRequestedAmount()))
-                                                      .projectStartDate(projectCreationCommand.getProjectStartDate())
-                                                      .projectEndDate(projectCreationCommand.getProjectEndDate())
-                                                      .longDescription(projectCreationCommand.getLongDescription())
-                                                      .description(projectCreationCommand.getDescription())
-                                                      .rewards(projectCreationCommand.getRewards())
-                                                      .projectVideoUrl(projectCreationCommand.getProjectVideoUrl())
-                                                      .title(projectCreationCommand.getTitle())
-                                                      .imageUrl(projectCreationCommand.getImageUrl())
-                                                      .projectId(projectId)
-                                                      .build());
+            verify(cmsPort).saveContent(CreateProjectContent.builder()
+                                                            .currency(projectCreationCommand.getCurrency())
+                                                            .owner(projectCreationCommand.getOwner())
+                                                            .requestedAmount(BigDecimal.valueOf(projectCreationCommand.getRequestedAmount()))
+                                                            .projectStartDate(projectCreationCommand.getProjectStartDate())
+                                                            .projectEndDate(projectCreationCommand.getProjectEndDate())
+                                                            .longDescription(projectCreationCommand.getLongDescription())
+                                                            .description(projectCreationCommand.getDescription())
+                                                            .rewards(projectCreationCommand.getRewards())
+                                                            .video(projectCreationCommand.getVideo())
+                                                            .title(projectCreationCommand.getTitle())
+                                                            .image(projectCreationCommand.getImage())
+                                                            .projectId(projectId)
+                                                            .build());
         }
 
+    }
+
+    private ProjectOwner buildRandomOwner() {
+        return ProjectOwner.builder()
+                           .id(new ProjectOwnerId("1"))
+                           .name("owner1")
+                           .build();
+    }
+
+    private static UploadedResource buildRandomProjectOwnerImage() {
+        return UploadedResource.builder()
+                               .id(new UploadedResourceId(
+                                       "ownerImageId"))
+                               .url("https"
+                                    + "://api"
+                                    + "/cms"
+                                    + "/public"
+                                    + "/api"
+                                    + "/image"
+                                    +
+                                    "/ownerImageId")
+                               .location(
+                                       UploadedResource.Location.CMS)
+                               .path("api/image"
+                                     +
+                                     "/ownerImageId")
+                               .contentType(
+                                       "image"
+                                       + "/png")
+                               .build();
     }
 
     @Nested
@@ -254,7 +298,6 @@ class ProjectServiceTest {
             EditCrowdfundingProjectCommand projectCreationCommand = buildEditCommand(
                     now, ProjectOwner.builder()
                                      .id(new ProjectOwnerId("1"))
-                                     .imageUrl("ownerImageUrl")
                                      .name("owner1")
                                      .build());
             when(validationService.validateProjectEdit(projectCreationCommand)).thenReturn(buildValidationFailureList());
@@ -277,7 +320,6 @@ class ProjectServiceTest {
             EditCrowdfundingProjectCommand projectCreationCommand = buildEditCommand(
                     now, ProjectOwner.builder()
                                      .id(new ProjectOwnerId("1"))
-                                     .imageUrl("ownerImageUrl")
                                      .name("owner1")
                                      .build());
             when(validationService.validateProjectEdit(projectCreationCommand)).thenReturn(Collections.emptyList());
@@ -297,15 +339,14 @@ class ProjectServiceTest {
             // given
             Instant now = Instant.now();
             ProjectId projectId = randomProjectId();
-            CrowdfundingProject existingProject = buildProjectSubmitted(projectId, ProjectOwner.builder()
-                                                                                               .name("ownerName")
-                                                                                               .imageUrl("ownerImageUrl")
-                                                                                               .id(new ProjectOwnerId("ownerId"))
-                                                                                               .build());
+            CrowdfundingProject existingProject = buildProjectSubmitted(
+                    projectId, ProjectOwner.builder()
+                                           .name("ownerName")
+                                           .id(new ProjectOwnerId("ownerId"))
+                                           .build());
             EditCrowdfundingProjectCommand editCrowdfundingProjectCommand = buildEditCommand(
                     now, ProjectOwner.builder()
                                      .id(new ProjectOwnerId("1"))
-                                     .imageUrl("ownerImageUrl")
                                      .name("owner1")
                                      .build());
             when(validationService.validateProjectEdit(editCrowdfundingProjectCommand)).thenReturn(Collections.emptyList());
@@ -367,11 +408,11 @@ class ProjectServiceTest {
             // given
             ProjectId projectId = randomProjectId();
             when(crowdfundingProjectRepository.findById(projectId))
-                    .thenReturn(Optional.of(buildProjectSubmitted(projectId, ProjectOwner.builder()
-                                                                                         .name("ownerName")
-                                                                                         .imageUrl("ownerImageUrl")
-                                                                                         .id(new ProjectOwnerId("ownerId"))
-                                                                                         .build())));
+                    .thenReturn(Optional.of(buildProjectSubmitted(
+                            projectId, ProjectOwner.builder()
+                                                   .name("ownerName")
+                                                   .id(new ProjectOwnerId("ownerId"))
+                                                   .build())));
             ApproveCrowdfundingProjectCommand command = ApproveCrowdfundingProjectCommand.builder()
                                                                                          .risk(3)
                                                                                          .expectedProfit(new BigDecimal("10.00"))
@@ -390,11 +431,11 @@ class ProjectServiceTest {
             // given
             ProjectId projectId = randomProjectId();
             when(crowdfundingProjectRepository.findById(projectId))
-                    .thenReturn(Optional.of(buildProjectSubmitted(projectId, ProjectOwner.builder()
-                                                                                         .name("ownerName")
-                                                                                         .imageUrl("ownerImageUrl")
-                                                                                         .id(new ProjectOwnerId("ownerId"))
-                                                                                         .build())));
+                    .thenReturn(Optional.of(buildProjectSubmitted(
+                            projectId, ProjectOwner.builder()
+                                                   .name("ownerName")
+                                                   .id(new ProjectOwnerId("ownerId"))
+                                                   .build())));
             ApproveCrowdfundingProjectCommand command = ApproveCrowdfundingProjectCommand.builder()
                                                                                          .risk(3)
                                                                                          .expectedProfit(new BigDecimal("10.00"))
@@ -482,11 +523,11 @@ class ProjectServiceTest {
             // given
             ProjectId projectId = randomProjectId();
             when(crowdfundingProjectRepository.findById(projectId))
-                    .thenReturn(Optional.of(buildProjectSubmitted(projectId, ProjectOwner.builder()
-                                                                                         .name("ownerName")
-                                                                                         .imageUrl("ownerImageUrl")
-                                                                                         .id(new ProjectOwnerId("ownerId"))
-                                                                                         .build())));
+                    .thenReturn(Optional.of(buildProjectSubmitted(
+                            projectId, ProjectOwner.builder()
+                                                   .name("ownerName")
+                                                   .id(new ProjectOwnerId("ownerId"))
+                                                   .build())));
 
             // when
             projectServicePort.reject(projectId);
@@ -900,11 +941,11 @@ class ProjectServiceTest {
             // given
             ProjectId projectId = randomProjectId();
             when(crowdfundingProjectRepository.findById(projectId))
-                    .thenReturn(Optional.of(buildProjectSubmitted(projectId, ProjectOwner.builder()
-                                                                                         .name("ownerName")
-                                                                                         .imageUrl("ownerImageUrl")
-                                                                                         .id(new ProjectOwnerId("ownerId"))
-                                                                                         .build())));
+                    .thenReturn(Optional.of(buildProjectSubmitted(
+                            projectId, ProjectOwner.builder()
+                                                   .name("ownerName")
+                                                   .id(new ProjectOwnerId("ownerId"))
+                                                   .build())));
 
             // when
             // then
@@ -957,7 +998,6 @@ class ProjectServiceTest {
                                   .projectEndDate(Instant.now().plus(60, ChronoUnit.DAYS))
                                   .owner(ProjectOwner.builder()
                                                      .name("ownerName")
-                                                     .imageUrl("ownerImageUrl")
                                                      .id(new ProjectOwnerId("ownerId"))
                                                      .build())
                                   .currency("EUR")
@@ -983,7 +1023,6 @@ class ProjectServiceTest {
                                   .projectEndDate(Instant.now().plus(60, ChronoUnit.DAYS))
                                   .owner(ProjectOwner.builder()
                                                      .name("ownerName")
-                                                     .imageUrl("ownerImageUrl")
                                                      .id(new ProjectOwnerId("ownerId"))
                                                      .build())
                                   .currency("EUR")
@@ -1004,7 +1043,6 @@ class ProjectServiceTest {
                                   .projectEndDate(Instant.now().plus(60, ChronoUnit.DAYS))
                                   .owner(ProjectOwner.builder()
                                                      .name("ownerName")
-                                                     .imageUrl("ownerImageUrl")
                                                      .id(new ProjectOwnerId("ownerId"))
                                                      .build())
                                   .currency("EUR")
@@ -1016,30 +1054,54 @@ class ProjectServiceTest {
         return new ProjectId(UuidCreator.getTimeOrderedEpoch().toString());
     }
 
-    private static SubmitCrowdfundingProjectCommand buildSubmitCommand(Instant now, ProjectOwner projectOwner) {
+    private static SubmitCrowdfundingProjectCommand buildSubmitCommand(Instant now, SubmitCrowdfundingProjectCommand.ProjectOwner projectOwner) {
         return SubmitCrowdfundingProjectCommand
                 .builder()
                 .projectStartDate(now.plus(1, ChronoUnit.DAYS))
                 .projectEndDate(now.plus(60, ChronoUnit.DAYS))
-                .projectVideoUrl("videoUrl")
+                .video(UploadedResource.builder()
+                                       .id(new UploadedResourceId("videoId"))
+                                       .url("https://api/cms/public/api/video/videoId")
+                                       .path("/public/api/video/videoId")
+                                       .contentType("video/mp4")
+                                       .location(UploadedResource.Location.CMS)
+                                       .build())
                 .owner(projectOwner)
                 .title("projectTitle")
                 .currency("EUR")
                 .requestedAmount(300_000d)
                 .description("aShortDescription")
                 .longDescription("aLongDescription")
-                .imageUrl("projectImageUrl")
+                .image(UploadedResource.builder()
+                                       .id(new UploadedResourceId("imageId"))
+                                       .url("https://api/cms/public/api/image/imageId")
+                                       .path("/public/api/image/imageId")
+                                       .contentType("image/jpeg")
+                                       .location(UploadedResource.Location.CMS)
+                                       .build())
                 .rewards(List.of(
-                        ProjectReward.builder()
-                                     .description("aRewardDescription1")
-                                     .imageUrl("rewardImageUrl1")
-                                     .name("rewardName1")
-                                     .build(),
-                        ProjectReward.builder()
-                                     .description("aRewardDescription2")
-                                     .imageUrl("rewardImageUrl2")
-                                     .name("rewardName2")
-                                     .build()))
+                        SubmitCrowdfundingProjectCommand.ProjectReward.builder()
+                                                                      .description("aRewardDescription1")
+                                                                      .image(UploadedResource.builder()
+                                                                                             .id(new UploadedResourceId("rewardImageId1"))
+                                                                                             .url("https://api/cms/public/api/image/rewardImageId1")
+                                                                                             .path("/public/api/image/rewardImageId1")
+                                                                                             .contentType("image/jpeg")
+                                                                                             .location(UploadedResource.Location.CMS)
+                                                                                             .build())
+                                                                      .name("rewardName1")
+                                                                      .build(),
+                        SubmitCrowdfundingProjectCommand.ProjectReward.builder()
+                                                                      .description("aRewardDescription2")
+                                                                      .image(UploadedResource.builder()
+                                                                                             .id(new UploadedResourceId("rewardImageId2"))
+                                                                                             .url("https://api/cms/public/api/image/rewardImageId2")
+                                                                                             .path("/public/api/image/rewardImageId2")
+                                                                                             .contentType("image/jpeg")
+                                                                                             .location(UploadedResource.Location.CMS)
+                                                                                             .build())
+                                                                      .name("rewardName2")
+                                                                      .build()))
                 .build();
     }
 
@@ -1059,17 +1121,35 @@ class ProjectServiceTest {
                 .rewards(List.of(
                         ProjectReward.builder()
                                      .description("aRewardDescription1")
-                                     .imageUrl("rewardImageUrl1")
+                                     .image(UploadedResource.builder()
+                                                            .id(new UploadedResourceId("rewardImageId1"))
+                                                            .url("https://api/cms/public/api/image/rewardImageId1")
+                                                            .path("/public/api/image/rewardImageId1")
+                                                            .contentType("image/jpeg")
+                                                            .location(UploadedResource.Location.CMS)
+                                                            .build())
                                      .name("rewardName1")
                                      .build(),
                         ProjectReward.builder()
                                      .description("aRewardDescription2")
-                                     .imageUrl("rewardImageUrl2")
+                                     .image(UploadedResource.builder()
+                                                            .id(new UploadedResourceId("rewardImageId2"))
+                                                            .url("https://api/cms/public/api/image/rewardImageId2")
+                                                            .path("/public/api/image/rewardImageId2")
+                                                            .contentType("image/jpeg")
+                                                            .location(UploadedResource.Location.CMS)
+                                                            .build())
                                      .name("rewardName2")
                                      .build(),
                         ProjectReward.builder()
                                      .description("aRewardDescription3")
-                                     .imageUrl("rewardImageUrl3")
+                                     .image(UploadedResource.builder()
+                                                            .id(new UploadedResourceId("rewardImageId3"))
+                                                            .url("https://api/cms/public/api/image/rewardImageId3")
+                                                            .path("/public/api/image/rewardImageId3")
+                                                            .contentType("image/jpeg")
+                                                            .location(UploadedResource.Location.CMS)
+                                                            .build())
                                      .name("rewardName3")
                                      .build()))
                 .build();

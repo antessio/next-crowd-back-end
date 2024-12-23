@@ -25,7 +25,6 @@ import nextcrowd.crowdfunding.project.model.ProjectOwner;
 import nextcrowd.crowdfunding.project.model.ProjectOwnerId;
 import nextcrowd.crowdfunding.projectowner.api.ProjectOwnerApi;
 import nextcrowd.crowdfunding.projectowner.api.model.CrowdfundingProject;
-import nextcrowd.crowdfunding.projectowner.api.model.EditCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.projectowner.api.model.PaginatedProjectsResponse;
 import nextcrowd.crowdfunding.projectowner.api.model.ProjectCreated;
 import nextcrowd.crowdfunding.projectowner.api.model.SubmitCrowdfundingProjectCommand;
@@ -68,11 +67,6 @@ public class ProjectOwnerController implements ProjectOwnerApi {
                                                               // TODO: imageUrl
                                                               .build()));
         return ResponseEntity.ok(new ProjectCreated().id(projectId.id()));
-    }
-
-    @Override
-    public ResponseEntity<Void> projectOwnerProjectsProjectIdEditPut(String projectId, EditCrowdfundingProjectCommand editCrowdfundingProjectCommand) {
-       return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).build();
     }
 
     @Override

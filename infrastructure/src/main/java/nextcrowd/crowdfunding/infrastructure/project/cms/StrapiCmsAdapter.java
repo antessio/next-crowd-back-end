@@ -37,11 +37,13 @@ import nextcrowd.crowdfunding.infrastructure.project.cms.model.ProjectResponse;
 import nextcrowd.crowdfunding.infrastructure.project.cms.model.UploadedFile;
 import nextcrowd.crowdfunding.infrastructure.storage.FileStorageService;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
+import nextcrowd.crowdfunding.project.model.CreateProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
 import nextcrowd.crowdfunding.project.model.ProjectReward;
 import nextcrowd.crowdfunding.project.model.UploadedResource;
+import nextcrowd.crowdfunding.project.model.UploadedResourceId;
 import nextcrowd.crowdfunding.project.port.CmsPort;
 import okhttp3.HttpUrl;
 import okhttp3.MediaType;
@@ -90,7 +92,7 @@ public class StrapiCmsAdapter implements CmsPort {
     }
 
     @Override
-    public void saveContent(ProjectContent command) {
+    public void saveContent(CreateProjectContent command) {
 
         CompletableFuture<String> saveOrCreateProjectOwnerFuture = CompletableFuture.supplyAsync(() -> getOwnerOrCreate(command.getOwner()));
         CompletableFuture<Optional<String>> saveImageFuture = CompletableFuture.supplyAsync(() -> saveResourceOnCms(
@@ -126,15 +128,17 @@ public class StrapiCmsAdapter implements CmsPort {
         if (resource.getLocation() == UploadedResource.Location.CMS) {
             return Optional.of(resource.getId().id());
         }
-        return Optional.ofNullable(url)
-                       .flatMap(fileStorageService::loadFromUrl)
+
+        return Optional.ofNullable(resource.getId())
+                       .map(UploadedResourceId::id)
+                       .flatMap(fileStorageService::load)
                        .map(storageResource -> storeFile(
                                storageResource.content(),
                                storageResource.contentType(),
                                fileName));
     }
 
-    private String saveProject(String ownerId, @Nullable String imageId, @Nullable String videoId, List<String> rewardIds, ProjectContent command) {
+    private String saveProject(String ownerId, @Nullable String imageId, @Nullable String videoId, List<String> rewardIds, CreateProjectContent command) {
         HttpUrl httpUrl = Objects.requireNonNull(HttpUrl.parse(this.baseUrl + "/api/crowdfunding-projects"))
                                  .newBuilder()
                                  .build();
@@ -181,9 +185,9 @@ public class StrapiCmsAdapter implements CmsPort {
         HttpUrl httpUrl = Objects.requireNonNull(HttpUrl.parse(this.baseUrl + "/api/rewards"))
                                  .newBuilder()
                                  .build();
-        ContentRef rewardImage = Optional.ofNullable(projectReward.getImageUrl())
-                                         .flatMap(url -> this.saveResourceOnCms(
-                                                 url,
+        ContentRef rewardImage = Optional.ofNullable(projectReward.getImage())
+                                         .flatMap(resource -> this.saveResourceOnCms(
+                                                 resource,
                                                  "reward_"
                                                  + projectReward.getName()))
                                          .map(ContentRef::new)
@@ -385,8 +389,8 @@ public class StrapiCmsAdapter implements CmsPort {
                 .map(List::stream)
                 .flatMap(Stream::findFirst)
                 .map(projectResponse -> ProjectContent.builder()
-                                                      .projectVideoUrl(addBaseUrl(projectResponse.getVideo()))
-                                                      .imageUrl(addBaseUrl(projectResponse.getImage()))
+                                                      .video(convertFromCmsToUploadedResource(projectResponse.getVideo()))
+                                                      .image(convertFromCmsToUploadedResource(projectResponse.getImage()))
                                                       .projectStartDate(convertToInstant(projectResponse.getStartDate()))
                                                       .projectEndDate(convertToInstant(projectResponse.getEndDate()))
                                                       .minimumInvestment(Optional.ofNullable(projectResponse.getMinimumInvestment())
@@ -409,19 +413,24 @@ public class StrapiCmsAdapter implements CmsPort {
                                                       .rewards(projectResponse.getRewards().stream().map(rewardData -> ProjectReward.builder()
                                                                                                                                     .description(rewardData.getDescription())
                                                                                                                                     .name(rewardData.getName())
-                                                                                                                                    .imageUrl(addBaseUrl(
+                                                                                                                                    .image(convertFromCmsToUploadedResource(
                                                                                                                                             rewardData.getImage()))
                                                                                                                                     .build()).toList())
                                                       .projectId(projectId)
                                                       .owner(Optional.ofNullable(projectResponse.getProjectOwner())
-                                                                     .map(owner -> ProjectOwner.builder()
-                                                                                               .name(owner.getName())
-                                                                                               .imageUrl(addBaseUrl(owner.getImage()))
-                                                                                               .build())
+                                                                     .map(owner -> ProjectContent.ProjectOwner.builder()
+                                                                                                              .name(owner.getName())
+                                                                                                              .id(owner.getId())
+                                                                                                              .image(convertFromCmsToUploadedResource(owner.getImage()))
+                                                                                                              .build())
                                                                      .orElse(null)
                                                       )
                                                       .currency(projectResponse.getCurrency())
                                                       .build());
+    }
+
+    private UploadedResource convertFromCmsToUploadedResource(UploadedFile video) {
+        return null;
     }
 
     private static Instant convertToInstant(String date) {

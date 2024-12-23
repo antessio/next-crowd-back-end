@@ -11,8 +11,12 @@ import java.util.Optional;
 
 import com.github.f4b6a3.uuid.UuidCreator;
 
+import nextcrowd.crowdfunding.project.model.UploadedResource;
+import nextcrowd.crowdfunding.project.model.UploadedResourceId;
+
 public class FileSystemStorageService implements FileStorageService {
 
+    public static final String PUBLIC_PATH = "/public/";
     private final Path storageDirectory;
     private final String baseUrl;
 
@@ -39,6 +43,32 @@ public class FileSystemStorageService implements FileStorageService {
         }
     }
 
+    @Override
+    public UploadedResource uploadFile(byte[] file, String contentType) {
+        try {
+            String id = UuidCreator.getRandomBased().toString();
+            StorageUtils.StorageId storageId = new StorageUtils.StorageId(
+                    StorageUtils.StorageLocation.FS,
+                    contentType,
+                    id);
+            Path filePath = storageDirectory.resolve(storageId.toString());
+            Files.write(filePath, file);
+            String urlPath = PUBLIC_PATH + storageId;
+            URI url = URI.create(baseUrl + urlPath);
+            // extract path from URI
+
+            return UploadedResource.builder()
+                                   .location(UploadedResource.Location.LOCAL)
+                                   .id(new UploadedResourceId(id))
+                                   .url(url.toString())
+                                   .contentType(contentType)
+                                   .path(urlPath)
+                                   .build();
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to store file", e);
+        }
+    }
+
 
     @Override
     public Optional<StorageResource> load(String id) {
@@ -59,7 +89,7 @@ public class FileSystemStorageService implements FileStorageService {
     @Override
     public Optional<StorageResource> loadFromUrl(String url) {
         return Optional.of(url)
-                       .map(u -> u.replace(baseUrl, ""))
+                       .map(u -> u.replace(baseUrl + PUBLIC_PATH, ""))
                        // take only the last part of the url
                        //.map(u -> u.substring(u.lastIndexOf('/') + 1))
                        .flatMap(this::load);

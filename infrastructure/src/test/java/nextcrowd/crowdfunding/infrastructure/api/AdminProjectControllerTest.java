@@ -41,7 +41,6 @@ import nextcrowd.crowdfunding.admin.api.model.AddInvestmentCommand;
 import nextcrowd.crowdfunding.admin.api.model.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.admin.api.model.CancelInvestmentCommand;
 import nextcrowd.crowdfunding.admin.api.model.ConfirmInvestmentCommand;
-import nextcrowd.crowdfunding.admin.api.model.EditCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.admin.api.model.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.infrastructure.SecurityConfiguration;
 import nextcrowd.crowdfunding.infrastructure.TestUtils;
@@ -164,10 +163,18 @@ class AdminProjectControllerTest {
                    .andExpect(jsonPath("$.id").value(projectId.id()))
                    .andExpect(jsonPath("$.title").value(projectContent.getTitle()))
                    .andExpect(jsonPath("$.status").value(project.getStatus().toString()))
-                   .andExpect(jsonPath("$.imageUrl").value(projectContent.getImageUrl()))
+                   .andExpect(jsonPath("$.image.id").value(projectContent.getImage().getId().id()))
+                   .andExpect(jsonPath("$.image.url").value(projectContent.getImage().getUrl()))
+                   .andExpect(jsonPath("$.image.contentType").value(projectContent.getImage().getContentType()))
+                   .andExpect(jsonPath("$.image.location").value(projectContent.getImage().getLocation().name()))
+                   .andExpect(jsonPath("$.image.path").value(projectContent.getImage().getPath()))
                    .andExpect(jsonPath("$.currency").value(project.getCurrency()))
                    .andExpect(jsonPath("$.longDescription").value(projectContent.getLongDescription()))
-                   .andExpect(jsonPath("$.projectVideoUrl").value(projectContent.getProjectVideoUrl()))
+                   .andExpect(jsonPath("$.video.id").value(projectContent.getVideo().getId().id()))
+                   .andExpect(jsonPath("$.video.url").value(projectContent.getVideo().getUrl()))
+                   .andExpect(jsonPath("$.video.contentType").value(projectContent.getVideo().getContentType()))
+                   .andExpect(jsonPath("$.video.location").value(projectContent.getVideo().getLocation().name()))
+                   .andExpect(jsonPath("$.video.path").value(projectContent.getVideo().getPath()))
                    .andExpect(jsonPath("$.description").value(projectContent.getDescription()))
                    .andExpect(jsonPath("$.requestedAmount").value(project.getRequestedAmount().doubleValue()))
                    .andExpect(jsonPath("$.collectedAmount").value(project.getCollectedAmount().orElseThrow().doubleValue()))
@@ -178,12 +185,16 @@ class AdminProjectControllerTest {
                    .andExpect(jsonPath("$.minimumInvestment").value(project.getMinimumInvestment().map(BigDecimal::doubleValue).orElse(null)))
                    .andExpect(jsonPath("$.owner.id").value(project.getOwner().getId().id()))
                    .andExpect(jsonPath("$.owner.name").value(project.getOwner().getName()))
-                   .andExpect(jsonPath("$.owner.imageUrl").value(project.getOwner().getImageUrl()))
+                   .andExpect(jsonPath("$.owner.image.id").value(projectContent.getOwner().getImage().getId().id()))
+                   .andExpect(jsonPath("$.owner.image.url").value(projectContent.getOwner().getImage().getUrl()))
+                   .andExpect(jsonPath("$.owner.image.contentType").value(projectContent.getOwner().getImage().getContentType()))
+                   .andExpect(jsonPath("$.owner.image.location").value(projectContent.getOwner().getImage().getLocation().name()))
+                   .andExpect(jsonPath("$.owner.image.path").value(projectContent.getOwner().getImage().getPath()))
                    .andExpect(jsonPath("$.numberOfBackers").value(project.getNumberOfBackers().orElseThrow()))
                    .andExpect(jsonPath("$.rewards").isArray())
                    .andExpect(jsonPath("$.rewards.length()").value(projectContent.getRewards().size()))
                    .andExpect(jsonPath("$.rewards[*].name").isArray())
-                   .andExpect(jsonPath("$.rewards[*].imageUrl").isArray())
+                   .andExpect(jsonPath("$.rewards[*].image").isArray())
                    .andExpect(jsonPath("$.rewards[*].description").isArray());
         }
 
@@ -280,49 +291,6 @@ class AdminProjectControllerTest {
                                     .content(TestUtils.objectMapper().writeValueAsBytes(submitCommandApi)))
                    .andExpect(status().isBadRequest())
                    .andExpect(jsonPath("$.message").value("Validation error"));
-        }
-
-        @Test
-        @DisplayName("Edit a project successfully")
-        void testEditProject() throws Exception {
-            String projectId = "test-project-id";
-            EditCrowdfundingProjectCommand editCommandApi = buildRandomEditCrowdfundingProjectCommand();
-            doNothing().when(projectServicePort).editProject(eq(new ProjectId(projectId)), any());
-
-            mockMvc.perform(put("/admin/projects/{id}/edit", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .content(TestUtils.objectMapper().writeValueAsBytes(editCommandApi)))
-                   .andExpect(status().isOk());
-        }
-
-        @Test
-        @DisplayName("Edit a project when project not found")
-        void testEditProjectNotFound() throws Exception {
-            String projectId = "test-project-id";
-            EditCrowdfundingProjectCommand editCommandApi = buildRandomEditCrowdfundingProjectCommand();
-            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.PROJECT_NOT_FOUND))
-                    .when(projectServicePort).editProject(eq(new ProjectId(projectId)), any());
-
-            mockMvc.perform(put("/admin/projects/{id}/edit", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .content(TestUtils.objectMapper().writeValueAsBytes(editCommandApi)))
-                   .andExpect(status().isBadRequest());
-        }
-        @Test
-        @DisplayName("Edit a project when request is invalid")
-        void testEditProjectRequestInvalid() throws Exception {
-            String projectId = "test-project-id";
-            EditCrowdfundingProjectCommand editCommandApi = buildRandomEditCrowdfundingProjectCommand();
-            doThrow(new CrowdfundingProjectException(CrowdfundingProjectException.Reason.INVALID_PROJECT_STATUS))
-                    .when(projectServicePort).editProject(eq(new ProjectId(projectId)), any());
-
-            mockMvc.perform(put("/admin/projects/{id}/edit", projectId)
-                                    .header("Authorization", "Bearer " + jwtService.generateToken(ADMIN_USER.getUsername()))
-                                    .contentType(MediaType.APPLICATION_JSON)
-                                    .content(TestUtils.objectMapper().writeValueAsBytes(editCommandApi)))
-                   .andExpect(status().isBadRequest());
         }
 
         @Test
@@ -601,25 +569,12 @@ class AdminProjectControllerTest {
                 .projectStartDate(TestUtils.buildRandomOffsetDateTime())
                 .projectEndDate(TestUtils.buildRandomOffsetDateTime())
                 .owner(new nextcrowd.crowdfunding.admin.api.model.ProjectOwner()
-                               .imageUrl(TestUtils.getFaker().internet().url())
+                               .image(new nextcrowd.crowdfunding.admin.api.model.UploadedResource()
+                                              .id(TestUtils.getFaker().idNumber().valid())
+                                              .url(URI.create(TestUtils.getFaker().internet().url()))
+                                              .contentType(TestUtils.getFaker().internet().image()))
                                .name(TestUtils.getFaker().lebowski().character()));
     }
 
-    private EditCrowdfundingProjectCommand buildRandomEditCrowdfundingProjectCommand() {
-        return new EditCrowdfundingProjectCommand()
-                .title(TestUtils.getFaker().company().name())
-                .description(TestUtils.getFaker().lorem().sentence(10))
-                .requestedAmount(TestUtils.getRandomAmount().doubleValue())
-                .currency("EUR")
-                .projectStartDate(TestUtils.buildRandomOffsetDateTime())
-                .projectEndDate(TestUtils.buildRandomOffsetDateTime())
-                .owner(new nextcrowd.crowdfunding.admin.api.model.ProjectOwner()
-                               .imageUrl(TestUtils.getFaker().internet().url())
-                               .name(TestUtils.getFaker().lebowski().character()))
-                .rewards(List.of(new nextcrowd.crowdfunding.admin.api.model.ProjectReward()
-                                         .description(TestUtils.getFaker().lorem().sentence(10))
-                                         .imageUrl(TestUtils.getFaker().internet().url())
-                                         .name(TestUtils.getFaker().lebowski().character())));
-    }
 
 }

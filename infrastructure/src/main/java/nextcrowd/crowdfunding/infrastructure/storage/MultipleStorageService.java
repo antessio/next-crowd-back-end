@@ -7,6 +7,8 @@ import java.util.stream.Stream;
 
 import org.springframework.stereotype.Component;
 
+import nextcrowd.crowdfunding.project.model.UploadedResource;
+
 @Component
 public class MultipleStorageService implements FileStorageService {
 
@@ -23,6 +25,16 @@ public class MultipleStorageService implements FileStorageService {
                      .map(storageServices::get)
                      .findFirst()
                      .map(storageService -> storageService.storeFile(file, contentType))
+                     .orElseThrow(() -> new IllegalStateException("No storage service available"));
+    }
+
+    @Override
+    public UploadedResource uploadFile(byte[] file, String contentType) {
+        return Stream.of(StorageUtils.StorageLocation.FS, StorageUtils.StorageLocation.S3)
+                     .filter(storageServices::containsKey)
+                     .map(storageServices::get)
+                     .findFirst()
+                     .map(storageService -> storageService.uploadFile(file, contentType))
                      .orElseThrow(() -> new IllegalStateException("No storage service available"));
     }
 

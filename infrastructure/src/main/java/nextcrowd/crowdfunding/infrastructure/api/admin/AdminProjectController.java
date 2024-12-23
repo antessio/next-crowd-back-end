@@ -21,8 +21,7 @@ import nextcrowd.crowdfunding.admin.api.model.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.admin.api.model.CancelInvestmentCommand;
 import nextcrowd.crowdfunding.admin.api.model.ConfirmInvestmentCommand;
 import nextcrowd.crowdfunding.admin.api.model.CrowdfundingProject;
-import nextcrowd.crowdfunding.admin.api.model.EditCrowdfundingProjectCommand;
-import nextcrowd.crowdfunding.admin.api.model.FileUploadResponse;
+import nextcrowd.crowdfunding.admin.api.model.UploadedResource;
 import nextcrowd.crowdfunding.admin.api.model.Investment;
 import nextcrowd.crowdfunding.admin.api.model.PaginatedInvestmentsResponse;
 import nextcrowd.crowdfunding.admin.api.model.PaginatedProjectsResponse;
@@ -60,15 +59,6 @@ public class AdminProjectController implements AdminApi {
                        .orElseThrow();
     }
 
-    @Override
-    public ResponseEntity<Void> adminProjectsProjectIdEditPut(String projectId, EditCrowdfundingProjectCommand editCrowdfundingProjectCommand) {
-        nextcrowd.crowdfunding.project.command.EditCrowdfundingProjectCommand domainCommand = Optional.of(editCrowdfundingProjectCommand)
-                                                                                                      .map(ApiConverter::toDomain)
-                                                                                                      .orElseThrow();
-        projectServicePort.editProject(new nextcrowd.crowdfunding.project.model.ProjectId(projectId), domainCommand);
-        return ResponseEntity.ok().build();
-
-    }
 
     @Override
     public ResponseEntity<Void> adminProjectsProjectIdApprovePost(String projectId, ApproveCrowdfundingProjectCommand approveCrowdfundingProjectCommand) {
@@ -206,18 +196,24 @@ public class AdminProjectController implements AdminApi {
     }
 
     @Override
-    public ResponseEntity<FileUploadResponse> adminUploadPost(MultipartFile file) {
+    public ResponseEntity<UploadedResource> adminUploadPost(MultipartFile file) {
         return Optional.ofNullable(file)
                        .filter(Predicate.not(MultipartFile::isEmpty))
                        .map(this::getStoreFile)
-                       .map(uri -> new FileUploadResponse().url(uri))
+                       .map(resource -> new UploadedResource()
+                               .url(Optional.ofNullable(resource.getUrl()).map(URI::create).orElse(null))
+                               .contentType(resource.getContentType())
+                               .id(resource.getId().id())
+                               .location(Optional.ofNullable(resource.getLocation()).map(Enum::name).orElse(null))
+                               .path(resource.getPath())
+                       )
                        .map(ResponseEntity::ok)
                        .orElseThrow(() -> new ValidationException("File is empty"));
 
     }
 
-    private URI getStoreFile(MultipartFile multipartFile) {
-        return fileStorageService.storeFile(getMultipartFileFunction(multipartFile), multipartFile.getContentType());
+    private nextcrowd.crowdfunding.project.model.UploadedResource getStoreFile(MultipartFile multipartFile) {
+        return fileStorageService.uploadFile(getMultipartFileFunction(multipartFile), multipartFile.getContentType());
     }
 
     private static byte[] getMultipartFileFunction(MultipartFile f) {

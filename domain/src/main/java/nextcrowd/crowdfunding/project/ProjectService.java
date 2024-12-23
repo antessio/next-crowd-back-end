@@ -15,6 +15,7 @@ import nextcrowd.crowdfunding.project.command.EditCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.exception.CrowdfundingProjectException;
 import nextcrowd.crowdfunding.project.exception.ValidationException;
+import nextcrowd.crowdfunding.project.model.CreateProjectContent;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.Investment;
 import nextcrowd.crowdfunding.project.model.InvestmentId;
@@ -112,20 +113,20 @@ public class ProjectService implements ProjectServicePort {
         }
         CrowdfundingProject project = transactionalManager.executeInTransaction(() -> {
             CrowdfundingProject p = projectSubmissionService.submit(projectCreationCommand);
-            ProjectContent projectContent = ProjectContent.builder()
-                                                          .currency(projectCreationCommand.getCurrency())
-                                                          .owner(projectCreationCommand.getOwner())
-                                                          .requestedAmount(BigDecimal.valueOf(projectCreationCommand.getRequestedAmount()))
-                                                          .projectStartDate(projectCreationCommand.getProjectStartDate())
-                                                          .projectEndDate(projectCreationCommand.getProjectEndDate())
-                                                          .longDescription(projectCreationCommand.getLongDescription())
-                                                          .description(projectCreationCommand.getDescription())
-                                                          .rewards(projectCreationCommand.getRewards())
-                                                          .video(projectCreationCommand.getVideo())
-                                                          .title(projectCreationCommand.getTitle())
-                                                          .image(projectCreationCommand.getImage())
-                                                          .projectId(p.getId())
-                                                          .build();
+            CreateProjectContent projectContent = CreateProjectContent.builder()
+                                                                .currency(projectCreationCommand.getCurrency())
+                                                                .owner(projectCreationCommand.getOwner())
+                                                                .requestedAmount(BigDecimal.valueOf(projectCreationCommand.getRequestedAmount()))
+                                                                .projectStartDate(projectCreationCommand.getProjectStartDate())
+                                                                .projectEndDate(projectCreationCommand.getProjectEndDate())
+                                                                .longDescription(projectCreationCommand.getLongDescription())
+                                                                .description(projectCreationCommand.getDescription())
+                                                                .rewards(projectCreationCommand.getRewards())
+                                                                .video(projectCreationCommand.getVideo())
+                                                                .title(projectCreationCommand.getTitle())
+                                                                .image(projectCreationCommand.getImage())
+                                                                .projectId(p.getId())
+                                                                .build();
             cms.saveContent(projectContent);
             return p;
         });
