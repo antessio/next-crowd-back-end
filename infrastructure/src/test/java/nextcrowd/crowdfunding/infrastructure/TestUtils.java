@@ -30,6 +30,7 @@ import nextcrowd.crowdfunding.project.model.MoneyTransferId;
 import nextcrowd.crowdfunding.project.model.ProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
+import nextcrowd.crowdfunding.project.model.ProjectOwnerId;
 import nextcrowd.crowdfunding.project.model.ProjectReward;
 
 public class TestUtils {
@@ -56,7 +57,7 @@ public class TestUtils {
 
     public static ProjectOwner buildRandomProjectOwner() {
         return ProjectOwner.builder()
-                           .id(UuidCreator.getTimeOrderedEpoch().toString())
+                           .id(new ProjectOwnerId(UuidCreator.getTimeOrderedEpoch().toString()))
                            .imageUrl(faker.internet().url())
                            .name(faker.lebowski().character())
                            .build();

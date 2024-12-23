@@ -54,7 +54,7 @@ public class ApiConverter {
 
     private static nextcrowd.crowdfunding.websitepublic.api.model.ProjectOwner convertProjectOwner(ProjectOwner projectOwner) {
         return new nextcrowd.crowdfunding.websitepublic.api.model.ProjectOwner()
-                .id(projectOwner.getId())
+                .id(projectOwner.getId().id())
                 .name(projectOwner.getName())
                 .imageUrl(projectOwner.getImageUrl());
     }

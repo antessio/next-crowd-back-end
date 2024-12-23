@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.Random;
 import java.util.Set;
+import java.util.function.Predicate;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -19,14 +20,9 @@ import javax.sql.DataSource;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.autoconfigure.liquibase.LiquibaseAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.ContextConfiguration;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.javafaker.Faker;
 
 import nextcrowd.crowdfunding.infrastructure.BaseTestWithTestcontainers;
@@ -95,6 +91,13 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest extends BaseTest
 
     private ProjectOwner getRandomProjectOwnerFromExisting() {
         return ProjectOwnerAdapter.toDomain(projectOwnerEntities.get(random.nextInt(projectOwnerEntities.size())));
+    }
+
+    private ProjectOwner getRandomProjectOwnerFromExisting(ProjectOwner ...exclude) {
+        List<ProjectOwnerEntity> existing = projectOwnerEntities.stream()
+                                                                .filter(Predicate.not(po -> List.of(exclude).contains(ProjectOwnerAdapter.toDomain(po))))
+                                                                .toList();
+        return ProjectOwnerAdapter.toDomain(existing.get(random.nextInt(existing.size())));
     }
 
     @Test
@@ -231,5 +234,30 @@ public class CrowdfundingProjectSpringDataRepositoryAdapterTest extends BaseTest
                 .containsExactlyInAnyOrderElementsOf(project1.getAcceptedInvestments());
     }
 
+    @Test
+    public void shouldFindProjectsByStatusAndProjectOwnerId() {
+        // given
+        CrowdfundingProject.Status targetStatus = getRandomStatus();
+        ProjectOwner projectOwner = getRandomProjectOwnerFromExisting();
+        List<CrowdfundingProject> expected = IntStream.range(0, 30)
+                                                      .mapToObj(_ -> buildRandomProject(projectOwner).toBuilder()
+                                                                                                      .status(targetStatus)
+                                                                                                      .build())
+                                                      .map(repositoryAdapter::save)
+                                                      .toList();
+        IntStream.range(0, 20)
+                 .mapToObj(_ -> buildRandomProject(getRandomProjectOwnerFromExisting(projectOwner)).toBuilder()
+                                                                                       .status(getRandomStatus(targetStatus))
+                                                                                       .build())
+                 .map(repositoryAdapter::save)
+                 .forEach(repositoryAdapter::save);
+
+        // when
+        List<CrowdfundingProject> pendingReviewProjects = repositoryAdapter.findByOwnerIdOrderByAsc(projectOwner.getId(), null).toList();
+
+        // then
+        assertThat(pendingReviewProjects.size()).isEqualTo(expected.size());
+        assertThat(pendingReviewProjects).containsExactly(expected.toArray(new CrowdfundingProject[0]));
+    }
 
 }

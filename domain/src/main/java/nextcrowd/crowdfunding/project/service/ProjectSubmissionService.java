@@ -11,6 +11,7 @@ import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.ProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
+import nextcrowd.crowdfunding.project.model.ProjectOwnerId;
 import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
 import nextcrowd.crowdfunding.project.port.EventPublisher;
 
@@ -47,7 +48,9 @@ public class ProjectSubmissionService {
         return Optional.ofNullable(owner.getId())
                        .flatMap(repository::findOwnerById)
                        .orElseGet(() -> repository.createProjectOwner(ProjectOwner.builder()
-                                                                                  .id(UuidCreator.getTimeOrdered().toString())
+                                                                                  .id(Optional.ofNullable(owner.getId())
+                                                                                              .orElseGet(() -> new ProjectOwnerId(UuidCreator.getTimeOrdered()
+                                                                                                                                             .toString())))
                                                                                   .name(owner.getName())
                                                                                   .imageUrl(owner.getImageUrl())
                                                                                   .build()));

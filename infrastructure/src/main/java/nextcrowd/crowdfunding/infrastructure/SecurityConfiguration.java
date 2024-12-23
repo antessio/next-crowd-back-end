@@ -29,6 +29,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import nextcrowd.crowdfunding.infrastructure.security.http.JwtAuthenticationFilter;
+import nextcrowd.crowdfunding.infrastructure.security.persistence.Role;
 import nextcrowd.crowdfunding.infrastructure.security.persistence.UserRepository;
 
 @Configuration
@@ -70,9 +71,12 @@ public class SecurityConfiguration {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(authz -> authz
                         .requestMatchers("/actuator/**").permitAll()
-                        .requestMatchers("/admin/login").permitAll()
-                        .requestMatchers("/admin/sign_in").permitAll()
-                        .requestMatchers("/admin/**").hasAuthority("ROLE_ADMIN")
+                        .requestMatchers("/dashboard/login").permitAll()
+                        .requestMatchers("/dashboard/sign_in").permitAll()
+                        .requestMatchers("/dashboard/user").hasAnyAuthority(Role.ADMIN, Role.PROJECT_OWNER, Role.BAKER)
+                        .requestMatchers("/admin/upload").hasAnyAuthority(Role.ADMIN, Role.PROJECT_OWNER, Role.BAKER)
+                        .requestMatchers("/admin/**").hasAuthority(Role.ADMIN)
+                        .requestMatchers("/projectOwner/**").hasAuthority(Role.PROJECT_OWNER)
                         .requestMatchers("/public/**").permitAll()
                         .anyRequest().denyAll())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

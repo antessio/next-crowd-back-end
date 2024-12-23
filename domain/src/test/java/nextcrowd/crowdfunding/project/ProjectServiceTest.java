@@ -56,6 +56,7 @@ import nextcrowd.crowdfunding.project.model.MoneyTransferId;
 import nextcrowd.crowdfunding.project.model.ProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectId;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
+import nextcrowd.crowdfunding.project.model.ProjectOwnerId;
 import nextcrowd.crowdfunding.project.model.ProjectReward;
 import nextcrowd.crowdfunding.project.port.CmsPort;
 import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
@@ -123,7 +124,7 @@ class ProjectServiceTest {
             CrowdfundingProject project = buildProjectSubmitted(randomProjectId(), ProjectOwner.builder()
                                                                                                .name("ownerName")
                                                                                                .imageUrl("ownerImageUrl")
-                                                                                               .id("ownerId")
+                                                                                               .id(new ProjectOwnerId("ownerId"))
                                                                                                .build());
             when(crowdfundingProjectRepository.findByStatusesOrderByAsc(Set.of(CrowdfundingProject.Status.SUBMITTED), startingFrom))
                     .thenReturn(Stream.of(project));
@@ -186,7 +187,7 @@ class ProjectServiceTest {
             Instant now = Instant.now();
             SubmitCrowdfundingProjectCommand projectCreationCommand = buildSubmitCommand(
                     now, ProjectOwner.builder()
-                                     .id("1")
+                                     .id(new ProjectOwnerId("1"))
                                      .imageUrl("ownerImageUrl")
                                      .name("owner1")
                                      .build());
@@ -205,7 +206,7 @@ class ProjectServiceTest {
             // given
             Instant now = Instant.now();
             ProjectOwner projectOwner = ProjectOwner.builder()
-                                                    .id("1")
+                                                    .id(new ProjectOwnerId("1"))
                                                     .imageUrl("ownerImageUrl")
                                                     .name("owner1")
                                                     .build();
@@ -252,7 +253,7 @@ class ProjectServiceTest {
             ProjectId projectId = randomProjectId();
             EditCrowdfundingProjectCommand projectCreationCommand = buildEditCommand(
                     now, ProjectOwner.builder()
-                                     .id("1")
+                                     .id(new ProjectOwnerId("1"))
                                      .imageUrl("ownerImageUrl")
                                      .name("owner1")
                                      .build());
@@ -275,7 +276,7 @@ class ProjectServiceTest {
             CrowdfundingProject existingProject = buildProjectApproved(projectId, new BigDecimal(0), Collections.emptyList(), List.of(), List.of());
             EditCrowdfundingProjectCommand projectCreationCommand = buildEditCommand(
                     now, ProjectOwner.builder()
-                                     .id("1")
+                                     .id(new ProjectOwnerId("1"))
                                      .imageUrl("ownerImageUrl")
                                      .name("owner1")
                                      .build());
@@ -299,11 +300,11 @@ class ProjectServiceTest {
             CrowdfundingProject existingProject = buildProjectSubmitted(projectId, ProjectOwner.builder()
                                                                                                .name("ownerName")
                                                                                                .imageUrl("ownerImageUrl")
-                                                                                               .id("ownerId")
+                                                                                               .id(new ProjectOwnerId("ownerId"))
                                                                                                .build());
             EditCrowdfundingProjectCommand editCrowdfundingProjectCommand = buildEditCommand(
                     now, ProjectOwner.builder()
-                                     .id("1")
+                                     .id(new ProjectOwnerId("1"))
                                      .imageUrl("ownerImageUrl")
                                      .name("owner1")
                                      .build());
@@ -369,7 +370,7 @@ class ProjectServiceTest {
                     .thenReturn(Optional.of(buildProjectSubmitted(projectId, ProjectOwner.builder()
                                                                                          .name("ownerName")
                                                                                          .imageUrl("ownerImageUrl")
-                                                                                         .id("ownerId")
+                                                                                         .id(new ProjectOwnerId("ownerId"))
                                                                                          .build())));
             ApproveCrowdfundingProjectCommand command = ApproveCrowdfundingProjectCommand.builder()
                                                                                          .risk(3)
@@ -392,7 +393,7 @@ class ProjectServiceTest {
                     .thenReturn(Optional.of(buildProjectSubmitted(projectId, ProjectOwner.builder()
                                                                                          .name("ownerName")
                                                                                          .imageUrl("ownerImageUrl")
-                                                                                         .id("ownerId")
+                                                                                         .id(new ProjectOwnerId("ownerId"))
                                                                                          .build())));
             ApproveCrowdfundingProjectCommand command = ApproveCrowdfundingProjectCommand.builder()
                                                                                          .risk(3)
@@ -484,7 +485,7 @@ class ProjectServiceTest {
                     .thenReturn(Optional.of(buildProjectSubmitted(projectId, ProjectOwner.builder()
                                                                                          .name("ownerName")
                                                                                          .imageUrl("ownerImageUrl")
-                                                                                         .id("ownerId")
+                                                                                         .id(new ProjectOwnerId("ownerId"))
                                                                                          .build())));
 
             // when
@@ -902,7 +903,7 @@ class ProjectServiceTest {
                     .thenReturn(Optional.of(buildProjectSubmitted(projectId, ProjectOwner.builder()
                                                                                          .name("ownerName")
                                                                                          .imageUrl("ownerImageUrl")
-                                                                                         .id("ownerId")
+                                                                                         .id(new ProjectOwnerId("ownerId"))
                                                                                          .build())));
 
             // when
@@ -957,7 +958,7 @@ class ProjectServiceTest {
                                   .owner(ProjectOwner.builder()
                                                      .name("ownerName")
                                                      .imageUrl("ownerImageUrl")
-                                                     .id("ownerId")
+                                                     .id(new ProjectOwnerId("ownerId"))
                                                      .build())
                                   .currency("EUR")
                                   .requestedAmount(new BigDecimal(300_000))
@@ -983,7 +984,7 @@ class ProjectServiceTest {
                                   .owner(ProjectOwner.builder()
                                                      .name("ownerName")
                                                      .imageUrl("ownerImageUrl")
-                                                     .id("ownerId")
+                                                     .id(new ProjectOwnerId("ownerId"))
                                                      .build())
                                   .currency("EUR")
                                   .requestedAmount(new BigDecimal(300_000))
@@ -1004,7 +1005,7 @@ class ProjectServiceTest {
                                   .owner(ProjectOwner.builder()
                                                      .name("ownerName")
                                                      .imageUrl("ownerImageUrl")
-                                                     .id("ownerId")
+                                                     .id(new ProjectOwnerId("ownerId"))
                                                      .build())
                                   .currency("EUR")
                                   .requestedAmount(new BigDecimal(300_000))

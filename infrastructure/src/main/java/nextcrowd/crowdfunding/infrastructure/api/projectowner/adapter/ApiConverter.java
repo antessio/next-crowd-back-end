@@ -1,4 +1,4 @@
-package nextcrowd.crowdfunding.infrastructure.api.admin.adapter;
+package nextcrowd.crowdfunding.infrastructure.api.projectowner.adapter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -6,22 +6,13 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
-
-import org.jetbrains.annotations.Nullable;
+import java.util.function.Predicate;
 
 import nextcrowd.crowdfunding.project.command.EditCrowdfundingProjectCommand;
-import nextcrowd.crowdfunding.project.command.AddInvestmentCommand;
-import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
-import nextcrowd.crowdfunding.project.command.CancelInvestmentCommand;
-import nextcrowd.crowdfunding.project.command.ConfirmInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
-import nextcrowd.crowdfunding.project.model.BakerId;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
-import nextcrowd.crowdfunding.project.model.Investment;
-import nextcrowd.crowdfunding.project.model.MoneyTransferId;
 import nextcrowd.crowdfunding.project.model.ProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectOwner;
-import nextcrowd.crowdfunding.project.model.ProjectOwnerId;
 import nextcrowd.crowdfunding.project.model.ProjectReward;
 
 public final class ApiConverter {
@@ -31,7 +22,9 @@ public final class ApiConverter {
     private ApiConverter() {
     }
 
-    public static SubmitCrowdfundingProjectCommand toDomain(nextcrowd.crowdfunding.admin.api.model.SubmitCrowdfundingProjectCommand submitCrowdfundingProjectCommand) {
+    public static SubmitCrowdfundingProjectCommand toDomain(
+            nextcrowd.crowdfunding.projectowner.api.model.SubmitCrowdfundingProjectCommand submitCrowdfundingProjectCommand,
+            ProjectOwner projectOwner) {
         return SubmitCrowdfundingProjectCommand.builder()
                                                .title(submitCrowdfundingProjectCommand.getTitle())
                                                .imageUrl(convertResourceUrl(submitCrowdfundingProjectCommand.getImageUrl()))
@@ -42,7 +35,7 @@ public final class ApiConverter {
                                                .description(submitCrowdfundingProjectCommand.getDescription())
                                                .longDescription(submitCrowdfundingProjectCommand.getLongDescription())
                                                .projectVideoUrl(convertResourceUrl(submitCrowdfundingProjectCommand.getProjectVideoUrl()))
-                                               .owner(convertProjectOwner(submitCrowdfundingProjectCommand.getOwner()))
+                                               .owner(projectOwner)
                                                .rewards(Optional.ofNullable(submitCrowdfundingProjectCommand.getRewards()).orElseGet(List::of)
                                                                 .stream()
                                                                 .map(ApiConverter::convertProjectReward)
@@ -51,11 +44,13 @@ public final class ApiConverter {
 
     }
 
-    private static @Nullable String convertResourceUrl(String resourceUrl) {
-        return Optional.ofNullable(resourceUrl).filter(s -> !s.isBlank()).orElse(null);
+    private static String convertResourceUrl(String imageUrl) {
+        return Optional.ofNullable(imageUrl)
+                       .filter(Predicate.not(String::isBlank))
+                       .orElse(null);
     }
 
-    private static ProjectReward convertProjectReward(nextcrowd.crowdfunding.admin.api.model.ProjectReward projectReward) {
+    private static ProjectReward convertProjectReward(nextcrowd.crowdfunding.projectowner.api.model.ProjectReward projectReward) {
         return ProjectReward.builder()
                             .name(projectReward.getName())
                             .description(projectReward.getDescription())
@@ -63,43 +58,8 @@ public final class ApiConverter {
                             .build();
     }
 
-    private static ProjectOwner convertProjectOwner(nextcrowd.crowdfunding.admin.api.model.ProjectOwner owner) {
-        return ProjectOwner.builder()
-                           .id(Optional.ofNullable(owner.getId()).map(ProjectOwnerId::new).orElse(null))
-                           .name(owner.getName())
-                           .imageUrl(convertResourceUrl(owner.getImageUrl()))
-                           .build();
-    }
-
-    public static ApproveCrowdfundingProjectCommand toDomain(nextcrowd.crowdfunding.admin.api.model.ApproveCrowdfundingProjectCommand approveCrowdfundingProjectCommand) {
-        return ApproveCrowdfundingProjectCommand.builder()
-                                                .risk(approveCrowdfundingProjectCommand.getRisk())
-                                                .expectedProfit(convertBigDecimal(approveCrowdfundingProjectCommand.getExpectedProfit()))
-                                                .minimumInvestment(convertBigDecimal(approveCrowdfundingProjectCommand.getMinimumInvestment()))
-                                                .build();
-    }
-
-    public static CancelInvestmentCommand toDomain(nextcrowd.crowdfunding.admin.api.model.CancelInvestmentCommand cancelInvestmentCommand) {
-        return CancelInvestmentCommand.builder()
-                                      .bakerId(new BakerId(cancelInvestmentCommand.getBakerId()))
-                                      .build();
-    }
-
-    public static ConfirmInvestmentCommand toDomain(nextcrowd.crowdfunding.admin.api.model.ConfirmInvestmentCommand confirmInvestmentCommand) {
-        return ConfirmInvestmentCommand.builder()
-                                       .bakerId(new BakerId(confirmInvestmentCommand.getBakerId()))
-                                       .moneyTransferId(new MoneyTransferId(confirmInvestmentCommand.getMoneyTransferId()))
-                                       .build();
-    }
-
-    public static AddInvestmentCommand toDomain(nextcrowd.crowdfunding.admin.api.model.AddInvestmentCommand addInvestmentCommand) {
-        return AddInvestmentCommand.builder()
-                                   .amount(convertBigDecimal(addInvestmentCommand.getAmount()))
-                                   .bakerId(new BakerId(addInvestmentCommand.getBakerId()))
-                                   .build();
-    }
-    public static nextcrowd.crowdfunding.admin.api.model.CrowdfundingProject toApi(CrowdfundingProject project, ProjectContent projectContent) {
-        return new nextcrowd.crowdfunding.admin.api.model.CrowdfundingProject()
+    public static nextcrowd.crowdfunding.projectowner.api.model.CrowdfundingProject toApi(CrowdfundingProject project, ProjectContent projectContent) {
+        return new nextcrowd.crowdfunding.projectowner.api.model.CrowdfundingProject()
                 .id(project.getId().id())
                 .status(project.getStatus().name())
                 .requestedAmount(project.getRequestedAmount().doubleValue())
@@ -118,45 +78,32 @@ public final class ApiConverter {
                 .imageUrl(Optional.ofNullable(projectContent).map(ProjectContent::getImageUrl).orElse(null))
                 .projectVideoUrl(Optional.ofNullable(projectContent).map(ProjectContent::getProjectVideoUrl).orElse(null))
                 .rewards(Optional.ofNullable(projectContent).map(ProjectContent::getRewards).orElseGet(List::of)
-                        .stream()
-                        .map(ApiConverter::projectRewardToApi)
-                        .toList())
+                                 .stream()
+                                 .map(ApiConverter::projectRewardToApi)
+                                 .toList())
                 ;
 
     }
 
-    private static nextcrowd.crowdfunding.admin.api.model.ProjectReward projectRewardToApi(ProjectReward projectReward) {
-        return new nextcrowd.crowdfunding.admin.api.model.ProjectReward()
+    private static nextcrowd.crowdfunding.projectowner.api.model.ProjectReward projectRewardToApi(ProjectReward projectReward) {
+        return new nextcrowd.crowdfunding.projectowner.api.model.ProjectReward()
                 .name(projectReward.getName())
                 .description(projectReward.getDescription())
                 .imageUrl(projectReward.getImageUrl());
     }
 
-    private static nextcrowd.crowdfunding.admin.api.model.ProjectOwner projectOwnerToApi(ProjectOwner owner) {
-        return new nextcrowd.crowdfunding.admin.api.model.ProjectOwner()
+    private static nextcrowd.crowdfunding.projectowner.api.model.ProjectOwner projectOwnerToApi(ProjectOwner owner) {
+        return new nextcrowd.crowdfunding.projectowner.api.model.ProjectOwner()
                 .id(owner.getId().id())
                 .name(owner.getName())
                 .imageUrl(owner.getImageUrl());
     }
 
-    public static nextcrowd.crowdfunding.admin.api.model.Investment toApi(Investment investment) {
-        return new nextcrowd.crowdfunding.admin.api.model.Investment()
-                .amount(investment.getAmount().doubleValue())
-                .id(investment.getId().id())
-                .status(nextcrowd.crowdfunding.admin.api.model.Investment.StatusEnum.fromValue(investment.getStatus().name()))
-                .bakerId(investment.getBakerId().id())
-                .moneyTransferId(investment.getMoneyTransferId().map(MoneyTransferId::id).orElse(null));
-    }
 
     public static OffsetDateTime convertToOffsetDateTime(Instant instant) {
         return instant == null ? null : OffsetDateTime.ofInstant(instant, UTC);
     }
-
-    private static BigDecimal convertBigDecimal(Double approveCrowdfundingProjectCommand) {
-        return BigDecimal.valueOf(approveCrowdfundingProjectCommand);
-    }
-
-    public static EditCrowdfundingProjectCommand toDomain(nextcrowd.crowdfunding.admin.api.model.EditCrowdfundingProjectCommand editCrowdfundingProjectCommand) {
+    public static EditCrowdfundingProjectCommand toDomain(nextcrowd.crowdfunding.projectowner.api.model.EditCrowdfundingProjectCommand editCrowdfundingProjectCommand) {
         return EditCrowdfundingProjectCommand.builder()
                                              .title(editCrowdfundingProjectCommand.getTitle())
                                              .imageUrl(editCrowdfundingProjectCommand.getImageUrl())
@@ -167,7 +114,6 @@ public final class ApiConverter {
                                              .description(editCrowdfundingProjectCommand.getDescription())
                                              .longDescription(editCrowdfundingProjectCommand.getLongDescription())
                                              .projectVideoUrl(editCrowdfundingProjectCommand.getProjectVideoUrl())
-                                             .owner(convertProjectOwner(editCrowdfundingProjectCommand.getOwner()))
                                              .rewards(Optional.ofNullable(editCrowdfundingProjectCommand.getRewards()).orElseGet(List::of)
                                                               .stream()
                                                               .map(ApiConverter::convertProjectReward)

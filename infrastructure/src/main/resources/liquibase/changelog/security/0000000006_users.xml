@@ -35,6 +35,9 @@
     </changeSet>
     <changeSet id="0000000006-3" author="antessio">
         <createTable tableName="roles">
+            <column name="id" type="UUID">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
             <column name="user_id" type="UUID">
                 <constraints nullable="false"/>
             </column>

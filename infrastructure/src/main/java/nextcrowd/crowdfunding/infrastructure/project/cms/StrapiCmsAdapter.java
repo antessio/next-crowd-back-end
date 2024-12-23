@@ -100,23 +100,14 @@ public class StrapiCmsAdapter implements CmsPort {
                 "video_project_%s".formatted(command.getProjectId()
                                                     .id())));
 
-        /*List<CompletableFuture<String>> rewardFutures = command.getRewards()
-                                                               .stream()
-                                                               .map(reward -> CompletableFuture.supplyAsync(() -> saveReward(reward)))
-                                                               .toList();
-
-        CompletableFuture<List<String>> saveRewardsFuture = CompletableFuture.allOf(rewardFutures.toArray(new CompletableFuture[0]))
-                                                                             .thenApply(v -> rewardFutures.stream()
-                                                                                                          .map(CompletableFuture::join)
-                                                                                                          .toList());*/
         CompletableFuture<List<String>> saveRewardsFuture = CompletableFuture.supplyAsync(() -> command.getRewards()
                                                                                                        .stream()
                                                                                                        .map(this::saveReward)
                                                                                                        .toList());
-
-        CompletableFuture.allOf(saveOrCreateProjectOwnerFuture, saveImageFuture, saveVideoIdFuture, saveRewardsFuture).join();
-
         try {
+            CompletableFuture.allOf(saveOrCreateProjectOwnerFuture, saveImageFuture, saveVideoIdFuture, saveRewardsFuture).join();
+
+
             String ownerId = saveOrCreateProjectOwnerFuture.get();
             Optional<String> maybeImageId = saveImageFuture.get();
             Optional<String> maybeVideoId = saveVideoIdFuture.get();
@@ -186,12 +177,12 @@ public class StrapiCmsAdapter implements CmsPort {
                                  .newBuilder()
                                  .build();
         ContentRef rewardImage = Optional.ofNullable(projectReward.getImageUrl())
-                                   .flatMap(url -> this.saveImageFromUrl(
-                                           url,
-                                           "reward_"
-                                           + projectReward.getName()))
-                                   .map(ContentRef::new)
-                                   .orElse(null);
+                                         .flatMap(url -> this.saveImageFromUrl(
+                                                 url,
+                                                 "reward_"
+                                                 + projectReward.getName()))
+                                         .map(ContentRef::new)
+                                         .orElse(null);
         CreateRewardRequest createRewardRequest = CreateRewardRequest.builder()
                                                                      .data(CreateRewardRequest.Reward.builder()
                                                                                                      .description(projectReward.getDescription())
@@ -217,12 +208,14 @@ public class StrapiCmsAdapter implements CmsPort {
     }
 
     private String getOwnerOrCreate(ProjectOwner owner) {
+        logger.debug("getting or creating owner {}", owner);
         Optional<ProjectOwnerData> maybeProjectOwner = getProjectOwner(owner);
 
 
         return maybeProjectOwner
                 .map(ProjectOwnerData::getId)
                 .orElseGet(() -> {
+                    logger.debug("owner not found, creating owner {}", owner);
                     Optional<String> maybeImageId = saveImageFromUrl(owner.getImageUrl(), "owner_%s".formatted(owner.getName()));
                     return saveProjectOwner(owner, maybeImageId.orElse(null))
                             .getId();
