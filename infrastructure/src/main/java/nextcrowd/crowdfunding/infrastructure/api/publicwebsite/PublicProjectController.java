@@ -11,6 +11,7 @@ import org.springframework.stereotype.Controller;
 
 import nextcrowd.crowdfunding.infrastructure.api.publicwebsite.adapter.ApiConverter;
 import nextcrowd.crowdfunding.infrastructure.storage.FileStorageService;
+import nextcrowd.crowdfunding.infrastructure.storage.StorageUtils;
 import nextcrowd.crowdfunding.project.ProjectServicePort;
 import nextcrowd.crowdfunding.websitepublic.api.PublicApi;
 import nextcrowd.crowdfunding.websitepublic.api.model.CrowdfundingProject;
@@ -58,7 +59,7 @@ public class PublicProjectController implements PublicApi {
 
     @Override
     public ResponseEntity<Resource> publicImageIdGet(String id) {
-        return fileStorageService.load(id)
+        return fileStorageService.load(StorageUtils.StorageId.parse(id))
                                  .map(storageResource -> ResponseEntity.ok()
                                                                        .contentLength(storageResource.content().length)
                                                                        .contentType(MediaType.parseMediaType(storageResource.contentType()))
@@ -73,7 +74,7 @@ public class PublicProjectController implements PublicApi {
 
     @Override
     public ResponseEntity<Resource> publicVideoIdGet(String id) {
-        return fileStorageService.load(id)
+        return fileStorageService.load(StorageUtils.StorageId.parse(id))
                                  .map(storageResource -> ResponseEntity.ok()
                                                                        .contentLength(storageResource.content().length)
                                                                        .contentType(MediaType.parseMediaType(storageResource.contentType()))

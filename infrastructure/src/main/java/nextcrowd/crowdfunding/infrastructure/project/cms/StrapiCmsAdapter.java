@@ -36,6 +36,7 @@ import nextcrowd.crowdfunding.infrastructure.project.cms.model.ProjectOwnerListR
 import nextcrowd.crowdfunding.infrastructure.project.cms.model.ProjectResponse;
 import nextcrowd.crowdfunding.infrastructure.project.cms.model.UploadedFile;
 import nextcrowd.crowdfunding.infrastructure.storage.FileStorageService;
+import nextcrowd.crowdfunding.infrastructure.storage.StorageUtils;
 import nextcrowd.crowdfunding.project.command.SubmitCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.model.CreateProjectContent;
 import nextcrowd.crowdfunding.project.model.ProjectContent;
@@ -125,12 +126,16 @@ public class StrapiCmsAdapter implements CmsPort {
     }
 
     private @NotNull Optional<String> saveResourceOnCms(UploadedResource resource, String fileName) {
+        if (resource == null) {
+            return Optional.empty();
+        }
         if (resource.getLocation() == UploadedResource.Location.CMS) {
             return Optional.of(resource.getId().id());
         }
 
         return Optional.ofNullable(resource.getId())
                        .map(UploadedResourceId::id)
+                       .map(StorageUtils.StorageId::parse)
                        .flatMap(fileStorageService::load)
                        .map(storageResource -> storeFile(
                                storageResource.content(),
@@ -421,7 +426,9 @@ public class StrapiCmsAdapter implements CmsPort {
                                                                      .map(owner -> ProjectContent.ProjectOwner.builder()
                                                                                                               .name(owner.getName())
                                                                                                               .id(owner.getId())
-                                                                                                              .image(convertFromCmsToUploadedResource(owner.getImage()))
+                                                                                                              .image(Optional.ofNullable(owner.getImage())
+                                                                                                                             .map(this::convertFromCmsToUploadedResource)
+                                                                                                                             .orElse(null))
                                                                                                               .build())
                                                                      .orElse(null)
                                                       )
@@ -429,19 +436,19 @@ public class StrapiCmsAdapter implements CmsPort {
                                                       .build());
     }
 
-    private UploadedResource convertFromCmsToUploadedResource(UploadedFile video) {
-        return null;
+    private UploadedResource convertFromCmsToUploadedResource(UploadedFile uploadedFile) {
+        return UploadedResource.builder()
+                               .path(uploadedFile.getUrl())
+                               .location(UploadedResource.Location.CMS)
+                               .url(this.strapiPublicUrl + uploadedFile.getUrl())
+                               .contentType(uploadedFile.getMime())
+                               .id(new UploadedResourceId(uploadedFile.getId()))
+                               .build();
     }
 
     private static Instant convertToInstant(String date) {
         return LocalDate.parse(date).atStartOfDay().toInstant(ZoneOffset.UTC);
     }
 
-    private String addBaseUrl(UploadedFile uploadedFile) {
-        return Optional.ofNullable(uploadedFile)
-                       .map(UploadedFile::getUrl)
-                       .map(url -> this.strapiPublicUrl + url)
-                       .orElse(null);
-    }
 
 }

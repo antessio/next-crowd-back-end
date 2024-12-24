@@ -37,9 +37,17 @@ public class FileSystemStorageService implements FileStorageService {
             String id = storageId.toString();
             Path filePath = storageDirectory.resolve(id);
             Files.write(filePath, file);
-            return URI.create(baseUrl + id);
+            return URI.create(getBaseUrl() + id);
         } catch (IOException e) {
             throw new RuntimeException("Failed to store file", e);
+        }
+    }
+
+    private String getBaseUrl() {
+        if (baseUrl.endsWith("/")) {
+            return baseUrl;
+        }else{
+            return baseUrl + "/";
         }
     }
 
@@ -54,12 +62,12 @@ public class FileSystemStorageService implements FileStorageService {
             Path filePath = storageDirectory.resolve(storageId.toString());
             Files.write(filePath, file);
             String urlPath = PUBLIC_PATH + storageId;
-            URI url = URI.create(baseUrl + urlPath);
+            URI url = URI.create(getBaseUrl() + urlPath);
             // extract path from URI
 
             return UploadedResource.builder()
                                    .location(UploadedResource.Location.LOCAL)
-                                   .id(new UploadedResourceId(id))
+                                   .id(new UploadedResourceId(storageId.getId()))
                                    .url(url.toString())
                                    .contentType(contentType)
                                    .path(urlPath)
@@ -71,12 +79,12 @@ public class FileSystemStorageService implements FileStorageService {
 
 
     @Override
-    public Optional<StorageResource> load(String id) {
+    public Optional<StorageResource> load(StorageUtils.StorageId id) {
         try {
-            Path filePath = storageDirectory.resolve(id);
+            Path filePath = storageDirectory.resolve(id.toString());
             if (Files.exists(filePath)) {
                 byte[] content = Files.readAllBytes(filePath);
-                String contentType = extensionToContentType(getFileExtension(id));
+                String contentType = extensionToContentType(getFileExtension(id.toString()));
                 return Optional.of(new StorageResource(content, contentType));
             } else {
                 return Optional.empty();
@@ -89,16 +97,17 @@ public class FileSystemStorageService implements FileStorageService {
     @Override
     public Optional<StorageResource> loadFromUrl(String url) {
         return Optional.of(url)
-                       .map(u -> u.replace(baseUrl + PUBLIC_PATH, ""))
+                       .map(u -> u.replace(getBaseUrl() + PUBLIC_PATH, ""))
                        // take only the last part of the url
                        //.map(u -> u.substring(u.lastIndexOf('/') + 1))
+                       .map(StorageUtils.StorageId::parse)
                        .flatMap(this::load);
     }
 
     @Override
     public boolean isValidUrl(String url) {
         return Optional.of(url)
-                       .map(u -> u.replace(baseUrl, ""))
+                       .map(u -> u.replace(getBaseUrl(), ""))
                        .map(u -> u.substring(u.lastIndexOf('/') + 1))
                        .map(StorageUtils.StorageId::parse)
                        .map(StorageUtils.StorageId::location)

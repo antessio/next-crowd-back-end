@@ -13,7 +13,7 @@ public interface FileStorageService {
 
     record StorageResource(byte[] content, String contentType) {
     }
-    Optional<StorageResource> load(String id);
+    Optional<StorageResource> load(StorageUtils.StorageId id);
 
     Optional<StorageResource> loadFromUrl(String url);
 
