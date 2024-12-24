@@ -80,7 +80,7 @@ class FileSystemStorageServiceTest {
         byte[] fileContent = "test content".getBytes();
         String contentType = "image/png";
         URI fileUri = fileSystemStorageService.storeFile(fileContent, contentType);
-        String id = fileUri.toString().replace(BASE_URL, "");
+        String id = fileUri.toString().replace(BASE_URL+"/image/", "");
         FileSystemStorageService.StorageResource storageResource = fileSystemStorageService.load(StorageUtils.StorageId.parse(id))
                                                                                            .orElseThrow();
 

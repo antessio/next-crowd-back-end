@@ -37,9 +37,17 @@ public class FileSystemStorageService implements FileStorageService {
             String id = storageId.toString();
             Path filePath = storageDirectory.resolve(id);
             Files.write(filePath, file);
-            return URI.create(baseUrl + id);
+            return URI.create(getBaseUrl() + id);
         } catch (IOException e) {
             throw new RuntimeException("Failed to store file", e);
+        }
+    }
+
+    private String getBaseUrl() {
+        if (baseUrl.endsWith("/")) {
+            return baseUrl;
+        }else{
+            return baseUrl + "/";
         }
     }
 
@@ -54,7 +62,7 @@ public class FileSystemStorageService implements FileStorageService {
             Path filePath = storageDirectory.resolve(storageId.toString());
             Files.write(filePath, file);
             String urlPath = PUBLIC_PATH + storageId;
-            URI url = URI.create(baseUrl + urlPath);
+            URI url = URI.create(getBaseUrl() + urlPath);
             // extract path from URI
 
             return UploadedResource.builder()
@@ -89,7 +97,7 @@ public class FileSystemStorageService implements FileStorageService {
     @Override
     public Optional<StorageResource> loadFromUrl(String url) {
         return Optional.of(url)
-                       .map(u -> u.replace(baseUrl + PUBLIC_PATH, ""))
+                       .map(u -> u.replace(getBaseUrl() + PUBLIC_PATH, ""))
                        // take only the last part of the url
                        //.map(u -> u.substring(u.lastIndexOf('/') + 1))
                        .map(StorageUtils.StorageId::parse)
@@ -99,7 +107,7 @@ public class FileSystemStorageService implements FileStorageService {
     @Override
     public boolean isValidUrl(String url) {
         return Optional.of(url)
-                       .map(u -> u.replace(baseUrl, ""))
+                       .map(u -> u.replace(getBaseUrl(), ""))
                        .map(u -> u.substring(u.lastIndexOf('/') + 1))
                        .map(StorageUtils.StorageId::parse)
                        .map(StorageUtils.StorageId::location)
