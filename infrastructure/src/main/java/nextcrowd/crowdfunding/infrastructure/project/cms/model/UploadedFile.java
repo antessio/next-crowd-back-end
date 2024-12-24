@@ -10,5 +10,6 @@ import lombok.NoArgsConstructor;
 public class UploadedFile {
     private String id;
     private String url;
+    private String mime;
 
 }

@@ -81,7 +81,7 @@ class FileSystemStorageServiceTest {
         String contentType = "image/png";
         URI fileUri = fileSystemStorageService.storeFile(fileContent, contentType);
         String id = fileUri.toString().replace(BASE_URL, "");
-        FileSystemStorageService.StorageResource storageResource = fileSystemStorageService.load(id)
+        FileSystemStorageService.StorageResource storageResource = fileSystemStorageService.load(StorageUtils.StorageId.parse(id))
                                                                                            .orElseThrow();
 
         assertArrayEquals(fileContent, storageResource.content());

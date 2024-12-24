@@ -33,6 +33,10 @@ public final class StorageUtils {
             }
         }
 
+        public String getId() {
+            return location.name().toLowerCase() + ID_REGEX + id + contentTypeToExtension(contentType);
+        }
+
         @Override
         public String toString() {
             return getFileType().name().toLowerCase() + "/" + location.name().toLowerCase() + ID_REGEX + id + contentTypeToExtension(contentType);

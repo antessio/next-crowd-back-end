@@ -59,7 +59,7 @@ public class FileSystemStorageService implements FileStorageService {
 
             return UploadedResource.builder()
                                    .location(UploadedResource.Location.LOCAL)
-                                   .id(new UploadedResourceId(id))
+                                   .id(new UploadedResourceId(storageId.getId()))
                                    .url(url.toString())
                                    .contentType(contentType)
                                    .path(urlPath)
@@ -71,12 +71,12 @@ public class FileSystemStorageService implements FileStorageService {
 
 
     @Override
-    public Optional<StorageResource> load(String id) {
+    public Optional<StorageResource> load(StorageUtils.StorageId id) {
         try {
-            Path filePath = storageDirectory.resolve(id);
+            Path filePath = storageDirectory.resolve(id.toString());
             if (Files.exists(filePath)) {
                 byte[] content = Files.readAllBytes(filePath);
-                String contentType = extensionToContentType(getFileExtension(id));
+                String contentType = extensionToContentType(getFileExtension(id.toString()));
                 return Optional.of(new StorageResource(content, contentType));
             } else {
                 return Optional.empty();
@@ -92,6 +92,7 @@ public class FileSystemStorageService implements FileStorageService {
                        .map(u -> u.replace(baseUrl + PUBLIC_PATH, ""))
                        // take only the last part of the url
                        //.map(u -> u.substring(u.lastIndexOf('/') + 1))
+                       .map(StorageUtils.StorageId::parse)
                        .flatMap(this::load);
     }
 
