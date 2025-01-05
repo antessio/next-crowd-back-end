@@ -220,6 +220,22 @@
 						</configuration>
 					</execution>
 					<execution>
+						<id>Bakers APIs</id>
+						<goals>
+							<goal>generate</goal>
+						</goals>
+						<configuration>
+							<inputSpec>${project.basedir}/src/main/resources/baker-api.yml</inputSpec>
+							<generatorName>spring</generatorName>
+							<output>${project.build.directory}/generated-sources/openapi</output>
+							<apiPackage>nextcrowd.crowdfunding.baker.api</apiPackage>
+							<modelPackage>nextcrowd.crowdfunding.baker.api.model</modelPackage>
+							<configOptions>
+								<interfaceOnly>true</interfaceOnly>
+							</configOptions>
+						</configuration>
+					</execution>
+					<execution>
 						<id>Website Public APIs</id>
 						<goals>
 							<goal>generate</goal>

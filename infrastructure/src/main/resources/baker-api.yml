@@ -1,0 +1,192 @@
+openapi: 3.0.3
+info:
+  title: Crowdfunding Bakers API
+  description: API for bakers to manage their investments in crowdfunding projects.
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+    description: Local server
+
+security:
+  - BearerAuth: [ ]
+
+paths:
+  /bakers/investmentSurvey:
+    post:
+      summary: Submit the Investment Survey
+      description: Allows a baker to submit an investment survey.
+      security:
+        - BearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvestmentSurvey'
+      responses:
+        '200':
+          description: Survey submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SurveyCompletionResponse'
+
+  /bakers/investmentProfile:
+    get:
+      summary: Get Investment Profile
+      description: Retrieve the baker's investment profile based on the completed survey and investment activity.
+      security:
+        - BearerAuth: [ ]
+      responses:
+        '200':
+          description: Investment profile retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvestmentProfile'
+
+  /bakers/investments:
+    post:
+      summary: Request to Invest in a Project
+      description: Submit a request to invest in a specific crowdfunding project.
+      security:
+        - BearerAuth: [ ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InvestmentRequest'
+      responses:
+        '200':
+          description: Investment request submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InvestmentToPayResponse'
+
+  /bakers/investments/{investmentId}/cancel:
+    post:
+      summary: Cancel the Investment
+      description: Cancel a previously requested investment.
+      security:
+        - BearerAuth: [ ]
+      parameters:
+        - in: path
+          name: investmentId
+          required: true
+          schema:
+            type: string
+          description: ID of the investment to cancel.
+      responses:
+        '201':
+          description: Investment canceled successfully
+
+  /bakers/interests:
+    get:
+      summary: Show Interest Charges Received
+      description: Retrieve a list of interest charges received by the baker from their investments.
+      security:
+        - BearerAuth: [ ]
+      parameters:
+        - in: query
+          name: cursor
+          schema:
+            type: string
+          description: Cursor for pagination
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of items to return
+      responses:
+        '200':
+          description: List of interest charges
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InterestCharges'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    InvestmentSurvey:
+      type: object
+      properties:
+        answers:
+          type: array
+          items:
+            type: object
+            properties:
+              questionId:
+                type: string
+              answer:
+                type: string
+
+    SurveyCompletionResponse:
+      type: object
+      properties:
+        riskLevel:
+          type: integer
+
+    InvestmentProfile:
+      type: object
+      properties:
+        riskLevel:
+          type: string
+
+    InvestmentRequest:
+      type: object
+      properties:
+        projectId:
+          type: string
+        amount:
+          type: number
+          format: double
+        currency:
+          type: string
+
+    InvestmentToPayResponse:
+      type: object
+      properties:
+        escrowLink:
+          type: string
+
+    PaymentConfirmation:
+      type: object
+      properties:
+        success:
+          type: boolean
+        paymentId:
+          type: string
+        message:
+          type: string
+
+
+    InterestCharges:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date-time
+              status:
+                type: string
+              amount:
+                type: number
+                format: double
+              projectId:
+                type: string
+        hasMore:
+          type: boolean
