@@ -42,6 +42,7 @@ import nextcrowd.crowdfunding.admin.api.model.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.admin.api.model.CancelInvestmentCommand;
 import nextcrowd.crowdfunding.admin.api.model.ConfirmInvestmentCommand;
 import nextcrowd.crowdfunding.admin.api.model.SubmitCrowdfundingProjectCommand;
+import nextcrowd.crowdfunding.baker.BakerServicePort;
 import nextcrowd.crowdfunding.infrastructure.SecurityConfiguration;
 import nextcrowd.crowdfunding.infrastructure.TestUtils;
 import nextcrowd.crowdfunding.infrastructure.security.persistence.User;
@@ -71,6 +72,9 @@ class AdminProjectControllerTest {
 
     private static final User ADMIN_USER = TestUtils.buildRandomUser(Set.of("ROLE_ADMIN"));
     private static final User APPLICATION_PROJECT_USER = TestUtils.buildRandomUser(Set.of("ROLE_PROJECT"));
+
+    @MockBean
+    private BakerServicePort bakerServicePort;
     @MockBean
     private ProjectServicePort projectServicePort;
     @MockBean
