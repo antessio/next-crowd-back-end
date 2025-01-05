@@ -18,7 +18,7 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.github.f4b6a3.uuid.UuidCreator;
 import com.github.javafaker.Faker;
 
-import nextcrowd.crowdfunding.infrastructure.project.persistence.ProjectOwnerEntity;
+import nextcrowd.crowdfunding.infrastructure.domain.project.persistence.ProjectOwnerEntity;
 import nextcrowd.crowdfunding.infrastructure.security.persistence.Role;
 import nextcrowd.crowdfunding.infrastructure.security.persistence.User;
 import nextcrowd.crowdfunding.project.model.BakerId;

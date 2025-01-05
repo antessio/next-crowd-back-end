@@ -7,6 +7,7 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import nextcrowd.crowdfunding.common.TransactionalManager;
 import nextcrowd.crowdfunding.project.command.AddInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.CancelInvestmentCommand;
@@ -27,7 +28,6 @@ import nextcrowd.crowdfunding.project.model.ProjectReward;
 import nextcrowd.crowdfunding.project.port.CmsPort;
 import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
 import nextcrowd.crowdfunding.project.port.EventPublisher;
-import nextcrowd.crowdfunding.project.port.TransactionalManager;
 import nextcrowd.crowdfunding.project.service.ProjectApprovalService;
 import nextcrowd.crowdfunding.project.service.ProjectEditingService;
 import nextcrowd.crowdfunding.project.service.ProjectInvestmentService;

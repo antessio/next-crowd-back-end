@@ -5,7 +5,8 @@ import java.util.function.Supplier;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import nextcrowd.crowdfunding.project.port.TransactionalManager;
+import nextcrowd.crowdfunding.common.TransactionalManager;
+
 
 @Component
 public class SpringTransactionAdapter implements TransactionalManager {

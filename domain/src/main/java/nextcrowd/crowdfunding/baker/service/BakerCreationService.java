@@ -2,7 +2,6 @@ package nextcrowd.crowdfunding.baker.service;
 
 import nextcrowd.crowdfunding.baker.command.SurveySubmissionCommand;
 import nextcrowd.crowdfunding.baker.event.BakerCreatedEvent;
-import nextcrowd.crowdfunding.baker.exception.BakerException;
 import nextcrowd.crowdfunding.baker.model.Baker;
 import nextcrowd.crowdfunding.baker.model.RiskLevel;
 import nextcrowd.crowdfunding.baker.port.BakerRepository;
@@ -20,10 +19,12 @@ public class BakerCreationService {
 
 
     public Baker createBaker(SurveySubmissionCommand command) {
-        if (bakerRepository.getBaker(command.getBakerId()).isPresent()) {
-            throw new BakerException(BakerException.Reason.SURVEY_ALREADY_SUBMITTED);
-        }
 
+        return bakerRepository.getBaker(command.getBakerId())
+                              .orElseGet(() -> createNewBaker(command));
+    }
+
+    private Baker createNewBaker(SurveySubmissionCommand command) {
         Baker baker = Baker.builder()
                            .bakerId(command.getBakerId())
                            .riskLevel(RiskLevel.MODERATE)

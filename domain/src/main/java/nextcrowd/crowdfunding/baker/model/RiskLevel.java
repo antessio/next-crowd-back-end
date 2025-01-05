@@ -9,6 +9,23 @@ public enum RiskLevel {
         this.level = level;
     }
 
+    public static RiskLevel fromLevel(int riskLevel) {
+        switch (riskLevel) {
+            case 5:
+                return HIGH;
+            case 4:
+                return MED_HIGH;
+            case 3:
+                return MODERATE;
+            case 2:
+                return MED_LOW;
+            case 1:
+                return LOW;
+            default:
+                throw new IllegalArgumentException("Invalid risk level: " + riskLevel);
+        }
+    }
+
     public int getLevel() {
         return level;
     }

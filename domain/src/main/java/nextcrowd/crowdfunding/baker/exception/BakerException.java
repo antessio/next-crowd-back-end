@@ -6,8 +6,7 @@ import lombok.Getter;
 @Getter
 public class BakerException extends RuntimeException {
     public enum Reason {
-        BAKER_NOT_FOUND,
-        SURVEY_ALREADY_SUBMITTED
+        BAKER_NOT_FOUND
     }
 
     private Reason reason;
