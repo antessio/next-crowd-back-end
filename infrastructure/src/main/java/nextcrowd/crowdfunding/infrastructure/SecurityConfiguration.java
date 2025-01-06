@@ -77,6 +77,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/admin/upload").hasAnyAuthority(Role.ADMIN, Role.PROJECT_OWNER, Role.BAKER)
                         .requestMatchers("/admin/**").hasAuthority(Role.ADMIN)
                         .requestMatchers("/projectOwner/**").hasAuthority(Role.PROJECT_OWNER)
+                        .requestMatchers("/bakers/**").hasAuthority(Role.BAKER)
                         .requestMatchers("/public/**").permitAll()
                         .anyRequest().denyAll())
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

@@ -26,10 +26,12 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import com.github.javafaker.Faker;
 
 import nextcrowd.crowdfunding.infrastructure.BaseTestWithTestcontainers;
-import nextcrowd.crowdfunding.infrastructure.project.persistence.CrowdfundingProjectRepository;
-import nextcrowd.crowdfunding.infrastructure.project.persistence.InvestmentRepository;
-import nextcrowd.crowdfunding.infrastructure.project.persistence.ProjectOwnerEntity;
-import nextcrowd.crowdfunding.infrastructure.project.persistence.ProjectOwnerRepository;
+import nextcrowd.crowdfunding.infrastructure.domain.project.persistence.CrowdfundingProjectRepository;
+import nextcrowd.crowdfunding.infrastructure.domain.project.persistence.InvestmentRepository;
+import nextcrowd.crowdfunding.infrastructure.domain.project.persistence.ProjectOwnerEntity;
+import nextcrowd.crowdfunding.infrastructure.domain.project.persistence.ProjectOwnerRepository;
+import nextcrowd.crowdfunding.infrastructure.domain.project.persistence.adapter.CrowdfundingProjectSpringDataRepositoryAdapter;
+import nextcrowd.crowdfunding.infrastructure.domain.project.persistence.adapter.ProjectOwnerAdapter;
 import nextcrowd.crowdfunding.project.model.CrowdfundingProject;
 import nextcrowd.crowdfunding.project.model.Investment;
 import nextcrowd.crowdfunding.project.model.InvestmentStatus;

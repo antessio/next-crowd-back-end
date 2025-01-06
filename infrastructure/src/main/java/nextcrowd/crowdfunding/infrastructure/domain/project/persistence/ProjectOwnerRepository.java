@@ -1,4 +1,4 @@
-package nextcrowd.crowdfunding.infrastructure.events;
+package nextcrowd.crowdfunding.infrastructure.domain.project.persistence;
 
 import java.util.UUID;
 
@@ -11,4 +11,4 @@ import org.springframework.stereotype.Repository;
  */
 @SuppressWarnings("unused")
 @Repository
-public interface EventRepository extends JpaRepository<Event, UUID> {}
+public interface ProjectOwnerRepository extends JpaRepository<ProjectOwnerEntity, UUID> {}

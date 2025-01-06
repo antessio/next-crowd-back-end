@@ -4,16 +4,13 @@ import java.time.Clock;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
 
-import nextcrowd.crowdfunding.infrastructure.project.cms.StrapiCmsAdapter;
-import nextcrowd.crowdfunding.infrastructure.project.eventpublisher.DatabaseEventPublisher;
-import nextcrowd.crowdfunding.infrastructure.project.persistence.adapter.CrowdfundingProjectSpringDataRepositoryAdapter;
-import nextcrowd.crowdfunding.infrastructure.transaction.SpringTransactionAdapter;
-import nextcrowd.crowdfunding.project.ProjectService;
-import nextcrowd.crowdfunding.project.ProjectServicePort;
-import nextcrowd.crowdfunding.project.service.ProjectValidationService;
+import nextcrowd.crowdfunding.infrastructure.domain.baker.BakerDomainConfiguration;
+import nextcrowd.crowdfunding.infrastructure.domain.project.ProjectDomainConfiguration;
 
 @Configuration
+@Import({ProjectDomainConfiguration.class, BakerDomainConfiguration.class})
 public class DomainConfiguration {
 
     @Bean
@@ -21,19 +18,6 @@ public class DomainConfiguration {
         return Clock.systemUTC();
     }
 
-    @Bean
-    public ProjectServicePort projectService(
-            Clock clock,
-            CrowdfundingProjectSpringDataRepositoryAdapter crowdfundingProjectSpringDataRepositoryAdapter,
-            DatabaseEventPublisher databaseEventPublisher,
-            StrapiCmsAdapter strapiCmsAdapter,
-            SpringTransactionAdapter springTransactionAdapter) {
-        return new ProjectService(
-                new ProjectValidationService(clock),
-                crowdfundingProjectSpringDataRepositoryAdapter,
-                databaseEventPublisher,
-                strapiCmsAdapter,
-                springTransactionAdapter);
-    }
+
 
 }

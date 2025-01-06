@@ -32,6 +32,7 @@ import org.mockito.Mockito;
 
 import com.github.f4b6a3.uuid.UuidCreator;
 
+import nextcrowd.crowdfunding.common.TransactionalManager;
 import nextcrowd.crowdfunding.project.command.AddInvestmentCommand;
 import nextcrowd.crowdfunding.project.command.ApproveCrowdfundingProjectCommand;
 import nextcrowd.crowdfunding.project.command.CancelInvestmentCommand;
@@ -64,7 +65,6 @@ import nextcrowd.crowdfunding.project.model.UploadedResourceId;
 import nextcrowd.crowdfunding.project.port.CmsPort;
 import nextcrowd.crowdfunding.project.port.CrowdfundingProjectRepository;
 import nextcrowd.crowdfunding.project.port.EventPublisher;
-import nextcrowd.crowdfunding.project.port.TransactionalManager;
 import nextcrowd.crowdfunding.project.service.ProjectValidationService;
 
 class ProjectServiceTest {
