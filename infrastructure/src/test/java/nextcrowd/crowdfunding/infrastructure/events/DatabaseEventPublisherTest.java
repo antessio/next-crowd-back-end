@@ -14,10 +14,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import nextcrowd.crowdfunding.infrastructure.BaseTestWithTestcontainers;
-import nextcrowd.crowdfunding.infrastructure.domain.project.eventpublisher.ProjectDatabaseEventPublisher;
 
 @DataJpaTest
-@Import({ProjectDatabaseEventPublisher.class, ObjectMapper.class})
+@Import({DatabaseEventPublisher.class, ObjectMapper.class})
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)  // Prevent replacing with an embedded DB
 class DatabaseEventPublisherTest extends BaseTestWithTestcontainers {
 
