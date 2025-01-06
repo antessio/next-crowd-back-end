@@ -34,7 +34,7 @@ public class ApiConverter {
     }
 
     public static InvestmentProfile convertInvestmentProfile(Baker baker) {
-        return null;
+        return new InvestmentProfile().riskLevel(baker.getRiskLevel().getLevel());
     }
 
 }
